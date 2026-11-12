@@ -19,7 +19,9 @@ CONFIG_DIR = ROOT / "config"
 DATA_DIR = ROOT / "data"
 TZ = ZoneInfo("Asia/Bangkok")
 
-ALLOWED_LLM_PROVIDERS = ("ollama", "mock")
+ALLOWED_LLM_PROVIDERS = ("ollama", "mock", "openai")
+# openai = API bên ngoài: CHỈ với dữ liệu giả – cần SYNTHETIC_DATA_ONLY=1 và không phải production.
+EXTERNAL_LLM_PROVIDERS = ("openai",)
 
 
 def load_env(path: Path | None = None) -> None:
@@ -128,6 +130,14 @@ def llm_provider(rules: Rules | None = None) -> str:
         raise ValueError(
             f"LLM_PROVIDER='{provider}' không được phép. MVP chỉ cho phép: {ALLOWED_LLM_PROVIDERS}"
         )
+    if provider in EXTERNAL_LLM_PROVIDERS:
+        if is_production():
+            raise ValueError(f"LLM_PROVIDER='{provider}' gửi dữ liệu ra ngoài – cấm khi APP_ENV=production.")
+        if os.environ.get("SYNTHETIC_DATA_ONLY") != "1":
+            raise ValueError(
+                f"LLM_PROVIDER='{provider}' gửi dữ liệu ra ngoài – chỉ dùng với dữ liệu GIẢ: "
+                "đặt SYNTHETIC_DATA_ONLY=1 trong .env để xác nhận."
+            )
     return provider
 
 

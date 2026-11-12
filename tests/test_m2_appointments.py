@@ -387,3 +387,36 @@ def test_waiting_with_close_real_slot_auto(rules):
     slots = [Slot(time(12, 15), "Khám thai", ""), Slot(time(13, 15), "Siêu âm 2D", "")]
     r = compute_arrival(time(12, 15), ["Khám thai", "Siêu âm 2D"], "", None, rules, slots=slots)
     assert r.waiting and not r.reasons
+
+
+# ---------------- chỉ gọi AI khi quy tắc chưa hiểu hết ghi chú
+def test_read_fully_by_rules(rules):
+    from core.rules.note_patterns import read_fully_by_rules
+
+    v = rules["arrival"]["ai_skip_vocabulary"]
+    for n in ("thai moi ycbs", "Thai 20w3d, khám định kỳ", "đến trước 1 tiếng để nhịn ăn lấy máu", "TT 33+2", ""):
+        assert read_fully_by_rules(n, v), n
+    for n in ("song thai 20w", "thai 20w, VMC cũ", "dọa sinh non", "thai hai mươi tuần", "BN xin đổi lịch"):
+        assert not read_fully_by_rules(n, v), n
+
+
+def test_pipeline_skips_ai_for_plain_note(rules):
+    from core.pipeline import plan_appointment
+    from core.rules.merge import MergedAppt
+
+    calls: list[str] = []
+
+    class Spy:
+        model = "spy"
+
+        def generate_json(self, prompt, schema, temperature=0.0, seed=None):  # noqa: ANN001
+            calls.append(prompt)
+            raise RuntimeError("không được gọi")
+
+    def appt(note: str) -> MergedAppt:
+        return MergedAppt(pid="1", appt_date=D, start_time=time(9, 0), end_time=None, services=["Khám thai"],
+                          note=note, full_name="A", phone="0900000001", phone_raw="", nationality="Việt Nam",
+                          department="", doctor="", booking_source="", booked_at=None)
+
+    p = plan_appointment(appt("thai moi ycbs"), rules, Spy(), [], ner=False)
+    assert not calls and p.arrival.arrival_time == time(8, 45) and p.decision.status == "auto"

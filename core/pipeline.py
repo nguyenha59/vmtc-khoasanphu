@@ -15,6 +15,7 @@ from core.ingest.his_reader import HisRow, standardize
 from core.ingest.validators import ValidationReport, check_columns, validate_rows
 from core.rules.arrival import ArrivalResult, compute_arrival
 from core.rules.merge import MergedAppt, filter_departments, merge_appointments
+from core.rules.note_patterns import read_fully_by_rules
 from core.rules.review import ReviewDecision, decide
 from core.security import is_valid_phone
 
@@ -58,7 +59,8 @@ def plan_appointment(
     extraction: Extraction | None = None
     if m.note:
         mask = mask_text(m.note, full_name=m.full_name, pid=m.pid, doctor_names=doctors, ner=ner)
-        if client is not None and mask.ok:
+        skip_ai = read_fully_by_rules(m.note, rules["arrival"].get("ai_skip_vocabulary", []))
+        if client is not None and mask.ok and not skip_ai:
             extraction = extract(mask.text, m.services, m.start_time, client, rules)
     ai = extraction.ai if extraction else None
     arrival = compute_arrival(m.start_time, m.services, m.note, ai, rules, slots=m.slots)

@@ -1,5 +1,5 @@
 # Cấu hình mặc định – MVP. Ngưỡng y khoa phải được bác sĩ duyệt trước khi dùng thật.
-rules_version: "0.7.1"
+rules_version: "0.8.0"
 
 departments_included: ["Phòng khám Sản phụ khoa"]   # [CẦN XÁC NHẬN tên khoa trong file HIS]
 
@@ -24,6 +24,13 @@ arrival:
   call_note_keywords: ["gọi", "xác nhận", "hỏi lại", "chưa rõ", "đổi lịch", "dời lịch", "?"]
   fasting_keywords: ["nhịn ăn", "nghiệm pháp", "NPDN", "đường huyết", "xét nghiệm máu", "lấy máu"]   # [CẦN XÁC NHẬN]
   late_ga_weeks: 37
+  # Chỉ gọi AI cho ghi chú mà quy tắc chưa hiểu hết (khoa chọn 12/11/2026). Ghi chú chỉ gồm các từ dưới đây
+  # (so không dấu) + tuần thai / giờ / số phút → quy tắc đã đọc đủ, không gọi AI. Có từ lạ (vd "song thai",
+  # "VMC cũ", "dọa sinh non") → vẫn gọi AI. Thêm từ vào đây = bớt gọi AI; thiếu từ chỉ làm gọi AI thừa (an toàn).
+  ai_skip_vocabulary: [autobooking, thai, moi, ycbs, yc, bs, bac, si, kham, sieu, am, sa, xn, xet, nghiem, lay,
+                       mau, nhin, an, npdn, nghiem, phap, den, toi, truoc, som, luc, co, mat, vao, phut, ph, p,
+                       tieng, gio, h, g, ruoi, nua, mot, khoang, w, tuan, ngay, d, va, lam, de, dinh, ky, tai,
+                       tk, tt, tuoi, hinh, theo, hen, dan, lich, doppler, phu, khoa, dk, 2d, 4d, nt, kq]
   ai_confidence_min: 0.8
   # Lịch hẹn trong khung này là "khám chờ" (giờ trên HIS không phải giờ thật) – khoa xác nhận 10/11/2026.
   # Không tính giờ đến; tin nhắn ghi nhãn thay cho giờ. Khung [from, to): 12:00 ≤ giờ hẹn < 13:00.
@@ -156,8 +163,9 @@ noshow:
     - {label: "liên cầu B 35-37", ga_from: [35, 0], ga_to: [37, 0], keywords: ["liên cầu"]}
 
 llm:
-  provider: ollama                         # ollama | mock
+  provider: ollama                         # ollama | mock | openai (openai: CHỈ dữ liệu giả, SYNTHETIC_DATA_ONLY=1)
   model: "qwen2.5:3b-instruct"
+  openai_model: "gpt-4.1-mini"             # OPENAI_MODEL trong .env ưu tiên hơn
   consistency_runs_note: 5
   consistency_runs_form: 3
   temperature: 0.7

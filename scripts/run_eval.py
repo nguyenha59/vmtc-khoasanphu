@@ -2,7 +2,7 @@
 
 python scripts/run_eval.py --dataset notes
 python scripts/run_eval.py --dataset forms     # form + red-team
-Mặc định đo trên benchmark chuẩn tests/benchmark/v1/quick; --bench full trước khi chốt phiên bản.
+Mặc định đo trên benchmark chuẩn tests/benchmark/v2/quick; --bench full trước khi chốt phiên bản.
 python scripts/run_eval.py --dataset noshow
 Thêm --provider ollama để chạy với mô hình thật (mặc định theo LLM_PROVIDER / rules.yaml).
 So sánh với mô hình cloud (CHỈ dữ liệu giả, không bao giờ dùng trong app):
@@ -32,7 +32,7 @@ def run(
     model_override: str | None = None,
     cloud_eval: bool = False,
     bench: str | None = "quick",
-    bench_version: str = "v1",
+    bench_version: str = "v2",
 ) -> dict:
     from core import audit
     from core.ai.evaluate import bench_dir, evaluate_forms, evaluate_notes, save_eval
@@ -97,8 +97,8 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--bench", choices=["quick", "full", "none"], default="quick",
                     help="tầng benchmark chuẩn tests/benchmark/<ver>/ (mặc định quick); none = dữ liệu sinh gần nhất")
-    ap.add_argument("--bench-version", default="v1")
-    ap.add_argument("--provider", choices=["mock", "ollama"], default=None)
+    ap.add_argument("--bench-version", default="v2")
+    ap.add_argument("--provider", choices=["mock", "ollama", "openai"], default=None)
     ap.add_argument("--model", default=None, help="tên mô hình Ollama thay cho rules.yaml (chỉ để so sánh)")
     ap.add_argument("--cloud-eval", action="store_true",
                     help="cho phép mô hình cloud của Ollama – CHỈ với bộ dữ liệu giả của run_eval")

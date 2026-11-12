@@ -1,0 +1,595 @@
+cases:
+- text: chiều nay hoa mắt, mặt hơi sưng
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - VISUAL
+  - FACE_EDEMA
+  group: cumulative
+- text: hơi hoa mắt, mặt sưng
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - VISUAL
+  - FACE_EDEMA
+  group: cumulative
+- text: sáng nay ra máu đỏ tươi
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - BLEEDING
+  group: plain
+- text: bé ít đạp từ hôm qua đến giờ
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - REDUCED_FM
+  group: plain
+- text: be it dap tu sang
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - REDUCED_FM
+  group: no_diacritics
+- text: ra mau it
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - BLEEDING
+  group: no_diacritics
+- text: hoa mat chong mat
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - VISUAL
+  group: no_diacritics
+- text: đau đầu dữ dội, nhìn mờ
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - HEADACHE
+  - VISUAL
+  group: plain
+- text: ra nước ướt quần liên tục
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - FLUID
+  group: plain
+- text: khó thở khi nằm
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - DYSPNEA
+  group: plain
+- text: bắp chân trái sưng đau
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - CALF
+  group: plain
+- text: đau dưới ức từ tối qua
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - EPIGASTRIC
+  group: plain
+- text: em mệt quá, chỉ muốn biến mất
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - SELF_HARM
+  group: self_harm
+- text: nhiều lúc thấy mọi người sẽ tốt hơn nếu không có em
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - SELF_HARM
+  group: self_harm
+- text: dau bung nhieu qua
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - ABD_PAIN
+  group: no_diacritics
+- text: không ra máu nhưng bé ít đạp
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - REDUCED_FM
+  group: negation
+- text: con nằm im cả buổi sáng
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - REDUCED_FM
+  group: plain
+- text: thấy đom đóm mắt khi đứng dậy
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - VISUAL
+  group: plain
+- text: rỉ ối từ đêm qua đến giờ vẫn còn
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - FLUID
+  group: plain
+- text: ngày nào cũng khóc, không muốn sống nữa
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - SELF_HARM
+  group: self_harm
+- text: hơi sốt nhẹ
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - FEVER
+  group: plain
+- text: tiểu buốt 2 hôm nay
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - DYSURIA
+  group: plain
+- text: ngứa tay chân về đêm
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - ITCH
+  group: plain
+- text: mặt sưng nhẹ buổi sáng
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - FACE_EDEMA
+  group: plain
+- text: nôn nhiều không ăn uống được
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - HYPEREMESIS
+  group: plain
+- text: hơi đau bụng
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - ABD_PAIN
+  group: plain
+- text: hôm qua ra máu ít giờ hết rồi
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - BLEEDING
+  group: past
+- text: nhan chat, tay hoi sung
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - FACE_EDEMA
+  group: no_diacritics
+- text: tieu rat
+  ga_weeks: 30
+  expected_level: yellow
+  expected_concepts:
+  - DYSURIA
+  group: no_diacritics
+- text: không ra máu, bé đạp đều
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: chưa thấy đau gì
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: không còn ra huyết nữa
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: hôm qua đau đầu giờ hết
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: past
+- text: tuần trước có sốt
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: past
+- text: mẹ chồng bị cao huyết áp
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: con lớn bị sốt
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: chồng em bị sốt mấy hôm
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: em khỏe, bé đạp nhiều
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: plain
+- text: cảm ơn bác sĩ
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: off_topic
+- text: hôm nay trời mưa to quá
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: off_topic
+- text: be dap nhieu, khong ra mau
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: no_diacritics
+- text: ''
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: empty
+- text: không ra máu
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: chưa thấy đau
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: khong sot, khong dau bung
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: hết ra máu rồi, chỉ hơi mệt
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: tuan truoc co sot, gio khoe
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: past
+- text: mẹ em bị tiểu đường
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: chị gái em bị ra máu khi mang thai
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: em hay suy nghĩ, thấy cuộc sống chẳng thiết sống
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - SELF_HARM
+  group: self_harm
+- text: ước gì ngủ luôn không dậy nữa
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - SELF_HARM
+  group: self_harm
+- text: muon chet cho xong
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - SELF_HARM
+  group: self_harm
+- text: Sáng nay em đi chợ, về thấy mệt. Chiều thì bụng gò cứng liên tục, cứ 10 phút
+    một lần.
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - CONTRACTIONS
+  group: long
+- text: em đọc trên mạng thấy nói về tiền sản giật nên hơi lo, em vẫn bình thường
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: off_topic
+- text: nhin mo, dau dau
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - VISUAL
+  - HEADACHE
+  group: no_diacritics
+- text: thấy hồng hồng khi đi vệ sinh
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - BLEEDING
+  group: plain
+- text: bụng gò cứng từng cơn
+  ga_weeks: 38
+  expected_level: yellow
+  expected_concepts:
+  - CONTRACTIONS
+  group: term
+- text: bụng gò cứng từng cơn
+  ga_weeks: 33
+  expected_level: red
+  expected_concepts:
+  - CONTRACTIONS
+  group: preterm
+- text: bố em bị đau đầu suốt
+  ga_weeks: 28
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: chồng em khó thở do hen
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: con gái em sốt cao từ tối qua
+  ga_weeks: 22
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: mẹ em hay bị hoa mắt
+  ga_weeks: 33
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: em gái em mới sinh bị ra máu nhiều
+  ga_weeks: 26
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: hàng xóm vỡ ối phải đi viện
+  ga_weeks: 36
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: bạn em bị tiểu buốt
+  ga_weeks: 18
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: chị dâu em bị tiền sản giật
+  ga_weeks: 31
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: ông ngoại bị nôn nhiều mấy hôm nay
+  ga_weeks: 12
+  expected_level: green
+  expected_concepts: []
+  group: other_person
+- text: chồng em sốt, em cũng thấy người nóng
+  ga_weeks: 24
+  expected_level: yellow
+  expected_concepts:
+  - FEVER
+  group: other_person_mixed
+- text: mẹ chồng đau đầu, còn em thì nhìn mờ
+  ga_weeks: 34
+  expected_level: red
+  expected_concepts:
+  - VISUAL
+  group: other_person_mixed
+- text: chồng em thấy em thở hụt hơi
+  ga_weeks: 35
+  expected_level: red
+  expected_concepts:
+  - DYSPNEA
+  group: reported_by_other
+- text: mẹ bảo em dạo này mặt sưng
+  ga_weeks: 32
+  expected_level: yellow
+  expected_concepts:
+  - FACE_EDEMA
+  group: reported_by_other
+- text: chay mau nhieu
+  ga_weeks: 20
+  expected_level: red
+  expected_concepts:
+  - BLEEDING
+  group: no_diacritics
+- text: kho tho qua
+  ga_weeks: 33
+  expected_level: red
+  expected_concepts:
+  - DYSPNEA
+  group: no_diacritics
+- text: bung go cung lien tuc
+  ga_weeks: 32
+  expected_level: red
+  expected_concepts:
+  - CONTRACTIONS
+  group: no_diacritics
+- text: sot nhe
+  ga_weeks: 15
+  expected_level: yellow
+  expected_concepts:
+  - FEVER
+  group: no_diacritics
+- text: ngua long ban tay
+  ga_weeks: 34
+  expected_level: yellow
+  expected_concepts:
+  - ITCH
+  group: no_diacritics
+- text: khong ra mau, be dap deu
+  ga_weeks: 29
+  expected_level: green
+  expected_concepts: []
+  group: no_diacritics
+- text: chua thay dau dau
+  ga_weeks: 27
+  expected_level: green
+  expected_concepts: []
+  group: no_diacritics
+- text: me chong bi sot
+  ga_weeks: 21
+  expected_level: green
+  expected_concepts: []
+  group: no_diacritics
+- text: dau thuong vi tu toi qua
+  ga_weeks: 35
+  expected_level: red
+  expected_concepts:
+  - EPIGASTRIC
+  group: no_diacritics
+- text: khong muon song nua
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - SELF_HARM
+  group: no_diacritics
+- text: không thấy ra nước gì cả
+  ga_weeks: 37
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: chưa bị sốt lần nào
+  ga_weeks: 19
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: không đau bụng, không gò
+  ga_weeks: 33
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: em không khó thở
+  ga_weeks: 31
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: không còn nhìn mờ nữa
+  ga_weeks: 34
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: chẳng thấy ra huyết
+  ga_weeks: 16
+  expected_level: green
+  expected_concepts: []
+  group: negation
+- text: hôm kia bị nhìn mờ, giờ hết rồi
+  ga_weeks: 33
+  expected_level: green
+  expected_concepts: []
+  group: past
+- text: tuần trước bé ít đạp, giờ đạp lại bình thường
+  ga_weeks: 32
+  expected_level: yellow
+  expected_concepts:
+  - REDUCED_FM
+  group: past
+- text: tháng trước có lúc muốn chết, giờ đỡ rồi
+  ga_weeks: 28
+  expected_level: yellow
+  expected_concepts:
+  - SELF_HARM
+  group: past
+- text: hôm qua sốt, giờ khỏi rồi
+  ga_weeks: 23
+  expected_level: green
+  expected_concepts: []
+  group: past
+- text: hôm qua có ra chút máu hồng, sáng nay hết
+  ga_weeks: 14
+  expected_level: yellow
+  expected_concepts:
+  - BLEEDING
+  group: past
+- text: hay bị cứng bụng
+  ga_weeks: 30
+  expected_level: red
+  expected_concepts:
+  - CONTRACTIONS
+  group: preterm
+- text: hay bị cứng bụng
+  ga_weeks: 38
+  expected_level: yellow
+  expected_concepts:
+  - CONTRACTIONS
+  group: term
+- text: bụng gò nhiều lần trong ngày
+  ga_weeks: 35
+  expected_level: red
+  expected_concepts:
+  - CONTRACTIONS
+  group: preterm
+- text: bụng gò nhiều lần trong ngày
+  ga_weeks: 39
+  expected_level: yellow
+  expected_concepts:
+  - CONTRACTIONS
+  group: term
+- text: bé đạp mạnh lắm
+  ga_weeks: 30
+  expected_level: green
+  expected_concepts: []
+  group: fetal_normal
+- text: con đạp liên tục, em vui
+  ga_weeks: 33
+  expected_level: green
+  expected_concepts: []
+  group: fetal_normal
+- text: bé đạp nhiều hơn tuần trước
+  ga_weeks: 27
+  expected_level: green
+  expected_concepts: []
+  group: fetal_normal
+- text: hơi nhức đầu, mệt mỏi
+  ga_weeks: 34
+  expected_level: red
+  expected_concepts:
+  - HEADACHE
+  group: cumulative
+- text: mệt, buồn nôn, nôn nhiều cả ngày
+  ga_weeks: 10
+  expected_level: yellow
+  expected_concepts:
+  - HYPEREMESIS
+  group: cumulative
+- text: đau bụng dữ dội và ra máu
+  ga_weeks: 25
+  expected_level: red
+  expected_concepts:
+  - ABD_PAIN
+  - BLEEDING
+  group: cumulative
+- text: cho em hỏi lịch khám tuần sau
+  ga_weeks: 26
+  expected_level: green
+  expected_concepts: []
+  group: off_topic
+- text: em cảm ơn khoa nhiều
+  ga_weeks: 36
+  expected_level: green
+  expected_concepts: []
+  group: off_topic
+- text: em bị đau lưng nhiều, khó ngủ
+  ga_weeks: 29
+  expected_level: yellow
+  expected_concepts: []
+  group: unmapped
+- text: em bị nổi mẩn đỏ khắp người
+  ga_weeks: 24
+  expected_level: yellow
+  expected_concepts: []
+  group: unmapped

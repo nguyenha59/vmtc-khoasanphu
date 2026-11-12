@@ -1,0 +1,173 @@
+{
+  "benchmark_version": "v2",
+  "data": "100% dữ liệu GIẢ sinh bởi scripts/gen_synthetic.py – không có dữ liệu thật",
+  "generator_args": [
+    "--anchor",
+    "2026-11-10",
+    "--seed",
+    "42",
+    "--days",
+    "90",
+    "--per-day",
+    "110",
+    "--forms",
+    "2000"
+  ],
+  "sample_seed": 20261110,
+  "rules_version_at_build": "0.8.0",
+  "fewshot_sha256": "aab816fffbf239881d9cc5cf8a14ebf765a4f9508c6424417b41f05c0ef0549e",
+  "tiers": {
+    "quick": {
+      "notes": {
+        "n": 200,
+        "with_note": 88,
+        "status_rule": {
+          "auto": 186,
+          "needs_review": 14
+        }
+      },
+      "forms": {
+        "n": 300,
+        "expected_level": {
+          "green": 100,
+          "red": 100,
+          "yellow": 100
+        },
+        "form_code": {
+          "F1": 34,
+          "F2": 22,
+          "F3": 28,
+          "F4": 26,
+          "F5": 33,
+          "F6": 21,
+          "M-DTD": 21,
+          "M-THA": 37,
+          "S1": 7,
+          "S2": 5,
+          "S3": 36,
+          "S4": 30
+        },
+        "group": {
+          "cumulative": 3,
+          "empty": 10,
+          "negation": 21,
+          "no_diacritics": 19,
+          "off_topic": 19,
+          "other_person": 28,
+          "past": 24,
+          "plain": 44,
+          "self_harm": 6,
+          "structured": 126
+        },
+        "with_free_text": 164
+      },
+      "redteam": {
+        "n": 106,
+        "expected_level": {
+          "green": 46,
+          "red": 38,
+          "yellow": 22
+        },
+        "group": {
+          "cumulative": 5,
+          "empty": 1,
+          "fetal_normal": 3,
+          "long": 1,
+          "negation": 14,
+          "no_diacritics": 18,
+          "off_topic": 5,
+          "other_person": 14,
+          "other_person_mixed": 2,
+          "past": 9,
+          "plain": 18,
+          "preterm": 3,
+          "reported_by_other": 2,
+          "self_harm": 6,
+          "term": 3,
+          "unmapped": 2
+        }
+      }
+    },
+    "full": {
+      "notes": {
+        "n": 600,
+        "with_note": 264,
+        "status_rule": {
+          "auto": 558,
+          "needs_review": 42
+        }
+      },
+      "forms": {
+        "n": 2000,
+        "expected_level": {
+          "green": 1200,
+          "red": 271,
+          "yellow": 529
+        },
+        "form_code": {
+          "F1": 206,
+          "F2": 119,
+          "F3": 155,
+          "F4": 202,
+          "F5": 198,
+          "F6": 187,
+          "M-DTD": 165,
+          "M-THA": 228,
+          "S1": 36,
+          "S2": 63,
+          "S3": 291,
+          "S4": 150
+        },
+        "group": {
+          "cumulative": 6,
+          "empty": 64,
+          "negation": 246,
+          "no_diacritics": 120,
+          "off_topic": 142,
+          "other_person": 212,
+          "past": 182,
+          "plain": 216,
+          "self_harm": 19,
+          "structured": 793
+        },
+        "with_free_text": 1143
+      },
+      "redteam": {
+        "n": 106,
+        "expected_level": {
+          "green": 46,
+          "red": 38,
+          "yellow": 22
+        },
+        "group": {
+          "cumulative": 5,
+          "empty": 1,
+          "fetal_normal": 3,
+          "long": 1,
+          "negation": 14,
+          "no_diacritics": 18,
+          "off_topic": 5,
+          "other_person": 14,
+          "other_person_mixed": 2,
+          "past": 9,
+          "plain": 18,
+          "preterm": 3,
+          "reported_by_other": 2,
+          "self_harm": 6,
+          "term": 3,
+          "unmapped": 2
+        }
+      }
+    }
+  },
+  "sha256": {
+    "full/form_labels.csv": "a8ac96cbab55ce817dfb72994d3eff8c11e3e6b87ff6aed1187b7c6c7b9ade37",
+    "full/form_responses.csv": "d55d88f8bebfa4463553bf330d5253e285a3bc2db4c2f345d743d404599a9cba",
+    "full/notes.csv": "15cbff32d17dca0585eb95120506481f03cdc7248dbcc22a2a15ef33783fe338",
+    "full/redteam.yaml": "c90b14782c26fab0b2e2b04bfbc73bce8ddb2f0695592f97658fd294af1c8dbe",
+    "quick/form_labels.csv": "68eea79a73586a352d04a3640554aa44b366b225344106648c613cb92ec9502e",
+    "quick/form_responses.csv": "876ab954a07fe91f66013576c7bcb739a3fdb17e4d8853d520c77279a6bd49b8",
+    "quick/notes.csv": "5cb4b4ea88cd8644ecda9535400e7a8d6844c51199baa3e878328ced806bb4b4",
+    "quick/redteam.yaml": "c90b14782c26fab0b2e2b04bfbc73bce8ddb2f0695592f97658fd294af1c8dbe"
+  }
+}

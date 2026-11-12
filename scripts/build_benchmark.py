@@ -26,7 +26,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 BENCH_ROOT = ROOT / "tests" / "benchmark"
 
-VERSION = "v1"
+VERSION = "v2"  # v2: đáp án giờ đến theo rules 0.8.0 (XN 30', SA 20', khám 15') – 12/11/2026
 GEN_ARGS = ["--anchor", "2026-11-10", "--seed", "42", "--days", "90", "--per-day", "110", "--forms", "2000"]
 SAMPLE_SEED = 20261110
 QUICK_NOTES = 200

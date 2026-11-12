@@ -57,11 +57,55 @@ def test_config_has_version():
 def test_llm_provider_only_local(monkeypatch, rules):
     from core.config import llm_provider
 
-    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
     with pytest.raises(ValueError):
         llm_provider(rules)
     monkeypatch.setenv("LLM_PROVIDER", "mock")
     assert llm_provider(rules) == "mock"
+
+
+def test_openai_only_with_synthetic_flag_and_not_production(monkeypatch, rules):
+    from core.config import llm_provider
+
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.delenv("SYNTHETIC_DATA_ONLY", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+    with pytest.raises(ValueError, match="dữ liệu GIẢ"):
+        llm_provider(rules)
+    monkeypatch.setenv("SYNTHETIC_DATA_ONLY", "1")
+    assert llm_provider(rules) == "openai"
+    monkeypatch.setenv("APP_ENV", "production")
+    with pytest.raises(ValueError, match="production"):
+        llm_provider(rules)
+
+
+def test_openai_client_parses_and_validates(monkeypatch):
+    import json as _json
+
+    from core.ai import llm_client
+
+    sent: list[dict] = []
+
+    class Resp:
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {"choices": [{"message": {"content": _json.dumps({"x": 1})}}]}
+
+    def fake_post(url, json, timeout, headers):  # noqa: A002
+        sent.append(json)
+        assert headers["Authorization"] == "Bearer sk-test"
+        return Resp()
+
+    monkeypatch.setattr(llm_client.requests, "post", fake_post)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    c = llm_client.OpenAIClient(model="m", api_key="sk-test")
+    schema = {"type": "object", "properties": {"x": {"type": "integer"}}, "required": ["x"]}
+    assert c.generate_json("p", schema, 0.2, 7) == {"x": 1}
+    assert sent[0]["response_format"] == {"type": "json_object"} and sent[0]["seed"] == 7
+    with pytest.raises(llm_client.LlmError):
+        c.generate_json("p", {"type": "object", "required": ["y"]}, 0.2, None)
 
 
 def test_login_bcrypt():

@@ -44,6 +44,8 @@ MAX_PUBLIC_BODY_BYTES = 64 * 1024  # form thai phụ: vài chục câu + 2000 k�
 def production_problems() -> list[str]:
     """Điều kiện tối thiểu để chạy APP_ENV=production. Rỗng = được phép khởi động."""
     problems = []
+    if (os.environ.get("LLM_PROVIDER") or "").strip().lower() == "openai":
+        problems.append("LLM_PROVIDER=openai gửi dữ liệu ra ngoài – chỉ dùng với dữ liệu giả")
     if os.environ.get("APP_COOKIE_SECURE") != "1":
         problems.append("APP_COOKIE_SECURE phải = 1 (chạy sau HTTPS)")
     for u in load_users():

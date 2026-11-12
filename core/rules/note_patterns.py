@@ -81,3 +81,15 @@ def find_ga(note: str) -> tuple[int, int | None] | None:
             if 4 <= w <= 42 and (d is None or 0 <= d <= 6):
                 return w, d
     return None
+
+
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+_NUMERIC_TOKEN_RE = re.compile(r"^\d+[a-z]{0,4}\d*[a-z]{0,4}$")  # 20w, 7h30, 30p, 6d, 33+2 (tách), 1,5…
+
+
+def read_fully_by_rules(note: str, vocabulary: list[str]) -> bool:
+    """True nếu ghi chú chỉ gồm từ quen (vocabulary, so không dấu) và số / tuần thai / giờ → không cần gọi AI."""
+    text = deaccent(nfc(note or "")).lower()
+    vocab = {deaccent(w).lower() for w in vocabulary}
+    tokens = _TOKEN_RE.findall(text)
+    return all(t in vocab or _NUMERIC_TOKEN_RE.match(t) for t in tokens)

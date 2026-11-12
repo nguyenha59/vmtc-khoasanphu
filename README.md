@@ -14,7 +14,7 @@
 - Ngưỡng y khoa và quy tắc nằm trong `config/rules.yaml`, không viết cứng trong code; mỗi kết quả ghi kèm `rules_version`.
 - Phân mức gồm 3 lớp (quy tắc → xu hướng → mô hình ngôn ngữ). Mô hình **chỉ được nâng mức**, không bao giờ hạ mức mà lớp quy tắc đã đặt.
 - Văn bản gửi cho mô hình ngôn ngữ phải được che dữ liệu cá nhân trước (`core/ai/masking.py`); còn sót số điện thoại / CCCD / tên thì không gửi, chuyển người duyệt.
-- Mô hình ngôn ngữ chạy cục bộ qua Ollama (`LLM_PROVIDER=ollama` hoặc `mock`); không gửi dữ liệu ra dịch vụ bên ngoài.
+- Mô hình ngôn ngữ mặc định chạy cục bộ qua Ollama (`LLM_PROVIDER=ollama` hoặc `mock`). Có thể dùng OpenAI (`LLM_PROVIDER=openai`) **chỉ với dữ liệu giả**: phải đặt `SYNTHETIC_DATA_ONLY=1`, và ứng dụng từ chối chạy OpenAI khi `APP_ENV=production`.
 - Tên, số điện thoại, ghi chú gốc được mã hóa (Fernet, khóa `APP_SECRET_KEY`); giao diện chỉ hiện số điện thoại dạng che.
 - Mọi thao tác xem / sửa / duyệt / xử lý cảnh báo đều ghi vào `audit_log`.
 
@@ -52,6 +52,8 @@ python scripts/make_key.py
 ollama pull qwen2.5:7b-instruct
 #    Trong .env đặt: LLM_PROVIDER=ollama
 #    KHÔNG dùng mô hình đuôi "-cloud" (chạy trên máy chủ Ollama) – ứng dụng sẽ chặn.
+#    Hoặc OpenAI (chỉ dữ liệu giả) – trong .env: LLM_PROVIDER=openai, OPENAI_API_KEY=..., SYNTHETIC_DATA_ONLY=1
+#    (tùy chọn OPENAI_MODEL, mặc định gpt-4.1-mini)
 
 # 4. Dữ liệu giả + nạp CSDL demo + huấn luyện mô hình bỏ hẹn
 python scripts/gen_synthetic.py --days 90 --per-day 110 --seed 42

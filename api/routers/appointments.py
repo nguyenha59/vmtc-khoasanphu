@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from api.deps import CurrentUser, require
 from api.util import file_response, jsonable, safe_name
 from core import audit
-from core.ai.llm_client import OllamaClient, make_client
+from core.ai.llm_client import OllamaClient, OpenAIClient, make_client
 from core.config import DATA_DIR, TZ, llm_provider, load_his_columns, load_rules
 from core.db import now, session_scope
 from core.ingest.his_reader import read_raw
@@ -129,6 +129,8 @@ async def upload(d: date = Form(...), use_ai: bool = Form(True), sample: str | N
         if isinstance(client, OllamaClient) and not client.available():
             warning = "Không kết nối được Ollama hoặc chưa tải mô hình – chỉ xử lý bằng quy tắc."
             client = None
+        elif isinstance(client, OpenAIClient):
+            warning = "Đang dùng OpenAI (API bên ngoài) – CHỈ được dùng với dữ liệu giả."
 
     def work():  # chạy ngoài vòng sự kiện (đọc Excel + gọi AI có thể lâu)
         raw = read_raw(stored)

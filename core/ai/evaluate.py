@@ -117,7 +117,7 @@ def evaluate_redteam(client: LlmClient | None, rules: Rules, ner: Any = True,
     from core.ai.form_reader import read_free_text
 
     cases = yaml.safe_load((path or REDTEAM).read_text(encoding="utf-8"))["cases"]
-    pairs, by_group, misses, over = [], {}, [], []
+    pairs, by_group, misses, over, under = [], {}, [], [], []
     for c in cases:
         r = read_free_text(c["text"], c["ga_weeks"], client, rules, ner=ner)
         # Đi đúng đường như hệ thống thật: combine (AI lỗi / độ tin cậy thấp → tối thiểu vàng).
@@ -132,10 +132,14 @@ def evaluate_redteam(client: LlmClient | None, rules: Rules, ner: Any = True,
         if _over(c["expected_level"], got):
             over.append({"group": c["group"], "expected": c["expected_level"], "got": got,
                          "text": c["text"], "why": _why(r)})
+        if _over(got, c["expected_level"]):
+            under.append({"group": c["group"], "expected": c["expected_level"], "got": got,
+                          "text": c["text"], "why": _why(r)})
     out = _form_metrics(pairs)
     out["by_group"] = {g: _form_metrics(v)["exact_agreement"] for g, v in by_group.items()}
     out["missed_red"] = misses
     out["over_triage_cases"] = over
+    out["under_triage_cases"] = under  # ca bị hạ mức sai – phải soi từng ca
     return out
 
 

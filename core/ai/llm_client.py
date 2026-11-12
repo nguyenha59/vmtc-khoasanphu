@@ -1,4 +1,4 @@
-"""Client mô hình ngôn ngữ: Ollama cục bộ hoặc mock. Không có lựa chọn API bên ngoài."""
+"""Client mô hình ngôn ngữ: Ollama cục bộ, mock, hoặc OpenAI (API ngoài – CHỈ dữ liệu giả)."""
 
 from __future__ import annotations
 
@@ -122,6 +122,65 @@ class OllamaClient:
         return self._local
 
 
+# ---------------------------------------------------------------- OpenAI (chỉ dữ liệu giả)
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
+
+
+class OpenAIClient:
+    """Gọi OpenAI Chat Completions, ép JSON rồi kiểm lược đồ tại chỗ.
+
+    Chỉ tạo qua make_client khi llm_provider() cho phép (SYNTHETIC_DATA_ONLY=1, không production).
+    Văn bản vẫn phải qua core/ai/masking.py trước khi tới đây.
+    """
+
+    def __init__(self, model: str | None = None, api_key: str | None = None, timeout: float = 60) -> None:
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        if not self.api_key:
+            raise LlmError("Thiếu OPENAI_API_KEY trong .env.")
+        self.model = os.environ.get("OPENAI_MODEL") or model or DEFAULT_OPENAI_MODEL
+        self.name = f"openai:{self.model}"
+        self.timeout = timeout
+        self._no_temperature = False  # một số mô hình chỉ nhận temperature mặc định
+
+    def _post(self, body: dict[str, Any]) -> requests.Response:
+        return requests.post(
+            OPENAI_URL, json=body, timeout=self.timeout, headers={"Authorization": f"Bearer {self.api_key}"}
+        )
+
+    def generate_json(
+        self, prompt: str, schema: dict[str, Any], temperature: float, seed: int | None
+    ) -> dict[str, Any]:
+        system = (
+            "Bạn là trợ lý đọc văn bản y khoa tiếng Việt cho phòng khám sản. Chỉ trả về MỘT đối tượng JSON "
+            "đúng lược đồ sau, không thêm chữ nào khác:\n" + json.dumps(schema, ensure_ascii=False)
+        )
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+        }
+        if seed is not None:
+            body["seed"] = seed
+        if not self._no_temperature:
+            body["temperature"] = temperature
+        try:
+            r = self._post(body)
+            if r.status_code == 400 and "temperature" in r.text and "temperature" in body:
+                self._no_temperature = True
+                body.pop("temperature")
+                r = self._post(body)
+            if r.status_code >= 400:
+                raise LlmError(f"OpenAI lỗi {r.status_code}: {r.text[:200]}")
+            out = json.loads(r.json()["choices"][0]["message"]["content"])
+        except (requests.RequestException, ValueError, KeyError, IndexError) as e:
+            raise LlmError(f"OpenAI lỗi: {e}") from e
+        return validate(out, schema)
+
+    def available(self) -> bool:
+        return bool(self.api_key)
+
+
 # ---------------------------------------------------------------- Mock
 Responder = Callable[[str, dict[str, Any], int | None], dict[str, Any]]
 
@@ -191,6 +250,8 @@ def make_client(rules: Rules) -> LlmClient:
     provider = llm_provider(rules)
     if provider == "ollama":
         return OllamaClient(model=rules["llm"]["model"], timeout=rules["llm"].get("timeout_seconds", 120))
+    if provider == "openai":
+        return OpenAIClient(model=rules["llm"].get("openai_model"))
     return MockClient()
 
 
