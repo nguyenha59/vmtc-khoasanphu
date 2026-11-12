@@ -125,6 +125,54 @@ class OllamaClient:
 # ---------------------------------------------------------------- OpenAI (chỉ dữ liệu giả)
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
+# Giá USD / 1 triệu token (gpt-4.1-mini) – KIỂM TRA LẠI bảng giá OpenAI; đổi bằng OPENAI_PRICE_IN / OPENAI_PRICE_OUT.
+DEFAULT_PRICE_IN, DEFAULT_PRICE_OUT = 0.40, 1.60
+SPEND_FILE = ROOT / "data" / "openai_spend.json"  # chi phí theo ngày, cộng dồn qua mọi lần chạy (data/ không lên git)
+
+
+class BudgetExceeded(LlmError):
+    """Chạm ngân sách OPENAI_BUDGET_USD – không gọi thêm. Là LlmError nên app tự lùi về quy tắc (an toàn)."""
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name) or default)
+    except ValueError:
+        return default
+
+
+def _today() -> str:
+    from datetime import datetime
+
+    from core.config import TZ
+
+    return datetime.now(TZ).date().isoformat()
+
+
+def _read_spend() -> dict[str, Any]:
+    try:
+        d = json.loads(SPEND_FILE.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def openai_spent(day: str | None = None) -> float:
+    """Chi phí OpenAI trong NGÀY (mặc định hôm nay, giờ Asia/Bangkok). Ngân sách OPENAI_BUDGET_USD tính theo ngày."""
+    return float((_read_spend().get("days") or {}).get(day or _today(), {}).get("usd", 0.0))
+
+
+def _add_spend(usd: float, tokens_in: int, tokens_out: int) -> float:
+    d = _read_spend()
+    days = d.setdefault("days", {})
+    t = days.setdefault(_today(), {"usd": 0.0, "tokens_in": 0, "tokens_out": 0, "calls": 0})
+    t["usd"] = float(t["usd"]) + usd
+    t["tokens_in"] = int(t["tokens_in"]) + tokens_in
+    t["tokens_out"] = int(t["tokens_out"]) + tokens_out
+    t["calls"] = int(t["calls"]) + 1
+    SPEND_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SPEND_FILE.write_text(json.dumps(d), encoding="utf-8")
+    return float(t["usd"])
 
 
 class OpenAIClient:
@@ -142,6 +190,10 @@ class OpenAIClient:
         self.name = f"openai:{self.model}"
         self.timeout = timeout
         self._no_temperature = False  # một số mô hình chỉ nhận temperature mặc định
+        self.budget = _env_float("OPENAI_BUDGET_USD", 1.0)
+        self.price_in = _env_float("OPENAI_PRICE_IN", DEFAULT_PRICE_IN)
+        self.price_out = _env_float("OPENAI_PRICE_OUT", DEFAULT_PRICE_OUT)
+        self.budget_hit = False
 
     def _post(self, body: dict[str, Any]) -> requests.Response:
         return requests.post(
@@ -164,6 +216,11 @@ class OpenAIClient:
             body["seed"] = seed
         if not self._no_temperature:
             body["temperature"] = temperature
+        # Rào ngân sách: ước lượng lần gọi này (≈ 3 ký tự / token, đầu ra ≤ 1000 token) – vượt thì không gọi.
+        est = ((len(system) + len(prompt)) / 3 * self.price_in + 1000 * self.price_out) / 1e6
+        if openai_spent() + est > self.budget:
+            self.budget_hit = True
+            raise BudgetExceeded(f"Đã chạm ngân sách OpenAI hôm nay {self.budget:.2f} USD – dừng gọi.")
         try:
             r = self._post(body)
             if r.status_code == 400 and "temperature" in r.text and "temperature" in body:
@@ -172,7 +229,11 @@ class OpenAIClient:
                 r = self._post(body)
             if r.status_code >= 400:
                 raise LlmError(f"OpenAI lỗi {r.status_code}: {r.text[:200]}")
-            out = json.loads(r.json()["choices"][0]["message"]["content"])
+            data = r.json()
+            usage = data.get("usage") or {}
+            t_in, t_out = int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0))
+            _add_spend((t_in * self.price_in + t_out * self.price_out) / 1e6, t_in, t_out)
+            out = json.loads(data["choices"][0]["message"]["content"])
         except (requests.RequestException, ValueError, KeyError, IndexError) as e:
             raise LlmError(f"OpenAI lỗi: {e}") from e
         return validate(out, schema)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from datetime import date, time, timedelta
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -118,9 +119,17 @@ async def upload(d: date = Form(...), use_ai: bool = Form(True), sample: str | N
         fname, content = path.name, path.read_bytes()
     else:
         raise HTTPException(422, "Chọn file HIS hoặc file mẫu.")
+    from core.safe_files import UnsafeFile, check_xlsx_bytes
+
+    try:
+        check_xlsx_bytes(content)
+    except UnsafeFile as e:
+        audit.log("upload_his_unsafe", "file", fname, {"reason": str(e)}, user_id=user.user_id)
+        raise HTTPException(422, str(e)) from e
     uploads = DATA_DIR / "uploads"
     uploads.mkdir(parents=True, exist_ok=True)
-    stored = uploads / f"{now():%Y%m%d_%H%M%S}_{fname}"
+    # Thêm chuỗi ngẫu nhiên: hai người tải cùng một giây không ghi đè file của nhau.
+    stored = uploads / f"{now():%Y%m%d_%H%M%S}_{secrets.token_hex(4)}_{fname}"
     stored.write_bytes(content)
     warning = None
     client = None
@@ -133,7 +142,10 @@ async def upload(d: date = Form(...), use_ai: bool = Form(True), sample: str | N
             warning = "Đang dùng OpenAI (API bên ngoài) – CHỈ được dùng với dữ liệu giả."
 
     def work():  # chạy ngoài vòng sự kiện (đọc Excel + gọi AI có thể lâu)
-        raw = read_raw(stored)
+        try:
+            raw = read_raw(stored)
+        except Exception as e:  # noqa: BLE001 – file hỏng / sai định dạng: báo người dùng, không lỗi 500
+            raise HTTPException(422, "Không đọc được file. Kiểm tra lại file xuất từ HIS (.xlsx).") from e
         return process_his(raw, load_his_columns(), rules, d, client=client)
 
     res = await run_in_threadpool(work)

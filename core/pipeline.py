@@ -17,6 +17,7 @@ from core.rules.arrival import ArrivalResult, compute_arrival
 from core.rules.merge import MergedAppt, filter_departments, merge_appointments
 from core.rules.note_patterns import read_fully_by_rules
 from core.rules.review import ReviewDecision, decide
+from core.rules.sensitive import find_sensitive
 from core.security import is_valid_phone
 
 
@@ -57,13 +58,23 @@ def plan_appointment(
 ) -> PlannedAppt:
     mask: MaskResult | None = None
     extraction: Extraction | None = None
+    sensitive: list[str] = []
+    external = False
     if m.note:
         mask = mask_text(m.note, full_name=m.full_name, pid=m.pid, doctor_names=doctors, ner=ner)
         skip_ai = read_fully_by_rules(m.note, rules["arrival"].get("ai_skip_vocabulary", []))
-        if client is not None and mask.ok and not skip_ai:
+        sensitive = find_sensitive(m.note, (rules.get("privacy") or {}).get("sensitive_topics", []))
+        # Ghi chú nhạy cảm không gửi ra API bên ngoài, kể cả khi đã che (chỉ mô hình cục bộ / mock).
+        external = getattr(client, "name", "").startswith("openai:")
+        if client is not None and mask.ok and not skip_ai and not (sensitive and external):
             extraction = extract(mask.text, m.services, m.start_time, client, rules)
     ai = extraction.ai if extraction else None
     arrival = compute_arrival(m.start_time, m.services, m.note, ai, rules, slots=m.slots)
+    if m.note and sensitive:
+        arrival.details.append(
+            f"Ghi chú có nội dung nhạy cảm ({', '.join(sensitive)}) – không trao đổi với người nhà, "
+            "không đưa vào tin nhắn" + ("; không gửi ra API bên ngoài" if external else "")
+        )
     decision = decide(
         arrival=arrival,
         note=m.note,

@@ -87,13 +87,22 @@ Chạy hai tiến trình tách biệt:
 # Nội bộ (nhân viên) – chỉ trong mạng LAN, KHÔNG mở ra Internet
 python -m uvicorn api.main:app --host <IP LAN> --port 8000
 # Công khai (thai phụ điền form) – đặt sau reverse proxy HTTPS
-python -m uvicorn api.public_main:app --host 127.0.0.1 --port 8001
+python -m uvicorn api.public_main:app --host 127.0.0.1 --port 8001 --proxy-headers --forwarded-allow-ips 127.0.0.1
+# --proxy-headers: lấy IP thật của người dùng từ reverse proxy (để giới hạn tần suất theo từng người, không theo proxy)
 ```
 
 Trong `.env`: `APP_ENV=production`, `APP_COOKIE_SECURE=1`, `APP_BASE_URL=https://<địa chỉ công khai>`.
 Máy chủ từ chối khởi động nếu còn mật khẩu demo hoặc chưa bật HTTPS – **đổi mật khẩu trong `config/users.yaml` trước khi dùng**.
 
 Trước khi dùng thật cần phòng khám xác nhận: tên cột file HIS và mẫu WorldSMS, ngưỡng cảnh báo và mốc form (bác sĩ duyệt), kênh Teams nhận cảnh báo, máy chạy mô hình ngôn ngữ.
+
+## Sao lưu
+
+```powershell
+python scripts/backup_db.py          # → data/backups/app_<thời điểm>.db, giữ 14 bản mới nhất
+```
+Dùng script này thay cho chép tay `data/app.db` (CSDL chạy chế độ WAL – dữ liệu mới có thể còn trong `app.db-wal`).
+Bản sao lưu vẫn mã hóa, cần `APP_SECRET_KEY` để đọc – cất khóa ở nơi khác bản sao lưu.
 
 ## Kiểm thử
 

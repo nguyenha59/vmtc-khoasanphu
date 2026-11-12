@@ -382,7 +382,9 @@ def cap_reason(f: dict[str, Any], lex_f: dict[str, Any] | None, text: str, rules
 # ---------------------------------------------------------------- đọc form
 def build_prompt(masked: str, ga_weeks: int | None, no_diacritics: bool, rules: Rules) -> tuple[str, str]:
     template, version = prompt_text("form_reader")
-    lines = [f"- {code}: {c['name']} (cách nói: {', '.join(c['synonyms'][:6])})"
+    # Ý nghĩa (meaning) giúp AI xếp đúng khái niệm cho cách nói chưa có trong danh mục ("mỏ ác", "thở không ra hơi").
+    lines = [f"- {code}: {c['name']}" + (f" – {re.sub(r' [(]S[0-9, S]+[)]$', '', c['meaning'])}" if c.get("meaning") else "")
+             + f" (ví dụ cách nói: {', '.join(c['synonyms'][:6])})"
              for code, c in rules["symptom_concepts"].items()]
     template = template.replace("{concepts}", "\n".join(lines))
     payload = {"text": masked, "ga_weeks": ga_weeks, "no_diacritics": no_diacritics}

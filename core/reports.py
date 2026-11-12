@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +61,6 @@ def profile_html(title: str, lines: list[str], table: list[dict[str, Any]] | Non
 
 
 def xlsx_bytes(rows: list[dict[str, Any]]) -> bytes:
-    buf = io.BytesIO()
-    pd.DataFrame(rows).astype(str).to_excel(buf, index=False)
-    return buf.getvalue()
+    from core.safe_files import df_to_xlsx_bytes
+
+    return df_to_xlsx_bytes(pd.DataFrame(rows))

@@ -1,5 +1,5 @@
 # Cấu hình mặc định – MVP. Ngưỡng y khoa phải được bác sĩ duyệt trước khi dùng thật.
-rules_version: "0.8.0"
+rules_version: "0.10.0"
 
 departments_included: ["Phòng khám Sản phụ khoa"]   # [CẦN XÁC NHẬN tên khoa trong file HIS]
 
@@ -37,6 +37,24 @@ arrival:
   waiting_slot: {from: "12:00", to: "13:00", label: "Khám chờ", mixed_review_minutes: 30}
   # Khám chờ là lịch sớm nhất nhưng khách còn lịch giờ thật muộn hơn "to" quá mixed_review_minutes
   # (vd khám chờ 12:00 + siêu âm 14:00) → giữ nhãn "Khám chờ", đưa vào Cần xác nhận (khoa 12/11/2026).   # [CẦN XÁC NHẬN lịch đúng 13:00 có phải khám chờ]
+
+# Nội dung nhạy cảm trong ghi chú (12/11/2026). Gặp → hiện cảnh báo cho điều dưỡng (không trao đổi với
+# người nhà, không ghi vào tin nhắn) và KHÔNG gửi ghi chú đó ra API bên ngoài (openai). So cả dạng không dấu.
+# [CẦN XÁC NHẬN] khoa duyệt danh mục.
+privacy:
+  sensitive_topics:
+    - {label: "Bệnh lây truyền", keywords: ["HIV", "giang mai", "lậu", "sùi mào gà", "viêm gan B", "viêm gan C",
+                                             "HBsAg dương tính", "herpes sinh dục"]}
+    - {label: "Đình chỉ / phá thai", keywords: ["đình chỉ thai", "phá thai", "hút thai", "bỏ thai",
+                                                 "không giữ thai", "nạo thai"]}
+    - {label: "Hỗ trợ sinh sản", keywords: ["IVF", "thụ tinh ống nghiệm", "mang thai hộ", "xin trứng",
+                                             "xin tinh trùng", "IUI"]}
+    - {label: "Bạo lực / xâm hại", keywords: ["bạo lực", "bị đánh", "chồng đánh", "xâm hại", "hiếp", "cưỡng bức"]}
+    - {label: "Sức khỏe tâm thần", keywords: ["trầm cảm", "tự tử", "tự sát", "tâm thần", "rối loạn lo âu",
+                                               "muốn chết"]}
+    - {label: "Chất gây nghiện", keywords: ["ma túy", "nghiện", "cai nghiện", "methadone"]}
+    - {label: "Yêu cầu giữ kín", keywords: ["giữ bí mật", "không muốn chồng biết", "không cho chồng biết",
+                                             "giấu gia đình", "không báo người nhà", "giấu chồng", "bảo mật"]}
 
 forms:
   min_gap_days: 14
@@ -92,38 +110,38 @@ alert_review:
 # Danh mục khái niệm cho AI đọc phần tự viết (docs/05 mục 3). Từ đồng nghĩa có cả dạng không dấu.
 # [CẦN XÁC NHẬN] bác sĩ duyệt danh mục và mức.
 symptom_concepts:
-  BLEEDING: {name: "Ra máu âm đạo", level: red, past_counts_yellow: true,
+  BLEEDING: {name: "Ra máu âm đạo", meaning: "máu hoặc dịch lẫn máu (đỏ, hồng, nâu) ra từ âm đạo – thấy trên quần lót, băng vệ sinh, giấy lau (S1, S2)", level: red, past_counts_yellow: true,
              synonyms: ["ra máu", "ra huyết", "thấy hồng", "chảy máu", "ra mau", "ra huyet", "thay hong", "chay mau", "máu cục", "mau cuc", "ra cục máu", "ra cuc mau", "rỉ máu", "ri mau", "thấm ướt băng", "tham uot bang", "ướt đẫm băng", "uot dam bang"]}
-  REDUCED_FM: {name: "Giảm cử động thai", level: red, past_counts_yellow: true,
+  REDUCED_FM: {name: "Giảm cử động thai", meaning: "thai cử động (đạp, cựa, máy, quẫy) ít hơn bình thường, yếu đi hoặc không thấy cử động (S2)", level: red, past_counts_yellow: true,
                synonyms: ["ít đạp", "con nằm im", "bé nằm im", "không thấy đạp", "thai máy giảm", "thai máy ít", "đạp ít", "nằm im", "it dap", "nam im", "khong thay dap", "thai may it", "con không đạp", "con khong dap", "bé không đạp", "be khong dap", "thai không máy", "thai khong may", "đạp yếu", "dap yeu"]}
-  VISUAL: {name: "Rối loạn thị giác", level: red,
+  VISUAL: {name: "Rối loạn thị giác", meaning: "thay đổi thị lực: nhìn mờ, nhòe, lóa, thấy chấm sáng / đốm, nhìn một thành hai (S1, S2, S4)", level: red,
            synonyms: ["hoa mắt", "đom đóm mắt", "nhìn mờ", "mờ mắt", "hoa mat", "dom dom mat", "nhin mo", "mo mat", "nhìn nhòe", "nhin nhoe", "mắt nhòe", "mat nhoe", "lóa mắt", "loa mat", "nhìn đôi", "nhin doi", "nhìn không rõ", "nhin khong ro"]}
-  EPIGASTRIC: {name: "Đau thượng vị", level: red,
+  EPIGASTRIC: {name: "Đau thượng vị", meaning: "đau vùng bụng trên giữa – dưới xương ức, trên rốn, vùng dạ dày – hoặc ngay dưới sườn phải (S2, S4)", level: red,
                synonyms: ["đau dưới ức", "đau chấn thủy", "đau thượng vị", "đau vùng thượng vị", "dau duoi uc", "dau chan thuy", "dau thuong vi", "đau dưới sườn", "dau duoi suon", "đau hạ sườn phải", "dau ha suon phai", "đau dưới xương sườn", "dau duoi xuong suon"]}
-  HEADACHE: {name: "Đau đầu nhiều", level: red,
+  HEADACHE: {name: "Đau đầu nhiều", meaning: "đau / nhức / căng / nặng ở đầu (trán, thái dương, gáy), nhất là không đỡ hoặc nặng dần (S1, S2, S4)", level: red,
              synonyms: ["đau đầu", "nhức đầu", "dau dau", "nhuc dau"]}
-  FLUID: {name: "Ra nước âm đạo", level: red,
+  FLUID: {name: "Ra nước âm đạo", meaning: "nước hoặc dịch (trong, đục) chảy / rỉ ra từ âm đạo, làm ướt quần – không phải nước tiểu (S1)", level: red,
           synonyms: ["ra nước", "ướt quần", "rỉ ối", "vỡ ối", "ra nuoc", "uot quan", "ri oi", "vo oi", "rỉ nước", "ri nuoc", "vỡ nước ối", "vo nuoc oi", "nước chảy ra âm đạo", "nuoc chay ra am dao"]}
-  CONTRACTIONS: {name: "Gò bụng", level: red, red_only_before_term: true,
+  CONTRACTIONS: {name: "Gò bụng", meaning: "bụng (tử cung) căng cứng, co thắt, siết lại thành từng cơn, lặp lại (S3)", level: red, red_only_before_term: true,
                  synonyms: ["gò bụng", "cứng bụng", "bụng thắt", "bụng gò", "gò cứng", "go bung", "cung bung", "bung that", "bung go", "go cung"]}
-  ABD_PAIN: {name: "Đau bụng", level: yellow, level_if_severe: red,
+  ABD_PAIN: {name: "Đau bụng", meaning: "đau, tức, quặn, âm ỉ, nhói ở bụng – ngoài vùng bụng trên giữa (S1)", level: yellow, level_if_severe: red,
              synonyms: ["đau bụng", "dau bung", "đau quặn", "dau quan"],
              severe_words: ["nhiều", "dữ dội", "quặn", "không chịu nổi", "nhieu", "du doi", "khong chiu noi"]}
-  DYSPNEA: {name: "Khó thở", level: red,
+  DYSPNEA: {name: "Khó thở", meaning: "khó thở, thở nhanh, thở dốc, hụt hơi, không đủ hơi, nặng hoặc đau ngực khi thở (S1, S2)", level: red,
             synonyms: ["khó thở", "thở không nổi", "hụt hơi", "kho tho", "tho khong noi", "hut hoi", "thở nhanh", "tho nhanh", "thở dốc", "tho doc", "thở gấp", "tho gap"]}
-  CALF: {name: "Đau sưng một bên bắp chân", level: red,
+  CALF: {name: "Đau sưng một bên bắp chân", meaning: "MỘT bên chân (bắp chân, cẳng chân, đùi) sưng, đau, đỏ hoặc nóng hơn bên kia (S1, S2)", level: red,
          synonyms: ["bắp chân", "sưng một bên chân", "bap chan", "sung mot ben chan", "chân sưng đỏ", "chan sung do", "sưng đỏ một bên chân", "sung do mot ben chan"]}
-  FACE_EDEMA: {name: "Phù mặt / tay", level: yellow,
+  FACE_EDEMA: {name: "Phù mặt / tay", meaning: "phù / sưng mặt, mí mắt, bàn tay, ngón tay (S1, S2, S4)", level: yellow,
                synonyms: ["mặt sưng", "sưng mặt", "nhẫn chật", "phù mặt", "phù tay", "sưng tay", "mat sung", "sung mat", "nhan chat", "phu mat", "phu tay", "sưng mí mắt", "sung mi mat", "mí mắt sưng", "mi mat sung"]}
-  FEVER: {name: "Sốt", level: yellow,
+  FEVER: {name: "Sốt", meaning: "sốt: người nóng, hâm hấp, ớn lạnh / run, nhiệt độ từ 38°C (S1, S2)", level: yellow,
           synonyms: ["sốt", "người nóng", "sot", "nguoi nong"]}
-  DYSURIA: {name: "Tiểu buốt", level: yellow,
+  DYSURIA: {name: "Tiểu buốt", meaning: "đau, rát, buốt, xót khi đi tiểu; mót tiểu, tiểu nhiều lần (S1)", level: yellow,
             synonyms: ["tiểu buốt", "tiểu rắt", "tieu buot", "tieu rat"]}
-  ITCH: {name: "Ngứa lòng bàn tay/chân", level: yellow,
+  ITCH: {name: "Ngứa lòng bàn tay/chân", meaning: "ngứa nhiều, nhất là lòng bàn tay, bàn chân, thường không nổi mẩn", level: yellow,
          synonyms: ["ngứa tay chân", "ngứa lòng bàn tay", "ngứa lòng bàn chân", "ngua tay chan", "ngua long ban"]}
-  HYPEREMESIS: {name: "Nghén nặng", level: yellow,
+  HYPEREMESIS: {name: "Nghén nặng", meaning: "nôn / ói nhiều, không giữ được thức ăn hoặc nước uống (S2)", level: yellow,
                 synonyms: ["nôn nhiều", "không ăn uống được", "nghén nặng", "non nhieu", "khong an uong duoc", "nghen nang", "ói nhiều", "oi nhieu", "nôn liên tục", "non lien tuc", "nôn ói nhiều", "non oi nhieu"]}
-  SELF_HARM: {name: "Ý nghĩ tự hại", level: red, locked: true, negation_allowed: false, past_counts_yellow: true,
+  SELF_HARM: {name: "Ý nghĩ tự hại", meaning: "ý nghĩ tự hại hoặc không muốn sống – kể cả nói gián tiếp, sống vô nghĩa, muốn kết thúc (S1, S2)", level: red, locked: true, negation_allowed: false, past_counts_yellow: true,
               synonyms: ["muốn biến mất", "không muốn sống", "muốn chết", "tự tử", "chẳng thiết sống", "không thiết sống",
                          "tự làm hại", "ngủ luôn không dậy", "tốt hơn nếu không có em", "tốt hơn nếu không có mình",
                          "muon bien mat", "khong muon song", "muon chet", "tu tu", "khong thiet song"]}

@@ -50,3 +50,33 @@ class LoginThrottle:
 
 
 login_throttle = LoginThrottle()
+# Dò mật khẩu nhiều tên đăng nhập từ cùng một IP (password spraying): tổng số lần sai theo IP.
+login_ip_throttle = LoginThrottle(max_fails=20, window=WINDOW_SECONDS)
+
+
+class RateLimiter:
+    """Giới hạn số yêu cầu theo khóa (IP) trong cửa sổ trượt. Dùng cho trang form công khai (mở ra Internet)."""
+
+    def __init__(self, max_requests: int, window: float) -> None:
+        self.max_requests, self.window = max_requests, window
+        self._hits: dict[str, deque[float]] = defaultdict(deque)
+        self._lock = threading.Lock()
+
+    def hit(self, key: str, t: float | None = None) -> int:
+        """Ghi một yêu cầu. Trả số giây phải chờ (0 = cho qua)."""
+        t = time.monotonic() if t is None else t
+        with self._lock:
+            q = self._hits[key]
+            while q and q[0] <= t - self.window:
+                q.popleft()
+            if len(q) >= self.max_requests:
+                return int(q[0] + self.window - t) + 1
+            q.append(t)
+            if len(self._hits) > 50_000:  # chặn phình bộ nhớ khi bị quét nhiều IP
+                for k in [k for k, v in self._hits.items() if not v][:10_000]:
+                    self._hits.pop(k, None)
+            return 0
+
+
+# Thai phụ mở form + gửi: vài yêu cầu. 60 yêu cầu / 10 phút / IP là dư cho người thật, chặn quét / gọi dồn AI.
+public_limiter = RateLimiter(max_requests=60, window=10 * 60)

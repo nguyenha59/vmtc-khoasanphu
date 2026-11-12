@@ -35,6 +35,10 @@ def get_engine(url: str | None = None) -> Engine:
         @event.listens_for(_engine, "connect")
         def _fk_on(dbapi_conn, _record):  # type: ignore[no-untyped-def]
             dbapi_conn.execute("PRAGMA foreign_keys=ON")
+            if target.startswith("sqlite") and ":memory:" not in target:
+                # WAL: người đọc không bị chặn khi có người ghi (nhiều nhân viên cùng lúc); NORMAL an toàn với WAL.
+                dbapi_conn.execute("PRAGMA journal_mode=WAL")
+                dbapi_conn.execute("PRAGMA synchronous=NORMAL")
 
         _Session = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine

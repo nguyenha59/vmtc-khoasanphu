@@ -7,6 +7,7 @@ from datetime import date, time, timedelta
 from typing import Any
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from core import audit
@@ -27,9 +28,14 @@ from core.security import AppUser, decrypt, encrypt
 def ensure_user(s: Session, u: AppUser) -> int:
     row = s.scalar(select(User).where(User.username == u.username))
     if row is None:
-        row = User(username=u.username, name=u.name, role=u.role)
-        s.add(row)
-        s.flush()
+        try:
+            with s.begin_nested():  # hai lần đăng nhập đầu tiên cùng lúc → một bên thắng, bên kia đọc lại
+                row = User(username=u.username, name=u.name, role=u.role)
+                s.add(row)
+                s.flush()
+        except IntegrityError:
+            row = s.scalar(select(User).where(User.username == u.username))
+            assert row is not None
     return row.id
 
 
@@ -50,6 +56,12 @@ def upsert_patient(s: Session, pid: str, full_name: str, phone: str, nationality
         s.add(p)
         s.flush()
     else:
+        # File HIS là nguồn đúng: cập nhật họ tên / SĐT / quốc tịch theo lần tải mới nhất (tin nhắn dùng tên này).
+        if full_name and full_name != (decrypt(p.full_name_enc) or ""):
+            p.full_name_enc = encrypt(full_name) or p.full_name_enc
+            from core import audit
+
+            audit.log("patient_name_updated_from_his", "patient", p.code, {}, session=s)  # không ghi tên vào nhật ký
         if phone:
             p.phone_enc = encrypt(phone) or p.phone_enc
         p.nationality = nationality or p.nationality

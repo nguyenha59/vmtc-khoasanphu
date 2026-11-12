@@ -93,8 +93,18 @@ SECURITY_HEADERS = {
 
 async def security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
     path = request.url.path
+    if path.startswith("/api/public/"):  # phần mở ra Internet: giới hạn tần suất theo IP
+        from api.throttle import public_limiter
+
+        wait = public_limiter.hit(request.client.host if request.client else "?")
+        if wait:
+            return JSONResponse({"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau ít phút."}, status_code=429,
+                                headers={"Retry-After": str(wait)})
     # Giới hạn kích thước nội dung gửi lên (theo Content-Length) – chặn trước khi đọc vào bộ nhớ.
     if request.method in ("POST", "PUT", "PATCH"):
+        if "content-length" not in request.headers and "chunked" in request.headers.get("transfer-encoding", ""):
+            # Gửi kiểu "chunked" không có Content-Length sẽ lách được giới hạn dưới đây → bắt buộc có độ dài.
+            return JSONResponse({"detail": "Thiếu Content-Length."}, status_code=411)
         limit = MAX_PUBLIC_BODY_BYTES if path.startswith("/api/public/") else MAX_BODY_BYTES
         try:
             size = int(request.headers.get("content-length", "0"))

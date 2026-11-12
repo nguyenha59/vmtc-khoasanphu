@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 from datetime import datetime
 from pathlib import Path
 
@@ -10,6 +9,7 @@ import pandas as pd
 
 from core.channels.base import RowResult, SendResult, SmsRow
 from core.config import DATA_DIR, TZ
+from core.safe_files import df_to_xlsx_bytes
 
 
 class ExcelSmsChannel:
@@ -26,9 +26,7 @@ class ExcelSmsChannel:
                     keys.append(k)
         df = pd.DataFrame([{"Số điện thoại": r.phone, **r.params} for r in rows],
                           columns=["Số điện thoại", *keys])
-        buf = io.BytesIO()
-        df.astype(str).to_excel(buf, index=False)
-        data = buf.getvalue()
+        data = df_to_xlsx_bytes(df)
         self.out_dir.mkdir(parents=True, exist_ok=True)
         path = self.out_dir / f"{template_code}_{datetime.now(TZ):%Y-%m-%d_%H%M%S}.xlsx"
         path.write_bytes(data)

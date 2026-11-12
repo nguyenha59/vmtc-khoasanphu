@@ -1,0 +1,52 @@
+# Bộ câu NGOÀI PHÂN PHỐI (12/11/2026): cách nói mới, KHÔNG chứa cụm nào có sẵn trong symptom_concepts.
+# Đáp án = mức rules.yaml đã gán cho khái niệm (không đặt quy tắc y khoa mới). Phủ định / người khác / đã khỏi → xanh.
+# Dữ liệu GIẢ, viết tay. Dùng để đo khả năng tổng quát hóa, không dùng làm ví dụ cho AI (tránh rò đáp án).
+cases:
+- {group: novel, concept: BLEEDING, text: "quần lót có vệt đỏ tươi từ sáng", ga_weeks: 30, expected_level: red}
+- {group: novel, concept: BLEEDING, text: "đi vệ sinh thấy dính máu đỏ", ga_weeks: 24, expected_level: red}
+- {group: novel, concept: REDUCED_FM, text: "từ sáng tới giờ chưa thấy con cựa quậy gì", ga_weeks: 33, expected_level: red}
+- {group: novel, concept: REDUCED_FM, text: "bé ko đạp mấy từ hôm qua", ga_weeks: 35, expected_level: red}
+- {group: novel, concept: VISUAL, text: "mắt cứ lóa lóa, nhìn đồ vật bị nhòe", ga_weeks: 32, expected_level: red}
+- {group: novel, concept: VISUAL, text: "nhìn chữ bị nhòe đi", ga_weeks: 34, expected_level: red}
+- {group: novel, concept: EPIGASTRIC, text: "đau tức vùng trên rốn dưới ngực", ga_weeks: 33, expected_level: red}
+- {group: novel, concept: EPIGASTRIC, text: "đau ở mỏ ác từ tối", ga_weeks: 31, expected_level: red}
+- {group: novel, concept: HEADACHE, text: "đầu như búa bổ từ chiều", ga_weeks: 30, expected_level: red}
+- {group: novel, concept: HEADACHE, text: "căng nặng vùng trán uống thuốc không đỡ", ga_weeks: 29, expected_level: red}
+- {group: novel, concept: FLUID, text: "có nước trong chảy ra âm đạo liên tục", ga_weeks: 34, expected_level: red}
+- {group: novel, concept: FLUID, text: "đũng quần cứ ẩm ẩm nước trong", ga_weeks: 36, expected_level: red}
+- {group: novel, concept: CONTRACTIONS, text: "bụng cứ căng lên từng cơn 10 phút một", ga_weeks: 32, expected_level: red}
+- {group: novel, concept: CONTRACTIONS, text: "bụng co thắt đều đều từ trưa", ga_weeks: 30, expected_level: red}
+- {group: novel, concept: ABD_PAIN, text: "lâm râm vùng bụng dưới", ga_weeks: 20, expected_level: yellow}
+- {group: novel, concept: ABD_PAIN, text: "bụng dưới hơi tức tức", ga_weeks: 18, expected_level: yellow}
+- {group: novel, concept: DYSPNEA, text: "thở hổn hển dù chỉ ngồi yên", ga_weeks: 31, expected_level: red}
+- {group: novel, concept: DYSPNEA, text: "ngực nặng, hít vào không sâu được", ga_weeks: 28, expected_level: red}
+- {group: novel, concept: CALF, text: "chân trái to hơn chân phải, sờ thấy nóng", ga_weeks: 30, expected_level: red}
+- {group: novel, concept: CALF, text: "cẳng chân phải sưng và đau nhức", ga_weeks: 26, expected_level: red}
+- {group: novel, concept: FACE_EDEMA, text: "sáng dậy mí mắt húp lên", ga_weeks: 33, expected_level: yellow}
+- {group: novel, concept: FACE_EDEMA, text: "ngón tay sưng tháo không ra nhẫn", ga_weeks: 34, expected_level: yellow}
+- {group: novel, concept: FEVER, text: "người hâm hấp từ tối qua", ga_weeks: 22, expected_level: yellow}
+- {group: novel, concept: FEVER, text: "đo nhiệt kế 38 độ 5", ga_weeks: 25, expected_level: yellow}
+- {group: novel, concept: DYSURIA, text: "đi tiểu thấy rát", ga_weeks: 21, expected_level: yellow}
+- {group: novel, concept: DYSURIA, text: "tiểu xót, cứ mót tiểu", ga_weeks: 19, expected_level: yellow}
+- {group: novel, concept: ITCH, text: "lòng bàn tay ngứa ran về đêm", ga_weeks: 32, expected_level: yellow}
+- {group: novel, concept: ITCH, text: "gan bàn chân ngứa không ngủ được", ga_weeks: 34, expected_level: yellow}
+- {group: novel, concept: HYPEREMESIS, text: "ói suốt, uống ngụm nước cũng ói", ga_weeks: 10, expected_level: yellow}
+- {group: novel, concept: HYPEREMESIS, text: "ăn gì nôn nấy cả tuần nay", ga_weeks: 9, expected_level: yellow}
+- {group: novel, concept: SELF_HARM, text: "em thấy sống chẳng còn ý nghĩa gì", ga_weeks: 2, expected_level: red}
+- {group: novel, concept: SELF_HARM, text: "hay nghĩ đến chuyện kết thúc tất cả", ga_weeks: 3, expected_level: red}
+- {group: novel_negation, text: "không thấy ra gì bất thường, con cựa quậy đều", ga_weeks: 30, expected_level: green}
+- {group: novel_negation, text: "chẳng thấy lóa mắt gì cả", ga_weeks: 32, expected_level: green}
+- {group: novel_negation, text: "không bị rát khi đi tiểu", ga_weeks: 20, expected_level: green}
+- {group: novel_past, text: "tuần rồi có hâm hấp nhưng giờ hết hẳn", ga_weeks: 24, expected_level: green}
+- {group: novel_past, text: "hôm kia ói nhiều, nay ăn được rồi", ga_weeks: 12, expected_level: green}
+- {group: novel_other, text: "bà ngoại ói suốt mấy hôm nay", ga_weeks: 20, expected_level: green}
+- {group: novel_other, text: "chồng em đầu như búa bổ", ga_weeks: 28, expected_level: green}
+- {group: novel_other, text: "đứa lớn nhà em người hâm hấp", ga_weeks: 22, expected_level: green}
+- {group: novel_normal, text: "con đạp khỏe lắm ạ", ga_weeks: 30, expected_level: green}
+- {group: novel_normal, text: "em ăn ngủ tốt, không có gì lạ", ga_weeks: 25, expected_level: green}
+- {group: novel_normal, text: "mai em lên khám được không ạ", ga_weeks: 28, expected_level: green}
+- {group: novel_normal, text: "hơi mỏi lưng chút thôi", ga_weeks: 30, expected_level: green}
+- {group: novel_typo, text: "chảy mau ở dưới nhiu lắm", ga_weeks: 29, expected_level: red}
+- {group: novel_typo, text: "đâu đầu nhiều, mắt mơ mơ", ga_weeks: 33, expected_level: red}
+- {group: novel_typo, text: "be k dap tu sang", ga_weeks: 34, expected_level: red}
+- {group: novel_typo, text: "ngưa tay chan qua", ga_weeks: 32, expected_level: yellow}

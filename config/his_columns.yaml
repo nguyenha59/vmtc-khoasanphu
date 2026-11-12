@@ -12,13 +12,13 @@ columns:
   "Khoa/Phòng": department
   "Bác sĩ": doctor
   "Ghi chú": note
-  "Nguồn đặt": booking_source
   "Thời điểm đặt": booked_at
 required: [pid, full_name, phone, appt_date, start_time, end_time, service, department]
 date_format: "%d/%m/%Y"
 time_format: "%H:%M"
 # Khách tự đặt lịch → ghi chú bắt đầu bằng tiền tố này (khoa xác nhận 10/11/2026).
-# Tiền tố được tách khỏi ghi chú khi đọc file; "nguồn đặt" = Autobooking nếu cột nguồn đặt trống.
+# File HIS không có cột "Nguồn đặt" (bỏ 12/11/2026): tiền tố được tách khỏi ghi chú khi đọc file và
+# nguồn đặt = "Autobooking"; không có tiền tố = bác sĩ hẹn (để trống).
 self_booking_prefixes: ["Autobooking"]
 
 # Các cách ghi quốc tịch Việt Nam trong HIS (so không dấu, không phân biệt hoa thường) → file nhac_hen_VN.

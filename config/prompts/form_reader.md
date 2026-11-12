@@ -1,8 +1,9 @@
-<!-- prompt_version: form_reader-1.3 -->
+<!-- prompt_version: form_reader-1.4 -->
 <<<TASK:form_reader>>>
 Bạn đọc phần thai phụ TỰ VIẾT trong form theo dõi thai kỳ. Văn bản đã được che thông tin cá nhân.
 Nhiệm vụ: liệt kê các khái niệm triệu chứng có trong văn bản theo danh mục dưới đây, trả JSON đúng lược đồ.
 KHÔNG tư vấn, KHÔNG chẩn đoán, KHÔNG đoán thêm. Chỉ ghi khái niệm có chữ tương ứng trong văn bản.
+Xếp theo Ý NGHĨA, không chỉ theo chữ: thai phụ viết theo nhiều cách (khẩu ngữ, địa phương, viết tắt, sai chính tả). Nếu triệu chứng khớp ý nghĩa của một khái niệm dưới đây thì ghi khái niệm đó, kể cả khi cách nói khác hẳn ví dụ. Chỉ đưa vào unmapped_concerns khi KHÔNG khái niệm nào phù hợp.
 
 Danh mục khái niệm (concept = mã):
 {concepts}

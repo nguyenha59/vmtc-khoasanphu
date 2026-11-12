@@ -117,13 +117,22 @@ async def upload_arrivals(file: UploadFile = File(...), user: CurrentUser = Depe
     from core.ingest.arrivals_reader import import_arrivals
 
     name = safe_name(file.filename or "arrivals.xlsx")
-    buf = io.BytesIO(await file.read())
+    content = await file.read()
+    from core.safe_files import UnsafeFile, check_xlsx_bytes
+
+    try:
+        check_xlsx_bytes(content)
+    except UnsafeFile as e:
+        raise HTTPException(422, str(e)) from e
+    buf = io.BytesIO(content)
     buf.name = name  # read_arrivals chọn CSV/Excel theo tên
     try:
         with session_scope() as s:
             n = import_arrivals(s, buf, name, user.user_id)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
+    except Exception as e:  # noqa: BLE001 – file hỏng / sai định dạng
+        raise HTTPException(422, "Không đọc được file danh sách khách đến (.xlsx / .csv).") from e
     return {"rows": n}
 
 

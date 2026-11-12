@@ -336,3 +336,107 @@ def test_print_summary(client):
     r = client.get(f"/api/profile/{pid}/print")
     assert r.status_code == 200 and r.headers["content-type"] in {"application/pdf", "text/html"}
     assert _audit_count("print_profile") == before + 1
+
+
+# ---------------------------------------------------------------- chống tấn công (rà soát 12/11/2026)
+def test_public_form_rate_limited(client):
+    from api.throttle import public_limiter
+
+    public_limiter._hits.clear()
+    try:
+        codes = [client.get("/api/public/form/khong-co-token").status_code for _ in range(61)]
+        assert codes[:60] == [404] * 60 and codes[60] == 429
+    finally:
+        public_limiter._hits.clear()
+
+
+def test_login_password_spraying_blocked_per_ip(client):
+    from api.throttle import login_ip_throttle, login_throttle
+
+    login_ip_throttle._fails.clear()
+    try:
+        for i in range(20):
+            client.post("/api/auth/login", json={"username": f"user{i}", "password": "sai"})
+        r = client.post("/api/auth/login", json={"username": "nurse", "password": PASSWORDS["nurse"]})
+        assert r.status_code == 429
+    finally:
+        login_ip_throttle._fails.clear()
+        login_throttle._fails.clear()
+
+
+def test_chunked_body_without_length_rejected(client):
+    r = client.post("/api/auth/login", content=(b for b in [b'{"username":"a",', b'"password":"b"}']),
+                    headers={"content-type": "application/json"})
+    assert r.status_code == 411
+
+
+def test_zip_bomb_upload_rejected(client):
+    import io
+    import zipfile
+
+    _login(client, "nurse")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("xl/worksheets/sheet1.xml", b"0" * (210 * 1024 * 1024))
+    r = client.post("/api/appointments/upload", data={"d": "2026-11-13", "use_ai": "false"},
+                    files={"file": ("bom.xlsx", buf.getvalue(), "application/octet-stream")})
+    assert r.status_code == 422 and "bất thường" in r.json()["detail"]
+
+
+# ---------------------------------------------------------------- ổn định khi nhiều người dùng (thử tải 12/11/2026)
+def test_concurrent_first_login_creates_one_user(client):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from sqlalchemy import func, select
+
+    from core.db import session_scope
+    from core.models import User
+    from core.repo import ensure_user
+    from core.security import AppUser
+
+    u = AppUser(username="dong_thoi", name="Thử", role="nurse")
+
+    def go(_):  # noqa: ANN001
+        with session_scope() as s:
+            return ensure_user(s, u)
+
+    with ThreadPoolExecutor(8) as ex:
+        ids = set(ex.map(go, range(16)))
+    assert len(ids) == 1
+    with session_scope() as s:
+        assert s.scalar(select(func.count(User.id)).where(User.username == "dong_thoi")) == 1
+
+
+def test_corrupt_upload_returns_422_not_500(client):
+    _login(client, "nurse")
+    r = client.post("/api/appointments/upload", data={"d": "2026-11-13", "use_ai": "false"},
+                    files={"file": ("hong.xlsx", b"PK\x03\x04 khong phai excel", "application/octet-stream")})
+    assert r.status_code == 422
+
+
+def test_backup_script(tmp_path):
+    import sqlite3
+
+    from scripts.backup_db import backup
+
+    src = tmp_path / "src.db"
+    with sqlite3.connect(src) as c:
+        c.execute("PRAGMA journal_mode=WAL")
+        c.execute("create table t(x)")
+        c.execute("insert into t values (1)")
+    out = backup(src, tmp_path / "bk", keep=2)
+    with sqlite3.connect(out) as c:
+        assert c.execute("select x from t").fetchall() == [(1,)]
+
+
+def test_his_upload_updates_patient_name(client):
+    """Lần tải HIS mới có tên khác cho cùng PID → tin nhắn dùng tên mới (trước đây giữ tên cũ)."""
+    from core.db import session_scope
+    from core.repo import patient_name, upsert_patient
+
+    with session_scope() as s:
+        p = upsert_patient(s, "99555001", "Nguyễn Thị Cũ", "0900000001", "Việt Nam")
+    with session_scope() as s:
+        p = upsert_patient(s, "99555001", "Nguyễn Thị Mới", "0900000001", "Việt Nam")
+        assert patient_name(p) == "Nguyễn Thị Mới"
+    assert _audit_count("patient_name_updated_from_his") >= 1

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 from dataclasses import dataclass
 from datetime import date, time
 from pathlib import Path
@@ -103,9 +102,9 @@ def invalid_phone_rows(rows: list[ExportRow]) -> list[ExportRow]:
 
 
 def to_xlsx_bytes(df: pd.DataFrame) -> bytes:
-    buf = io.BytesIO()
-    df.astype(str).to_excel(buf, index=False)
-    return buf.getvalue()
+    from core.safe_files import df_to_xlsx_bytes
+
+    return df_to_xlsx_bytes(df)
 
 
 def write_exports(exports: dict[str, pd.DataFrame], out_dir: Path) -> list[Path]:

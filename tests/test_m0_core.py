@@ -79,10 +79,12 @@ def test_openai_only_with_synthetic_flag_and_not_production(monkeypatch, rules):
         llm_provider(rules)
 
 
-def test_openai_client_parses_and_validates(monkeypatch):
+def test_openai_client_parses_and_validates(monkeypatch, tmp_path):
     import json as _json
 
     from core.ai import llm_client
+
+    monkeypatch.setattr(llm_client, "SPEND_FILE", tmp_path / "spend.json")  # không đụng chi phí thật
 
     sent: list[dict] = []
 
@@ -132,3 +134,28 @@ def test_audit_log_written(db):
     with db.session_scope() as s:
         rows = s.scalars(select(AuditLog)).all()
     assert len(rows) == 1 and rows[0].action == "login"
+
+
+def test_openai_budget_guard(monkeypatch, tmp_path):
+    from core.ai import llm_client
+
+    monkeypatch.setattr(llm_client, "SPEND_FILE", tmp_path / "spend.json")
+    monkeypatch.setenv("OPENAI_BUDGET_USD", "0.007")
+
+    class Resp:
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {"choices": [{"message": {"content": '{"x": 1}'}}],
+                    "usage": {"prompt_tokens": 10000, "completion_tokens": 1000}}
+
+    calls: list[int] = []
+    monkeypatch.setattr(llm_client.requests, "post", lambda *a, **k: calls.append(1) or Resp())
+    c = llm_client.OpenAIClient(model="m", api_key="sk-test")
+    schema = {"type": "object", "properties": {"x": {"type": "integer"}}, "required": ["x"]}
+    c.generate_json("p", schema, 0.2, None)  # 10k*0.4 + 1k*1.6 = 0.0056 USD
+    assert abs(llm_client.openai_spent() - 0.0056) < 1e-9
+    with pytest.raises(llm_client.BudgetExceeded):
+        c.generate_json("p", schema, 0.2, None)  # 0.0056 + ước lượng ~0.0016 > 0.007 → chặn, không gọi
+    assert len(calls) == 1 and c.budget_hit

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
 from api.deps import CurrentUser, clear_session, current_user, issue_session, optional_user
-from api.throttle import login_throttle
+from api.throttle import login_ip_throttle, login_throttle
 from core import audit
 from core.db import session_scope
 from core.repo import ensure_user
@@ -27,8 +27,9 @@ def me_payload(u: CurrentUser) -> dict:
 @router.post("/login")
 def login(body: LoginIn, request: Request, response: Response) -> dict:
     username = body.username.strip()
-    key = login_throttle.key(request.client.host if request.client else "?", username)
-    wait = login_throttle.retry_after(key)
+    ip = request.client.host if request.client else "?"
+    key = login_throttle.key(ip, username)
+    wait = max(login_throttle.retry_after(key), login_ip_throttle.retry_after(ip))
     if wait:
         audit.log("login_blocked", "user", None, {"username": username, "retry_after": wait})
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS,
@@ -37,6 +38,7 @@ def login(body: LoginIn, request: Request, response: Response) -> dict:
     user = authenticate(username, body.password)
     if user is None:
         login_throttle.failed(key)
+        login_ip_throttle.failed(ip)
         audit.log("login_failed", "user", None, {"username": username})
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu.")
     login_throttle.succeeded(key)

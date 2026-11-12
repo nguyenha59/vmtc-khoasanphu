@@ -23,16 +23,16 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 COLS = ["Mã BN", "Họ tên", "Điện thoại", "Quốc tịch", "Ngày hẹn", "Giờ bắt đầu", "Giờ kết thúc", "Dịch vụ",
-        "Khoa/Phòng", "Bác sĩ", "Ghi chú", "Nguồn đặt", "Thời điểm đặt"]
+        "Khoa/Phòng", "Bác sĩ", "Ghi chú", "Thời điểm đặt"]  # file HIS thật không có cột "Nguồn đặt"
 KHOA = "Phòng khám Sản phụ khoa"
 BS = "BS. Phạm Văn Khải"
 
 # (mã, họ tên, SĐT, quốc tịch, bắt đầu, kết thúc, dịch vụ, khoa, ghi chú, nguồn đặt, tình huống, mong đợi, phụ thuộc AI)
 CASES = [
     ("99000001", "Đinh Thị Mai Anh", "0900000101", "Việt Nam", "08:00", "08:30", "Siêu âm hình thái", KHOA, "", "Bác sĩ",
-     "Siêu âm → đến sớm 15 phút theo bảng dịch vụ", "Giờ đến 07:45 · Tự điền", False),
+     "Siêu âm → đến sớm 20 phút theo bảng dịch vụ", "Giờ đến 07:40 · Tự điền", False),
     ("99000002", "Lục Thị Bảo Ngọc", "0900000102", "Việt Nam", "09:00", "09:15", "Khám thai", KHOA, "", "Bác sĩ",
-     "Khám thai không ghi chú", "Giờ đến 09:00 · Tự điền", False),
+     "Khám thai không ghi chú", "Giờ đến 08:45 (khám: sớm 15 phút) · Tự điền", False),
     ("99000003", "Kha Thị Cẩm Tú", "0900000103", "Việt Nam", "12:30", "12:45", "Khám thai", KHOA, "", "Bác sĩ",
      "Lịch trong khung khám chờ 12:00–13:00", "Khám chờ (không tính giờ) · Tự điền", False),
     ("99000004", "Ông Thị Diệu Linh", "0900000104", "Việt Nam", "12:15", "12:30", "Khám thai", KHOA,
@@ -40,31 +40,31 @@ CASES = [
      "Khám chờ nhưng ghi chú có giờ đến", "Khám chờ · Cần xác nhận (khám chờ nhưng ghi chú có giờ)", False),
     ("99000005", "Âu Thị Hồng Nhung", "0900000105", "Việt Nam", "10:00", "10:15", "Khám thai", KHOA,
      "BS hẹn đến 9g30 lấy máu", "Bác sĩ",
-     "Bác sĩ ghi rõ giờ đến trong ghi chú", "Giờ đến 09:30 · Tự điền", False),
+     "Bác sĩ ghi rõ giờ đến trong ghi chú", "Giờ đến 09:30 (giờ ghi rõ sớm hơn quy tắc 09:45) · Tự điền", False),
     ("99000006", "Cù Thị Kim Oanh", "0900000106", "Việt Nam", "14:00", "14:15", "Khám thai", KHOA,
      "Nhờ gọi xác nhận lại lịch", "Bác sĩ",
-     "Ghi chú yêu cầu gọi xác nhận", "Giờ đến 14:00 · Cần xác nhận (ghi chú yêu cầu gọi)", False),
+     "Ghi chú yêu cầu gọi xác nhận", "Giờ đến 13:45 · Cần xác nhận (ghi chú yêu cầu gọi)", False),
     ("99000007", "Tiêu Thị Phương Thảo", "0900000107", "Việt Nam", "15:00", "15:15", "Khám thai", KHOA,
      "Thai 38 tuần, khám định kỳ", "Bác sĩ",
-     "Thai ≥ 37 tuần", "Giờ đến 15:00 · Cần xác nhận (tuần thai ≥ 37)", False),
+     "Thai ≥ 37 tuần", "Giờ đến 14:45 · Cần xác nhận (tuần thai ≥ 37)", False),
     ("99000008", "La Thị Quỳnh Như", "0123 45", "Việt Nam", "08:30", "08:45", "Khám thai", KHOA, "", "Bác sĩ",
      "Số điện thoại sai", "Cảnh báo E06 · Cần xác nhận (SĐT không hợp lệ) · không vào file WorldSMS", False),
     ("99000009", "Mạc Thị Thu Hà", "0900000109", "Việt Nam", "07:30", "07:45", "Xét nghiệm máu", KHOA, "", "Bác sĩ",
-     "Cùng mã BN 2 dịch vụ (xét nghiệm trước, khám sau) → gộp", "1 lịch gộp, giờ đến 07:30 · Tự điền", False),
+     "Cùng mã BN 2 dịch vụ (xét nghiệm trước, khám sau) → gộp", "1 lịch gộp, giờ đến 07:00 (XN 07:30 − 30 phút) · Tự điền", False),
     ("99000009", "Mạc Thị Thu Hà", "0900000109", "Việt Nam", "08:00", "08:15", "Khám thai", KHOA, "", "Bác sĩ",
      "(dòng thứ 2 của mã 99000009)", "(gộp vào dòng trên)", False),
     ("99000010", "Ninh Thị Xuân Mai", "0900000110", "Việt Nam", "08:00", "08:15", "Khám thai", KHOA, "", "Bác sĩ",
-     "Cùng mã BN, dịch vụ nhịn ăn ở lịch muộn", "1 lịch gộp · Cần xác nhận (xung đột)", False),
+     "Cùng mã BN, dịch vụ nhịn ăn ở lịch muộn", "1 lịch gộp, giờ đến 07:45 · Cần xác nhận (xung đột)", False),
     ("99000010", "Ninh Thị Xuân Mai", "0900000110", "Việt Nam", "10:00", "12:00",
      "Nghiệm pháp dung nạp glucose (NPDN)", KHOA, "", "Bác sĩ",
      "(dòng thứ 2 của mã 99000010)", "(gộp vào dòng trên)", False),
     ("99000011", "Viên Thị Hải Yến", "0900000111", "Việt Nam", "09:00", "09:15", "Khám nhi", "Phòng khám Nhi", "",
      "Bác sĩ", "Khác khoa", "Bị bỏ (không có trong danh sách lịch hẹn)", False),
     ("99000012", "Mei Tanaka", "0900000112", "Nhật Bản", "10:30", "10:45", "Khám thai", KHOA, "", "Bác sĩ",
-     "Khách nước ngoài", "Giờ đến 10:30 · Tự điền · nằm trong file WorldSMS nước ngoài", False),
+     "Khách nước ngoài", "Giờ đến 10:15 · Tự điền · nằm trong file WorldSMS nước ngoài", False),
     ("99000013", "Doãn Thị Ánh Tuyết", "0900000113", "Việt Nam", "11:00", "11:15", "Khám phụ khoa", KHOA,
      "Autobooking", "",
-     "Khách tự đặt (tiền tố Autobooking)", "Nguồn đặt = Autobooking · Giờ đến 11:00 · Tự điền", False),
+     "Khách tự đặt (tiền tố Autobooking)", "Nhận là khách tự đặt nhờ tiền tố · giờ đến 10:45 · Tự điền", False),
     ("99000014", "Lã Thị Mười Bốn", "0900000114", "Việt Nam", "13:30", "13:45", "Khám thai", KHOA,
      "Chị Mười Bốn dặn gọi số 0912 345 678 trước khi đến", "Bác sĩ",
      "Ghi chú có tên + SĐT", "Che tên/SĐT trước khi gửi AI · Cần xác nhận (ghi chú yêu cầu gọi)", False),
@@ -72,16 +72,35 @@ CASES = [
      "Giờ hẹn ngoài khung 06:00–20:00", "Cảnh báo E04 · Cần xác nhận (không quy tắc nào áp dụng)", False),
     ("99000016", "Thân Thị Diễm My", "0900000116", "Việt Nam", "09:30", "09:45", "Khám thai", KHOA,
      "Dặn đến sớm 30 phút làm thủ tục", "Bác sĩ",
-     "Ghi chú 'đến sớm 30 phút' – chỉ AI đọc được", "Có AI: giờ đến 09:00 · Cần xác nhận (AI lệch quy tắc)\n"
-     "Không AI: giờ đến 09:30 · Tự điền", True),
+     "Ghi chú 'đến sớm 30 phút' – quy tắc tự đọc được", "Giờ đến 09:00 · Tự điền (có hay không có AI)", False),
 ]
+
+
+def _plus30(hhmm: str) -> str:
+    """Mọi ca khám: kết thúc = bắt đầu + 30 phút (khoa 12/11/2026)."""
+    return (datetime.strptime(hhmm, "%H:%M") + timedelta(minutes=30)).strftime("%H:%M")
+
+
+DOCTORS = ["BS. Phạm Văn Khải", "BS. Lê Thị Bích", "BS. Trần Quốc Tuấn", "BS. Đỗ Minh Khang", "BS. Vũ Thị Hằng"]
+
+
+def _doctors_no_overlap() -> list[str]:
+    """Mỗi ca 30 phút; cùng một bác sĩ không có hai ca chồng giờ (khoa 12/11/2026)."""
+    busy: dict[str, datetime] = {d: datetime.min for d in DOCTORS}
+    out: list[str] = [""] * len(CASES)
+    for i in sorted(range(len(CASES)), key=lambda i: CASES[i][4]):
+        st = datetime.strptime(CASES[i][4], "%H:%M")
+        doc = next(d for d in DOCTORS if busy[d] <= st)
+        busy[doc] = st + timedelta(minutes=30)
+        out[i] = doc
+    return out
 
 
 def build_rows(day: str) -> pd.DataFrame:
     booked = (datetime.strptime(day, "%d/%m/%Y").replace(hour=10) - timedelta(days=7)).strftime("%d/%m/%Y %H:%M")
     rows = [{"Mã BN": c[0], "Họ tên": c[1], "Điện thoại": c[2], "Quốc tịch": c[3], "Ngày hẹn": day,
-             "Giờ bắt đầu": c[4], "Giờ kết thúc": c[5], "Dịch vụ": c[6], "Khoa/Phòng": c[7], "Bác sĩ": BS,
-             "Ghi chú": c[8], "Nguồn đặt": c[9], "Thời điểm đặt": booked} for c in CASES]
+             "Giờ bắt đầu": c[4], "Giờ kết thúc": _plus30(c[4]), "Dịch vụ": c[6], "Khoa/Phòng": c[7], "Bác sĩ": doc,
+             "Ghi chú": c[8], "Thời điểm đặt": booked} for c, doc in zip(CASES, _doctors_no_overlap(), strict=True)]
     return pd.DataFrame(rows, columns=COLS)
 
 

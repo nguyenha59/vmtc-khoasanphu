@@ -59,7 +59,8 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     booked = pd.to_datetime(df["booked_at"])
     appt = pd.to_datetime(df["appt_date"])
     out["lead_days"] = (appt - booked.dt.normalize()).dt.days.fillna(0).clip(lower=0)
-    out["source_app"] = (~df["booking_source"].str.contains("Bác sĩ", na=False)).astype(int)
+    # Khách tự đặt: "Autobooking" (tiền tố ghi chú trong file HIS) hoặc "MyVinmec" (dữ liệu lịch sử). Trống = bác sĩ hẹn.
+    out["source_app"] = df["booking_source"].fillna("").str.contains("autobooking|myvinmec", case=False).astype(int)
     out["dow"] = appt.dt.weekday
     out["afternoon"] = df["start_time"].map(lambda t: int(t >= time(12, 0)))
     svc = df["services"].str.lower()

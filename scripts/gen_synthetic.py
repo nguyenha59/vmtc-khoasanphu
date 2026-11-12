@@ -38,7 +38,7 @@ HIS_COLS = {
     "pid": "Mã BN", "full_name": "Họ tên", "phone": "Điện thoại", "nationality": "Quốc tịch",
     "appt_date": "Ngày hẹn", "start_time": "Giờ bắt đầu", "end_time": "Giờ kết thúc",
     "service": "Dịch vụ", "department": "Khoa/Phòng", "doctor": "Bác sĩ", "note": "Ghi chú",
-    "booking_source": "Nguồn đặt", "booked_at": "Thời điểm đặt",
+    "booked_at": "Thời điểm đặt",
 }
 
 SURNAMES = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi",
@@ -49,6 +49,9 @@ GIVENS = ["Lan", "Hoa", "Hương", "Mai", "Trang", "Linh", "Thảo", "Ngân", "V
           "Duyên", "Châu", "Trâm", "Nhi", "My", "Uyên", "Xuân", "Thơ", "Ly"]
 DOCTOR_NAMES = ["Phạm Văn Khải", "Lê Thị Bích", "Trần Quốc Tuấn", "Đỗ Minh Khang",
                 "Vũ Thị Hằng", "Ngô Đức Thịnh", "Bùi Thanh Sơn", "Hoàng Thị Lụa"]
+# Khoa: khoảng 8 bác sĩ, khám 07:00–17:00, mỗi ca 30 phút, một bác sĩ không có hai ca trùng giờ (12/11/2026).
+APPT_MINUTES = 30
+OPEN_TIME, CLOSE_TIME = time(7, 0), time(17, 0)
 FOREIGN = ["Hàn Quốc", "Nhật Bản", "Trung Quốc", "Mỹ", "Pháp", "Úc", "Singapore"]
 # Tên GIẢ theo quốc tịch (khách nước ngoài có tên nước ngoài – khoa xác nhận 10/11/2026).
 # (họ, tên) – ghép ngẫu nhiên, không dùng tên người nổi tiếng.
@@ -305,6 +308,12 @@ def simulate_visits(rng: random.Random, pats: list[Pat], start: date, end: date,
     doctors = [f"BS. {n}" for n in DOCTOR_NAMES]
     preg_by_day: dict[date, int] = {}
 
+    def _end_30(st: time, rng: random.Random) -> time:
+        """Mọi ca khám: giờ kết thúc = giờ bắt đầu + 30 phút (khoa 12/11/2026).
+        Vẫn rút một số ngẫu nhiên như trước để các phần dữ liệu khác sinh ra giống hệt (cùng seed)."""
+        rng.choice([15, 30])
+        return add_min(st, 30)
+
     def new_row(p: Pat, d: date, service: str, st: time, dept: str, prev: date | None) -> dict:
         if prev is not None and rng.random() < 0.7:
             src, booked = "Bác sĩ hẹn", prev
@@ -313,7 +322,7 @@ def simulate_visits(rng: random.Random, pats: list[Pat], start: date, end: date,
             booked = d - timedelta(days=rng.randint(1, 35))
         booked_at = datetime.combine(booked, time(rng.randint(7, 20), rng.randint(0, 59)))
         return {"pid": p.pid, "full_name": p.full_name, "phone": p.phone, "nationality": p.nationality,
-                "appt_date": d, "start_time": st, "end_time": add_min(st, rng.choice([15, 30])),
+                "appt_date": d, "start_time": st, "end_time": _end_30(st, rng),
                 "service": service, "department": dept, "doctor": rng.choice(doctors), "note": "",
                 "booking_source": src, "booked_at": booked_at}
 
@@ -370,9 +379,54 @@ def simulate_visits(rng: random.Random, pats: list[Pat], start: date, end: date,
     return list(uniq.values())
 
 
-def pick_note(rng: random.Random, v: Visit, start_merged: time) -> None:
+def assign_doctors(visits: list[Visit], seed: int) -> tuple[int, int]:
+    """Xếp 8 bác sĩ để không ai có hai ca chồng giờ; mọi ca nằm trong giờ khám OPEN_TIME–CLOSE_TIME.
+
+    Theo từng ngày, xét các ca theo giờ khách đặt; chọn khung 15 phút GẦN giờ đặt nhất (sớm hoặc muộn) còn bác sĩ rảnh
+    đủ APPT_MINUTES phút, rồi chọn ngẫu nhiên một bác sĩ rảnh. Dùng RNG riêng → các dữ liệu khác không đổi.
+    Trả (số ca phải dời giờ, số ca không xếp được – vẫn giữ giờ cũ, cần tăng bác sĩ / giảm --per-day).
+    """
+    rng = random.Random(seed * 7919 + 1)
+    pool = [f"BS. {n}" for n in DOCTOR_NAMES]
+    ticks_per_appt = APPT_MINUTES // 15
+    first = OPEN_TIME.hour * 4 + OPEN_TIME.minute // 15
+    last_start = CLOSE_TIME.hour * 4 + CLOSE_TIME.minute // 15 - ticks_per_appt  # 16:30 → kết thúc 17:00
+    by_day: dict[date, list[dict]] = {}
+    for v in visits:
+        for r in v.rows:
+            by_day.setdefault(v.day, []).append(r)
+    shifted = failed = 0
+    for rows in by_day.values():
+        occ: dict[str, set[int]] = {d: set() for d in pool}
+        for r in sorted(rows, key=lambda r: (r["start_time"], r["pid"])):
+            want = r["start_time"].hour * 4 + r["start_time"].minute // 15
+            want = min(max(want, first), last_start)
+            order = sorted(range(first, last_start + 1), key=lambda k: (abs(k - want), k < want))
+            chosen: tuple[int, str] | None = None
+            for k in order:
+                free = [d for d in pool if not occ[d] & set(range(k, k + ticks_per_appt))]
+                if free:
+                    chosen = (k, rng.choice(free))
+                    break
+            if chosen is None:
+                failed += 1
+                continue
+            k, doc = chosen
+            occ[doc] |= set(range(k, k + ticks_per_appt))
+            st = time(k // 4, (k % 4) * 15)
+            if st != r["start_time"]:
+                shifted += 1
+            r["start_time"], r["end_time"], r["doctor"] = st, add_min(st, APPT_MINUTES), doc
+    for v in visits:
+        v.rows.sort(key=lambda r: r["start_time"])
+    return shifted, failed
+
+
+def pick_note(rng: random.Random, v: Visit, start_merged: time, note_rate: float = 0.45) -> None:
+    """note_rate: tỉ lệ lịch có ghi chú. File HIS thật: lịch nào cũng có ghi chú (khoa xác nhận 12/11/2026) → 1.0.
+    Mặc định 0.45 giữ nguyên bộ đáp án test / benchmark đã dựng."""
     p = v.pat
-    if rng.random() > 0.45:
+    if note_rate < 1.0 and rng.random() > note_rate:
         return
     ga = ga_on(p, v.day) if p.pregnant and (p.delivery and v.day < p.delivery) else None
     cands: list[NoteT] = []
@@ -405,7 +459,9 @@ def pick_note(rng: random.Random, v: Visit, start_merged: time) -> None:
             continue
         cands.append(t)
     if not cands:
-        return
+        if note_rate < 1.0:
+            return
+        cands = [t for t in NOTE_TEMPLATES if t.text in ("Khám định kỳ", "Tái khám theo hẹn")]  # luôn có ghi chú
     t = rng.choices(cands, [c.weight for c in cands])[0]
     text = t.text
     if ga:
@@ -422,6 +478,9 @@ def pick_note(rng: random.Random, v: Visit, start_merged: time) -> None:
     text = text.replace("{phone2}", "09" + "".join(rng.choice(string.digits) for _ in range(8)))
     v.note_t, v.note = t, text
     v.rows[0]["note"] = text
+    if note_rate >= 1.0:  # file HIS thật: mỗi dòng lịch đều có ghi chú
+        for r in v.rows[1:]:
+            r["note"] = r.get("note") or text
 
 
 # ---------------------------------------------------------------- đáp án lịch hẹn
@@ -597,8 +656,7 @@ def to_his_frame(rows: list[dict]) -> pd.DataFrame:
             HIS_COLS["start_time"]: fmt_hhmm(r["start_time"]), HIS_COLS["end_time"]: fmt_hhmm(r["end_time"]),
             HIS_COLS["service"]: r["service"], HIS_COLS["department"]: r["department"],
             HIS_COLS["doctor"]: r["doctor"], HIS_COLS["note"]: his_note(r),
-            # Thực tế cột nguồn đặt thường để trống; khách tự đặt được nhận qua tiền tố ghi chú.
-            HIS_COLS["booking_source"]: "",
+            # File HIS thật không có cột nguồn đặt; khách tự đặt nhận qua tiền tố "Autobooking" trong ghi chú.
             HIS_COLS["booked_at"]: r["booked_at"].strftime("%d/%m/%Y %H:%M"),
         })
     return pd.DataFrame(out)
@@ -848,6 +906,10 @@ def main() -> None:
     ap.add_argument("--gyn-patients", type=int, default=700, help="số khách khám phụ khoa giả")
     ap.add_argument("--forms", type=int, default=2000)
     ap.add_argument("--anchor", type=str, default=None, help="ngày 'hôm nay' (YYYY-MM-DD)")
+    ap.add_argument("--bad-phone-rate", type=float, default=0.01,
+                    help="tỉ lệ khách có SĐT lỗi (để thử cảnh báo E06); 0 = mọi khách đều có SĐT hợp lệ")
+    ap.add_argument("--note-rate", type=float, default=0.45,
+                    help="tỉ lệ lịch có ghi chú; 1.0 = như file HIS thật (mọi lịch đều có ghi chú)")
     ap.add_argument("--out", type=Path, default=ROOT / "data" / "synthetic")
     ap.add_argument("--golden", type=Path, default=ROOT / "tests" / "golden")
     args = ap.parse_args()
@@ -868,12 +930,17 @@ def main() -> None:
                 f.unlink()
 
     pats = make_patients(rng, args.patients, args.gyn_patients, start)
-    # ~1% số điện thoại lỗi để thử BAD_PHONE
+    # ~1% số điện thoại lỗi để thử BAD_PHONE (--bad-phone-rate 0 → mọi khách đều có SĐT hợp lệ)
     for p in rng.sample(pats, len(pats) // 100):
-        p.phone = rng.choice(["09123", "0900 12", "không có", "1234567890123"])
+        bad = rng.choice(["09123", "0900 12", "không có", "1234567890123"])
+        if args.bad_phone_rate > 0:
+            p.phone = bad
     visits = simulate_visits(rng, pats, start, end, args.per_day)
+    n_shift, n_fail = assign_doctors(visits, args.seed)  # 8 bác sĩ, 07:00–17:00, không trùng giờ
+    print(f"Xếp {len(DOCTOR_NAMES)} bác sĩ không trùng giờ (07:00–17:00): dời {n_shift} ca"
+          + (f", {n_fail} ca KHÔNG xếp được – giảm --per-day" if n_fail else ""))
     for v in visits:
-        pick_note(rng, v, merged_info(v)["start"])
+        pick_note(rng, v, merged_info(v)["start"], args.note_rate)
 
     # bỏ hẹn
     ns_count: dict[str, int] = {}
