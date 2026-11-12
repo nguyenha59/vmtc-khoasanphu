@@ -11,7 +11,7 @@ from core.ingest.validators import check_columns, validate_rows
 from core.pipeline import process_his
 from core.rules.arrival import NoteAI, arrival_text, compute_arrival, waiting_label
 from core.rules.export_worldsms import ExportLocked, ExportRow, build_exports
-from core.rules.merge import filter_departments, merge_appointments
+from core.rules.merge import Slot, filter_departments, merge_appointments
 from core.rules.review import decide
 
 GOLDEN = Path(__file__).parent / "golden"
@@ -94,24 +94,62 @@ def test_filter_department(rules):
 
 
 # ---------------- arrival
-def test_ultrasound_15_minutes(rules):
+def test_ultrasound_20_minutes(rules):
     r = compute_arrival(time(8, 30), ["Siêu âm 4D"], "", None, rules)
-    assert r.arrival_time == time(8, 15) and r.method == "rule"
+    assert r.arrival_time == time(8, 10) and r.method == "rule"
 
 
-def test_other_service_0_minutes(rules):
-    assert compute_arrival(time(8, 30), ["Khám thai"], "", None, rules).arrival_time == time(8, 30)
+def test_exam_15_minutes(rules):
+    assert compute_arrival(time(8, 30), ["Khám thai"], "", None, rules).arrival_time == time(8, 15)
 
 
-def test_explicit_time_priority(rules):
-    r = compute_arrival(time(8, 0), ["Siêu âm 2D"], "BS hẹn đến 7h30 lấy máu", None, rules)
-    assert r.arrival_time == time(7, 30)
+def test_autobooking_note_is_plain_exam(rules):
+    """Khách tự đặt: ghi chú kiểu "thai moi ycbs" (không giờ, không XN) → khám 15'."""
+    assert compute_arrival(time(9, 0), ["Khám thai"], "thai moi ycbs", None, rules).arrival_time == time(8, 45)
+
+
+def test_lab_service_30_minutes(rules):
+    assert compute_arrival(time(9, 0), ["Xét nghiệm máu"], "", None, rules).arrival_time == time(8, 30)
+
+
+def test_lab_in_note_30_minutes(rules):
+    for note in ("làm XN", "lam xn", "nhịn ăn lấy máu"):
+        assert compute_arrival(time(9, 0), ["Khám thai"], note, None, rules).arrival_time == time(8, 30), note
+
+
+def test_explicit_time_kept_when_earlier(rules):
+    r = compute_arrival(time(8, 0), ["Siêu âm 2D"], "BS hẹn đến 7h15", None, rules)
+    assert r.arrival_time == time(7, 15)
     assert "ghi rõ" in r.rule_applied
 
 
-def test_multi_service_earliest(rules):
+def test_explicit_time_vs_rule_take_earlier(rules):
+    # Ghi rõ 7h50, quy tắc siêu âm 8:00−20 = 7:40 → lấy 7:40.
+    r = compute_arrival(time(8, 0), ["Siêu âm 2D"], "đến 7h50", None, rules)
+    assert r.arrival_time == time(7, 40)
+    assert "sớm hơn bác sĩ dặn" in r.rule_applied
+
+
+def test_multi_service_same_time_takes_largest(rules):
     r = compute_arrival(time(9, 0), ["Khám thai", "Siêu âm 2D"], "", None, rules)
-    assert r.arrival_time == time(8, 45)
+    assert r.arrival_time == time(8, 40)
+
+
+def test_slots_each_minus_own_minutes_take_earliest(rules):
+    """Khám 8:00 (−15 = 7:45), XN 8:10 (−30 = 7:40) → 7:40."""
+    slots = [Slot(time(8, 0), "Khám thai", ""), Slot(time(8, 10), "Xét nghiệm máu", "")]
+    r = compute_arrival(time(8, 0), ["Khám thai", "Xét nghiệm máu"], "", None, rules, slots=slots)
+    assert r.arrival_time == time(7, 40)
+    # Siêu âm 8:00 (−20 = 7:40), khám 9:00 (−15 = 8:45) → 7:40.
+    slots = [Slot(time(8, 0), "Siêu âm 2D", ""), Slot(time(9, 0), "Khám thai", "thai moi ycbs")]
+    r = compute_arrival(time(8, 0), ["Siêu âm 2D", "Khám thai"], "", None, rules, slots=slots)
+    assert r.arrival_time == time(7, 40)
+
+
+def test_merge_keeps_slots(rules):
+    rows = [row(2, start="09:00", end="09:30", service="Siêu âm 2D"), row(3, start="08:00", service="Khám thai")]
+    m = merge_appointments(rows, 180, rules["arrival"]["fasting_keywords"])[0]
+    assert [(s.start_time, s.service) for s in m.slots] == [(time(8, 0), "Khám thai"), (time(9, 0), "Siêu âm 2D")]
 
 
 def test_arrival_after_appt_rejected(rules):
@@ -123,7 +161,7 @@ def test_arrival_after_appt_rejected(rules):
 def test_ai_hint_too_early_rejected(rules):
     ai = NoteAI(ok=True, confidence=1.0, minutes_early=120)
     r = compute_arrival(time(9, 0), ["Khám thai"], "", ai, rules)
-    assert r.arrival_time == time(9, 0) and r.method == "rule"
+    assert r.arrival_time == time(8, 45) and r.method == "rule"
 
 
 def test_ai_hint_applied_within_diff(rules):
@@ -167,7 +205,7 @@ def test_review_conflict(rules):
 
 
 def test_review_ai_rule_diff(rules):
-    d = _decide(rules, note="đến trước 30p làm XN", ai=NoteAI(ok=True, confidence=1.0, minutes_early=30),
+    d = _decide(rules, note="đến sớm để chuẩn bị thủ thuật", ai=NoteAI(ok=True, confidence=1.0, minutes_early=45),
                 attempted=True)
     assert d.reasons == ["AI_RULE_DIFF"]
 
@@ -294,3 +332,58 @@ def test_export_waiting_label():
     with pytest.raises(ExportLocked):  # không phải khám chờ mà thiếu giờ → vẫn khóa
         build_exports([ExportRow(phone="0900000001", full_name="A", pid="1", appt_date=D, start_time=time(9, 0),
                                  arrival_time=None, status="auto", nationality="Việt Nam")], D)
+
+
+# ---------------- bác sĩ dặn đến trước một khoảng – đọc bằng regex, không cần AI
+def test_doctor_early_note_without_ai(rules):
+    r = compute_arrival(time(9, 0), ["Khám thai"], "đến trước 1 tiếng để nhịn ăn lấy máu", None, rules)
+    assert r.arrival_time == time(8, 0) and "trước 60 phút" in r.rule_applied
+
+
+def test_doctor_early_note_vs_rule_take_earlier(rules):
+    # Dặn trước 15p, nhưng siêu âm 20' → 8:40.
+    assert compute_arrival(time(9, 0), ["Siêu âm 2D"], "tới trước 15 phút", None, rules).arrival_time == time(8, 40)
+
+
+def test_doctor_early_note_too_early_needs_review(rules):
+    # Lịch 7:00, dặn trước 1 tiếng → 6:00 sớm hơn 06:30 → người kiểm tra, không bỏ qua im lặng.
+    r = compute_arrival(time(7, 0), ["Khám thai"], "đến trước 1 tiếng", None, rules)
+    assert "NO_RULE" in r.reasons
+
+
+def test_rejected_ai_hint_needs_review(rules):
+    r = compute_arrival(time(7, 0), ["Khám thai"], "", NoteAI(ok=True, confidence=1.0, minutes_early=60), rules)
+    assert "AI_RULE_DIFF" in r.reasons
+
+
+def test_waiting_slot_ignored_when_real_slot_exists(rules):
+    slots = [Slot(time(11, 50), "Siêu âm 2D", ""), Slot(time(12, 0), "Khám thai", "")]
+    r = compute_arrival(time(11, 50), ["Siêu âm 2D", "Khám thai"], "", None, rules, slots=slots)
+    assert r.arrival_time == time(11, 30)
+
+
+def test_export_vietnam_aliases_and_phone_format():
+    from core.rules.export_worldsms import format_phone, is_vietnamese
+
+    for n in ("Việt Nam", "VIET NAM", "Vietnam", "VN", "", "vietnamese"):
+        assert is_vietnamese(n), n
+    assert not is_vietnamese("Hàn Quốc")
+    assert format_phone("0912345678", "intl") == "84912345678"
+    assert format_phone("0912345678") == "0912345678"
+
+
+def test_waiting_with_late_real_slot_needs_review(rules):
+    """Khám chờ 12:00 + siêu âm 14:00 → giữ nhãn Khám chờ, vào Cần xác nhận."""
+    slots = [Slot(time(12, 0), "Khám thai", ""), Slot(time(14, 0), "Siêu âm 2D", "")]
+    r = compute_arrival(time(12, 0), ["Khám thai", "Siêu âm 2D"], "", None, rules, slots=slots)
+    assert r.waiting and r.arrival_time is None and "WAITING_MIXED" in r.reasons
+    d = decide(arrival=r, note="", phone_ok=True, conflict=False, ai=None, ai_attempted=False, mask_ok=True,
+               rules=rules)
+    assert d.status == "needs_review"
+
+
+def test_waiting_with_close_real_slot_auto(rules):
+    """Khám chờ 12:15 + siêu âm 13:15 (≤ 13:00 + 30') → giữ Khám chờ, không cần xác nhận."""
+    slots = [Slot(time(12, 15), "Khám thai", ""), Slot(time(13, 15), "Siêu âm 2D", "")]
+    r = compute_arrival(time(12, 15), ["Khám thai", "Siêu âm 2D"], "", None, rules, slots=slots)
+    assert r.waiting and not r.reasons

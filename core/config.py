@@ -75,6 +75,9 @@ class HisColumns:
     date_format: str
     time_format: str
     self_booking_prefixes: tuple[str, ...] = ()
+    vietnam_aliases: tuple[str, ...] = ("Việt Nam",)
+    worldsms_columns: tuple[tuple[str, str], ...] = ()  # (tiêu đề, trường)
+    worldsms_phone_format: str = "local"
 
 
 @dataclass(frozen=True)
@@ -105,6 +108,9 @@ def load_his_columns(path: Path | str | None = None) -> HisColumns:
         date_format=d.get("date_format", "%d/%m/%Y"),
         time_format=d.get("time_format", "%H:%M"),
         self_booking_prefixes=tuple(d.get("self_booking_prefixes", [])),
+        vietnam_aliases=tuple(d.get("vietnam_aliases", ["Việt Nam"])),
+        worldsms_columns=tuple((c["header"], c["field"]) for c in (d.get("worldsms") or {}).get("columns", [])),
+        worldsms_phone_format=str((d.get("worldsms") or {}).get("phone_format", "local")),
     )
 
 

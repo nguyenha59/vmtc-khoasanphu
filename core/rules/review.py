@@ -10,7 +10,7 @@ from core.rules.note_patterns import find_ga
 from core.textutil import contains_keyword
 
 REASON_ORDER = [
-    "LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "BAD_PHONE", "PII_LEFT",
+    "LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "WAITING_MIXED", "BAD_PHONE", "PII_LEFT",
     "NO_RULE",
 ]
 
@@ -21,6 +21,7 @@ REASON_LABELS = {
     "CONFLICT": "Hai lịch trong ngày xung đột",
     "AI_RULE_DIFF": "AI và quy tắc lệch nhau",
     "WAITING_NOTE_TIME": "Khám chờ nhưng ghi chú có giờ đến",
+    "WAITING_MIXED": "Khám chờ kèm lịch giờ thật lệch nhiều",
     "BAD_PHONE": "Số điện thoại không hợp lệ",
     "PII_LEFT": "Che dữ liệu chưa sạch – không gửi AI",
     "NO_RULE": "Không quy tắc nào áp dụng được",

@@ -9,6 +9,15 @@ from core.ingest.his_reader import HisRow
 from core.textutil import contains_keyword
 
 
+@dataclass(frozen=True)
+class Slot:
+    """Một lịch gốc trong nhóm đã gộp: giờ hẹn, dịch vụ, ghi chú của dòng đó."""
+
+    start_time: time
+    service: str
+    note: str
+
+
 @dataclass
 class MergedAppt:
     pid: str
@@ -29,6 +38,7 @@ class MergedAppt:
     conflict: bool = False
     conflict_detail: str = ""
     warnings: list[str] = field(default_factory=list)
+    slots: list[Slot] = field(default_factory=list)
 
     @property
     def is_merged(self) -> bool:
@@ -102,6 +112,7 @@ def merge_appointments(
                 conflict=conflict,
                 conflict_detail=detail,
                 warnings=sorted({w for r in grp for w in r.warnings}),
+                slots=[Slot(r.start_time, r.service, r.note) for r in grp if r.start_time is not None],
             )
         )
     merged.sort(key=lambda m: (m.start_time, m.pid))

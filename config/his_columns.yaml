@@ -20,3 +20,21 @@ time_format: "%H:%M"
 # Khách tự đặt lịch → ghi chú bắt đầu bằng tiền tố này (khoa xác nhận 10/11/2026).
 # Tiền tố được tách khỏi ghi chú khi đọc file; "nguồn đặt" = Autobooking nếu cột nguồn đặt trống.
 self_booking_prefixes: ["Autobooking"]
+
+# Các cách ghi quốc tịch Việt Nam trong HIS (so không dấu, không phân biệt hoa thường) → file nhac_hen_VN.
+# Quốc tịch trống cũng tính là Việt Nam.
+vietnam_aliases: ["Việt Nam", "Vietnam", "Viet Nam", "VN", "VNM", "Vietnamese", "Người Việt"]
+
+# File nhắc hẹn WorldSMS. Ý nghĩa P–P6 khoa xác nhận 12/11/2026.
+# [CẦN XÁC NHẬN] tiêu đề cột SĐT và thứ tự cột theo file mẫu WorldSMS – chỉ cần sửa ở đây, không sửa code.
+worldsms:
+  columns:                     # thứ tự = thứ tự cột trong file; vế phải là trường dữ liệu
+    - {header: "Số điện thoại", field: phone}
+    - {header: "P", field: full_name}
+    - {header: "P1", field: pid}
+    - {header: "P2", field: start_time}
+    - {header: "P3", field: day}
+    - {header: "P4", field: month}
+    - {header: "P5", field: year}
+    - {header: "P6", field: arrival_time}
+  phone_format: local          # local = 0912345678 · intl = 84912345678

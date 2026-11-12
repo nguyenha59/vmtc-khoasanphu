@@ -61,7 +61,7 @@ def plan_appointment(
         if client is not None and mask.ok:
             extraction = extract(mask.text, m.services, m.start_time, client, rules)
     ai = extraction.ai if extraction else None
-    arrival = compute_arrival(m.start_time, m.services, m.note, ai, rules)
+    arrival = compute_arrival(m.start_time, m.services, m.note, ai, rules, slots=m.slots)
     decision = decide(
         arrival=arrival,
         note=m.note,

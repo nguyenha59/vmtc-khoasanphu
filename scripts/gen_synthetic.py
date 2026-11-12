@@ -18,7 +18,9 @@ import argparse
 import json
 import math
 import random
+import re
 import string
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -450,19 +452,49 @@ def is_waiting(t: time) -> bool:
     return bool(WAITING) and time.fromisoformat(WAITING["from"]) <= t < time.fromisoformat(WAITING["to"])
 
 
+# Đáp án độc lập với code app: xét nghiệm 30', siêu âm 20', khám / khác 15' (khoa xác nhận 12/11/2026).
+_LAB_NOTE_RX = re.compile(r"(?<!\w)(xn|xet nghiem|lay mau|nhin an|npdn|nghiem phap|duong huyet)(?!\w)")
+
+
+def _plain(text: str) -> str:
+    text = unicodedata.normalize("NFD", text.lower()).replace("đ", "d")
+    return "".join(c for c in text if unicodedata.category(c) != "Mn")
+
+
+def row_minutes_early(service: str, note: str) -> int:
+    if "Xét nghiệm" in service or "Nghiệm pháp" in service or _LAB_NOTE_RX.search(_plain(note or "")):
+        return 30
+    return 20 if is_us(service) else 15
+
+
+def rule_time_for(v: Visit) -> time:
+    """Mỗi lịch: giờ hẹn − số phút của lịch đó; lấy giờ sớm nhất."""
+    rows = [r for r in v.rows if not is_waiting(r["start_time"])] or v.rows  # bỏ lịch khám chờ nếu còn lịch thật
+    return min(add_min(r["start_time"], -row_minutes_early(r["service"], r.get("note", ""))) for r in rows)
+
+
+def _valid_arrival(a: time, start: time) -> bool:
+    gap = (datetime.combine(date(2000, 1, 1), start) - datetime.combine(date(2000, 1, 1), a)).total_seconds() / 60
+    return a >= time(6, 30) and 0 <= gap <= 90
+
+
 def expected_for(v: Visit) -> dict:
     m = merged_info(v)
     start: time = m["start"]
-    rule_min = 15 if any(is_us(s) for s in m["services"]) else 0
-    rule_time = add_min(start, -rule_min)
+    rule_time = rule_time_for(v)
     t = v.note_t
     explicit = getattr(v, "explicit_time", None)
     ga = ga_on(v.pat, v.day) if (t and t.ga) else None
     bad_phone = not (len(v.rows[0]["phone"]) == 10 and v.rows[0]["phone"].isdigit())
 
-    # chế độ chỉ quy tắc (AI trả null)
-    arrival_rule = explicit or rule_time
+    # Bác sĩ dặn (giờ ghi rõ hoặc "đến trước N phút/tiếng") – regex đọc được, không cần AI.
+    doctor = explicit or (add_min(start, -t.early) if t and t.early is not None else None)
     reasons_rule: list[str] = []
+    if doctor is not None and not _valid_arrival(doctor, start):
+        arrival_rule = rule_time
+        reasons_rule.append("NO_RULE")
+    else:
+        arrival_rule = min(doctor, rule_time) if doctor else rule_time  # bác sĩ dặn vs quy tắc: lấy sớm hơn
     if m["conflict"]:
         reasons_rule.append("CONFLICT")
     if t and t.call:
@@ -472,27 +504,26 @@ def expected_for(v: Visit) -> dict:
     if bad_phone:
         reasons_rule.append("BAD_PHONE")
 
-    # chế độ có AI hoàn hảo
+    # chế độ có AI hoàn hảo: AI đọc giống regex → cùng giờ đến
     arrival_true = arrival_rule
     reasons_ai = [r for r in reasons_rule if r != "LATE_GA"]
     if ga and ga[0] >= 37:
         reasons_ai.append("LATE_GA")
-    if t and t.early is not None and not explicit:
-        ai_time = add_min(start, -t.early)
-        arrival_true = ai_time
-        if abs(t.early - rule_min) > 15:
-            reasons_ai.append("AI_RULE_DIFF")
     arrival_rule_s, arrival_true_s = fmt_hhmm(arrival_rule), fmt_hhmm(arrival_true)
     if is_waiting(start):
         # Khám chờ: không có giờ đến; ghi chú có giờ / dặn đến sớm → người xác nhận (giữ khám chờ).
         arrival_rule_s = arrival_true_s = WAITING["label"]
         reasons_ai = [r for r in reasons_ai if r != "AI_RULE_DIFF"]
-        if explicit:
+        reasons_rule = [r for r in reasons_rule if r != "NO_RULE"]
+        reasons_ai = [r for r in reasons_ai if r != "NO_RULE"]
+        if doctor is not None:
             reasons_rule.append("WAITING_NOTE_TIME")
             reasons_ai.append("WAITING_NOTE_TIME")
-        elif t and t.early is not None:
-            reasons_ai.append("WAITING_NOTE_TIME")
-    order = ["LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "BAD_PHONE",
+        limit = add_min(time.fromisoformat(WAITING["to"]), int(WAITING.get("mixed_review_minutes", 30)))
+        if any(not is_waiting(r["start_time"]) and r["start_time"] > limit for r in v.rows):
+            reasons_rule.append("WAITING_MIXED")
+            reasons_ai.append("WAITING_MIXED")
+    order = ["LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "WAITING_MIXED", "BAD_PHONE",
              "PII_LEFT", "NO_RULE"]
     reasons_rule = sorted(set(reasons_rule), key=order.index)
     reasons_ai = sorted(set(reasons_ai), key=order.index)

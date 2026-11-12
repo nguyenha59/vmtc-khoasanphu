@@ -188,7 +188,9 @@ def export(d: date, user: CurrentUser = Depends(require("export_worldsms"))) -> 
     with session_scope() as s:
         plans = plans_for_date(s, d)
     try:
-        exports = build_exports(_export_rows(plans), d, _waiting())
+        hc = load_his_columns()
+        exports = build_exports(_export_rows(plans), d, _waiting(), columns=hc.worldsms_columns,
+                                phone_format=hc.worldsms_phone_format, vn_aliases=hc.vietnam_aliases)
     except ExportLocked as e:
         raise HTTPException(409, str(e)) from e
     paths = write_exports(exports, EXPORT_DIR)
