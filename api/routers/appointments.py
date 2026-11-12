@@ -31,6 +31,15 @@ from core.security import mask_phone
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 EXPORT_DIR = DATA_DIR / "exports"
+AI_STATUS_LABELS = {
+    "no_note": "Không gọi AI – lịch hẹn không có ghi chú.",
+    "off": "Không gọi AI – lần tải này chỉ dùng quy tắc (tắt AI hoặc không kết nối được mô hình).",
+    "rules_read": "Không gọi AI – quy tắc đã đọc hiểu hết ghi chú (chỉ gồm từ quen, giờ, tuần thai).",
+    "sensitive": "Không gửi AI – ghi chú có nội dung nhạy cảm, không gửi ra API bên ngoài.",
+    "mask_failed": "Không gửi AI – che dữ liệu cá nhân chưa sạch.",
+    "failed": "Đã gọi AI nhưng không nhận được kết quả hợp lệ (lỗi kết nối, hết ngân sách hoặc AI trả sai).",
+    "ok": "",
+}
 METHOD_VI = {"rule": "Quy tắc", "ai": "AI", "manual": "Người sửa", "waiting": "Khám chờ"}
 STATUS_VI = {"auto": "Tự điền", "needs_review": "Cần xác nhận", "confirmed": "Đã xác nhận"}
 
@@ -100,6 +109,8 @@ def plan_detail(plan_id: int, d: date, user: CurrentUser = Depends(require("uplo
         **_row(p, waiting), "pid": p.pid, "merged_from": p.merged_from,
         "conflict_detail": p.details.get("conflict_detail", ""), "masked_note": p.masked_note or "",
         "rule_applied": p.details.get("rule_applied") or "", "notes": p.details.get("notes", []),
+        "ai_status": p.details.get("ai_status"),
+        "ai_status_label": AI_STATUS_LABELS.get(p.details.get("ai_status") or "", "Không gọi AI."),
         "warnings": p.warnings, "ai": jsonable(ex.get("ai")), "confidence": ex.get("confidence"),
         "model": ex.get("model"), "prompt_version": ex.get("prompt_version"), "ga_inconsistent": bool(ex.get("ga_inconsistent")),
         "default_time": (p.arrival_time or p.start_time).strftime("%H:%M"),

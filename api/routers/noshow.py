@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import os
 from datetime import date, datetime, timedelta
 
 import pandas as pd
@@ -62,7 +63,8 @@ def _compute(target: date) -> dict:
         pids = [int(info.loc[i, "patient_id"]) for i in ids] or [0]
         phones = {p.id: patient_phone(p) for p in s.scalars(select(Patient).where(Patient.id.in_(pids)))}
     rows = []
-    for _, r in preds.sort_values("prob", ascending=False).iterrows():
+    order = ["prob", "score"] if "score" in preds.columns else ["prob"]
+    for _, r in preds.sort_values(order, ascending=False).iterrows():
         v = info.loc[r["appointment_id"]]
         phone = phones.get(int(v["patient_id"]), "")
         rows.append({"code": v["code"], "phone": phone, "phone_masked": mask_phone(phone),
@@ -88,6 +90,8 @@ def overview(d: date | None = None, user: CurrentUser = Depends(require("view_no
         "call_threshold": rules["noshow"]["call_threshold"], "sms_threshold": rules["noshow"]["sms_threshold"],
         "n_appt": r["n_appt"], "rows": rows, "reinvite": reinv, "arrivals_imported": r["arrivals_imported"],
         "high_risk": sum(x["prob"] >= rules["noshow"]["call_threshold"] for x in rows),
+        # Ngoài production mô hình chỉ học trên dữ liệu giả → giao diện ghi rõ "mô hình minh họa".
+        "demo_model": os.environ.get("APP_ENV", "development") != "production",
     }
 
 

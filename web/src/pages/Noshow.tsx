@@ -19,6 +19,7 @@ type Data = {
   date: string; yesterday: string; has_model: boolean; model: { version: string; auc_lgb: number; auc_lr: number } | null;
   call_threshold: number; sms_threshold: number; n_appt: number; rows: Row[]; reinvite: Reinv[]; high_risk: number;
   arrivals_imported: boolean;
+  demo_model?: boolean;
 };
 
 export function Noshow() {
@@ -58,6 +59,12 @@ export function Noshow() {
         </Alert>
       ) : (
         <>
+          {data.demo_model && (
+            <Alert color="blue" variant="light" icon={<IconAlertTriangle size={18} />} mb="lg" title="Mô hình minh họa">
+              Mô hình đang học trên dữ liệu giả lập – chỉ để trình diễn luồng làm việc, chưa dùng để quyết định gọi điện.
+              Cần huấn luyện lại trên lịch hẹn và danh sách khách đến thật (tối thiểu vài tháng) rồi đánh giá trước khi dùng.
+            </Alert>
+          )}
           <SimpleGrid cols={{ base: 2, lg: 4 }} mb="lg">
             <StatCard label="Lịch hẹn" value={data.n_appt} hint={dayjs(data.date).format("DD/MM/YYYY")} icon={<IconUsers size={22} />} />
             <StatCard label={`Nguy cơ cao (≥ ${data.call_threshold})`} value={data.high_risk} icon={<IconAlertTriangle size={22} />} color="danger" />

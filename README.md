@@ -56,9 +56,9 @@ ollama pull qwen2.5:7b-instruct
 #    (tùy chọn OPENAI_MODEL, mặc định gpt-4.1-mini)
 
 # 4. Dữ liệu giả + nạp CSDL demo + huấn luyện mô hình bỏ hẹn
-python scripts/gen_synthetic.py --days 90 --per-day 110 --seed 42
+python scripts/gen_synthetic.py --seed 42          # dữ liệu giả gọn: ~450 khách, 60 ngày
 python scripts/seed_demo.py --reset
-python scripts/train_noshow.py
+python scripts/train_noshow.py   # chỉ để minh họa; mô hình thật phải huấn luyện lại khi có dữ liệu lịch hẹn thật
 
 # 5. Đánh giá mô hình trên bộ dữ liệu chuẩn tests/benchmark/v1 (hiện ở màn Chất lượng AI)
 #    --bench quick mất khoảng 30–60 phút với Ollama. --provider mock chỉ kiểm tra đường ống.

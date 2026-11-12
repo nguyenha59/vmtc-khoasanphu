@@ -279,3 +279,48 @@ class EvalRun(Base):
     rules_version: Mapped[str | None] = mapped_column(String(16))
     model: Mapped[str | None] = mapped_column(String(64))
     metrics: Mapped[Any] = mapped_column(JSON, default=dict)
+
+
+class PatientProgram(Base):
+    """Chương trình theo dõi của thai phụ (bảng riêng – không đổi bảng patient đã có dữ liệu).
+
+    in_package: thai phụ theo gói thai sản của bệnh viện (chọn khi tạo / sửa hồ sơ).
+    override_*: bác sĩ chỉ định theo dõi từ xa ngoài gói (ca nguy cơ cao), bắt buộc ghi lý do.
+    """
+
+    __tablename__ = "patient_program"
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), primary_key=True)
+    in_package: Mapped[bool] = mapped_column(default=False)
+    package_name: Mapped[str | None] = mapped_column(String(128))
+    package_since: Mapped[date | None] = mapped_column(Date)
+    override_monitoring: Mapped[bool] = mapped_column(default=False)
+    override_reason: Mapped[str | None] = mapped_column(String(300))
+    updated_by: Mapped[int | None] = mapped_column(Integer)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class VisitResult(Base):
+    """Kết quả một lần khám (khám toàn thân, khám sản, xét nghiệm, siêu âm, chẩn đoán ICD-10, xử trí).
+
+    data_enc: JSON đã mã hóa Fernet (dữ liệu sức khỏe nhạy cảm). source: synthetic (dữ liệu giả) | his | lis.
+    """
+
+    __tablename__ = "visit_result"
+    appointment_id: Mapped[int] = mapped_column(ForeignKey("appointment.id"), primary_key=True)
+    data_enc: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(16), default="synthetic")
+    reference_version: Mapped[str | None] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class PatientHistory(Base):
+    """Thông tin sản khoa của hồ sơ (tuổi, PARA, kỳ kinh cuối, nhóm máu, dị ứng, tiền sử, cuộc sinh).
+
+    data_enc: JSON mã hóa Fernet (dữ liệu sức khỏe). source: synthetic | his.
+    """
+
+    __tablename__ = "patient_history"
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), primary_key=True)
+    data_enc: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(16), default="synthetic")
+    updated_at: Mapped[datetime] = mapped_column(DateTime)

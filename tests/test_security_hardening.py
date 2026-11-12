@@ -102,7 +102,9 @@ def test_synthetic_forms_match_pregnancy_stage(rules):
     if not resp_path.exists():
         pytest.skip("Chưa sinh dữ liệu giả")
     resp = pd.read_csv(resp_path, dtype=str, keep_default_na=False).set_index("token")
-    lab = pd.read_csv(root / "tests" / "golden" / "form_expected.csv", dtype=str, keep_default_na=False)
+    src = root / "data" / "synthetic" / "form_expected.csv"  # đáp án đi cùng form_responses.csv
+    lab = pd.read_csv(src if src.exists() else root / "tests" / "golden" / "form_expected.csv", dtype=str,
+                      keep_default_na=False)
     pats = pd.read_csv(root / "data" / "synthetic" / "patients.csv", dtype=str, keep_default_na=False).set_index("pid")
     sched = rules["forms"]
     pp_codes = set(sched["postpartum_days"])

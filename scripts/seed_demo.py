@@ -109,11 +109,21 @@ def main() -> None:
                                kind=r["kind"], value=float(r["value"])))
         s.flush()
         print(f"Đã nạp {len(pats)} bệnh nhân, {n_appt} lịch hẹn, {len(arrivals)} lượt đến, {len(vitals)} chỉ số.")
+        from scripts.gen_cases import generate as gen_cases
+        from scripts.gen_clinical import generate as gen_programs
+
+        ck = gen_programs(s, anchor)
+        cs = gen_cases(s, anchor)
+        print(f"Đã gán chương trình theo dõi cho {ck['programs']} thai phụ; tạo {cs['cases']} hồ sơ đầy đủ "
+              f"({cs['visits']} lần khám có kết quả).")
 
         # Câu trả lời form mẫu gần đây → đánh giá thật qua pipeline (AI mock) để có cảnh báo demo
         from core.ingest.forms_import import parse_msforms_csv
 
-        labels = pd.read_csv(ROOT / "tests" / "golden" / "form_expected.csv", dtype=str, keep_default_na=False)
+        # Đáp án đi cùng form_responses.csv của data/synthetic (không lấy tests/golden – đó là bộ cố định cho test).
+        src = syn / "form_expected.csv"
+        labels = pd.read_csv(src if src.exists() else ROOT / "tests" / "golden" / "form_expected.csv", dtype=str,
+                             keep_default_na=False)
         lab = labels.set_index("token")
         parsed = parse_msforms_csv((syn / "form_responses.csv").read_bytes(), forms_cfg)
         # Chỉ lấy câu trả lời 3 ngày gần nhất để có cảnh báo "mới"; giữ nguyên ngày gửi gốc

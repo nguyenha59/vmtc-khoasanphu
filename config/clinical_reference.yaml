@@ -1,0 +1,74 @@
+# Bảng tham chiếu lâm sàng cho DỮ LIỆU GIẢ kết quả khám (12/11/2026). Dùng để:
+#   1) scripts/gen_clinical.py sinh kết quả khám giả hợp lý theo tuổi thai và nhóm nguy cơ;
+#   2) gắn cờ cao/thấp như LIS (khi nối LIS thật: dùng khoảng tham chiếu + cờ của chính phòng xét nghiệm).
+# KHÔNG dùng cho chẩn đoán. Nguồn: docs/10, docs/11. [CẦN XÁC NHẬN] khoảng tham chiếu theo phòng xét nghiệm của khoa.
+version: "0.1.0"
+
+# Lịch xét nghiệm (tuần thai) theo hướng dẫn chăm sóc trước sinh (QĐ 4128/QĐ-BYT; WHO ANC 2016) – rút gọn cho MVP.
+# Nhóm bệnh lây truyền (HIV, HBsAg, giang mai) KHÔNG sinh: dữ liệu nhạy cảm (Luật 71/2020/QH14) – chờ thiết kế phân quyền.
+lab_schedule:
+  first_visit: [HGB, PLT, WBC, FERRITIN, GLU_FAST, UREA, CREA, ALT, AST, U_PRO, U_GLU, U_LEU, U_NIT]
+  every_visit: [U_PRO, U_GLU]
+  ogtt_weeks: [24, 28]          # nghiệm pháp dung nạp glucose 75 g (QĐ 1470/QĐ-BYT 2024)
+  hb_recheck_weeks: [28, 32]
+  coag_weeks: [36, 41]           # đông máu trước sinh
+  preeclampsia_panel_if: [HTN]   # nhóm tăng huyết áp: thêm PLT, ALT, AST, CREA, U_PRO mỗi lần từ 20 tuần
+
+labs:
+  # code: {name, unit, loinc, ref: [thấp, cao] (null = không giới hạn), source}
+  HGB:      {name: "Huyết sắc tố (Hb)", unit: "g/L", loinc: "718-7", ref: [110, 150], source: "WHO – thiếu máu thai kỳ Hb < 110 g/L (quý 2: < 105)"}
+  PLT:      {name: "Tiểu cầu", unit: "G/L", loinc: "777-3", ref: [150, 400], source: "Khoảng tham chiếu chung [CẦN XÁC NHẬN]"}
+  WBC:      {name: "Bạch cầu", unit: "G/L", loinc: "6690-2", ref: [4.0, 15.0], source: "Thai kỳ tăng sinh lý [CẦN XÁC NHẬN]"}
+  FERRITIN: {name: "Ferritin", unit: "µg/L", loinc: "2276-4", ref: [15, 150], source: "WHO 2020 – < 15 µg/L: thiếu sắt [CẦN XÁC NHẬN]"}
+  GLU_FAST: {name: "Glucose huyết tương lúc đói", unit: "mmol/L", loinc: "1558-6", ref: [null, 5.0], source: "IADPSG 2010 / QĐ 1470 – ≥ 5,1 là ĐTĐ thai kỳ"}
+  OGTT_0:   {name: "NPDN 75 g – lúc đói", unit: "mmol/L", loinc: "1558-6", ref: [null, 5.0], source: "IADPSG 2010 / QĐ 1470: ≥ 5,1"}
+  OGTT_1:   {name: "NPDN 75 g – sau 1 giờ", unit: "mmol/L", loinc: "1507-3", ref: [null, 9.9], source: "IADPSG 2010 / QĐ 1470: ≥ 10,0"}
+  OGTT_2:   {name: "NPDN 75 g – sau 2 giờ", unit: "mmol/L", loinc: "1518-0", ref: [null, 8.4], source: "IADPSG 2010 / QĐ 1470: ≥ 8,5"}
+  UREA:     {name: "Ure", unit: "mmol/L", loinc: "3091-6", ref: [2.5, 7.1], source: "Khoảng tham chiếu chung [CẦN XÁC NHẬN]"}
+  CREA:     {name: "Creatinin", unit: "µmol/L", loinc: "2160-0", ref: [44, 80], source: "Khoảng chung; ISSHP 2021: ≥ 90 µmol/L là tổn thương thận [CẦN XÁC NHẬN]"}
+  ALT:      {name: "ALT (GPT)", unit: "U/L", loinc: "1742-6", ref: [null, 35], source: "Khoảng chung nữ [CẦN XÁC NHẬN]"}
+  AST:      {name: "AST (GOT)", unit: "U/L", loinc: "1920-8", ref: [null, 35], source: "Khoảng chung nữ [CẦN XÁC NHẬN]"}
+  PT:       {name: "Thời gian prothrombin (PT)", unit: "giây", loinc: "5902-2", ref: [11, 14], source: "Khoảng chung [CẦN XÁC NHẬN]"}
+  APTT:     {name: "APTT", unit: "giây", loinc: "3173-2", ref: [25, 35], source: "Khoảng chung [CẦN XÁC NHẬN]"}
+  FIB:      {name: "Fibrinogen", unit: "g/L", loinc: "3255-7", ref: [3.0, 6.0], source: "Thai kỳ tăng sinh lý [CẦN XÁC NHẬN]"}
+  U_PRO:    {name: "Protein niệu (que thử)", unit: "", loinc: "20454-5", ref: ["Âm tính"], source: "Clinitek – âm tính"}
+  U_GLU:    {name: "Glucose niệu (que thử)", unit: "", loinc: "25428-4", ref: ["Âm tính"], source: "Clinitek – âm tính"}
+  U_LEU:    {name: "Bạch cầu niệu (que thử)", unit: "", loinc: "5799-2", ref: ["Âm tính"], source: "Clinitek – âm tính"}
+  U_NIT:    {name: "Nitrit niệu (que thử)", unit: "", loinc: "5802-4", ref: ["Âm tính"], source: "Clinitek – âm tính"}
+
+# Siêu âm: trung vị sinh trắc theo tuần (xấp xỉ biểu đồ Hadlock) – chỉ để sinh số liệu giả hợp lý.
+ultrasound:
+  scans:  # tuần thai làm siêu âm theo mốc
+    - {from: 11, to: 13, kind: "Siêu âm quý 1 – độ mờ da gáy"}
+    - {from: 18, to: 22, kind: "Siêu âm hình thái quý 2"}
+    - {from: 28, to: 32, kind: "Siêu âm tăng trưởng quý 3"}
+    - {from: 35, to: 41, kind: "Siêu âm cuối thai kỳ"}
+  crl_mm: {11: 45, 12: 55, 13: 68}
+  nt_mm_normal_max: 3.0          # [CẦN XÁC NHẬN] ngưỡng NT bất thường
+  bpd_mm: {18: 41, 20: 47, 22: 54, 24: 60, 26: 66, 28: 71, 30: 77, 32: 81, 34: 85, 36: 89, 38: 92, 40: 94}
+  fl_mm:  {18: 27, 20: 33, 22: 39, 24: 44, 26: 49, 28: 54, 30: 58, 32: 62, 34: 66, 36: 69, 38: 72, 40: 75}
+  ac_mm:  {18: 130, 20: 150, 22: 174, 24: 197, 26: 219, 28: 240, 30: 262, 32: 283, 34: 302, 36: 320, 38: 335, 40: 350}
+  efw_g:  {18: 223, 20: 331, 22: 478, 24: 670, 26: 913, 28: 1210, 30: 1559, 32: 1953, 34: 2377, 36: 2813, 38: 3236, 40: 3619}
+  afi_cm_normal: [5, 25]
+  fhr_bpm_normal: [110, 160]
+
+# Khám sản: bề cao tử cung ≈ tuổi thai (cm) ± 2 từ 20 tuần (quy tắc McDonald); tim thai 110–160 lần/phút.
+obstetric:
+  fundal_height_from_week: 20
+  fundal_height_tolerance_cm: 2
+  presentation_from_week: 28
+
+# Mã ICD-10 (WHO ICD-10; bản Việt Nam theo TT 06/2026/TT-BYT – [CẦN XÁC NHẬN] mã con).
+# Quy ước: Z34 chỉ cho thai bình thường; có mã chương O thì mã O là chẩn đoán chính, không ghi kèm Z34/Z35.
+icd10:
+  normal_first: {code: "Z34.0", name: "Theo dõi thai bình thường lần đầu"}
+  normal_other: {code: "Z34.8", name: "Theo dõi thai bình thường khác"}
+  HTN:          {code: "O13", name: "Tăng huyết áp do thai"}
+  GDM:          {code: "O24.4", name: "Đái tháo đường phát sinh trong thai kỳ"}
+  TWINS:        {code: "O30.0", name: "Song thai"}
+  PREV_CSECTION: {code: "O34.2", name: "Chăm sóc mẹ do sẹo tử cung từ phẫu thuật trước"}
+  PRETERM:      {code: "O60.0", name: "Chuyển dạ sinh non chưa sinh (dọa sinh non)"}
+  ANEMIA:       {code: "O99.0", name: "Thiếu máu biến chứng thai kỳ"}
+  UTI:          {code: "O23.4", name: "Nhiễm khuẩn đường tiết niệu không đặc hiệu trong thai kỳ"}
+  postpartum:   {code: "Z39.2", name: "Theo dõi thường quy sau sinh"}
+  gyn:          {code: "Z01.4", name: "Khám phụ khoa (tổng quát) (thường quy)"}

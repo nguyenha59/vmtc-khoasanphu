@@ -28,12 +28,43 @@ type PlanList = {
 type PlanDetail = Plan & {
   pid: string; merged_from: number[]; conflict_detail: string; masked_note: string; rule_applied: string; notes: string[];
   warnings: string[]; ai: unknown; confidence: number | null; model: string | null; prompt_version: string | null;
-  ga_inconsistent: boolean; default_time: string;
+  ga_inconsistent: boolean; default_time: string; ai_status: string | null; ai_status_label: string;
 };
 type Issue = { code: string; message: string; row_no: number | null; fatal: boolean };
 type UploadResult = { ok: boolean; report: Issue[]; warning: string | null; message?: string };
 
 const STATUS_COLOR: Record<string, string> = { needs_review: "warn", auto: "brand", confirmed: "ok" };
+
+function MethodBadge({ p }: { p: Plan }) {
+  return <Badge variant="light" color={p.method === "ai" ? "grape" : p.method === "manual" ? "blue" : "gray"}>{p.method_label}</Badge>;
+}
+
+/** Một lịch hẹn dạng thẻ (điện thoại): giờ đến nổi bật bên phải, lý do cần xác nhận ở dưới. */
+function PlanCard({ p }: { p: Plan }) {
+  return (
+    <Stack gap={6}>
+      <Group justify="space-between" wrap="nowrap" align="flex-start">
+        <Box style={{ minWidth: 0 }}>
+          <Group gap={6} wrap="nowrap">
+            <Text fw={700} size="sm">{p.code}</Text>
+            <Text size="sm" truncate>{p.full_name}</Text>
+          </Group>
+          <Text size="xs" c="dimmed" ff="monospace">{p.phone_masked}</Text>
+        </Box>
+        <Box ta="right" style={{ flex: "none" }}>
+          <Text size="xs" c="dimmed">Hẹn {p.start_time} → đến</Text>
+          <Text fw={700} fz="lg" lh={1.1}>{p.arrival_label}</Text>
+        </Box>
+      </Group>
+      <Text size="xs" c="dimmed" lineClamp={2}>{p.services.join(", ")}</Text>
+      <Group gap={6} wrap="wrap">
+        <Badge color={STATUS_COLOR[p.status]}>{p.status_label}</Badge>
+        <MethodBadge p={p} />
+      </Group>
+      {p.reasons.length > 0 && <Text size="xs" c="warn.8">{p.reasons.map((r) => r.label).join(" · ")}</Text>}
+    </Stack>
+  );
+}
 
 export function Appointments() {
   const qc = useQueryClient();
@@ -139,16 +170,17 @@ export function Appointments() {
             </Tabs>
             <Box p="md">
               <DataTable rows={lists[tab ?? "need"]} rowKey={(p) => p.plan_id} activeKey={openId} onRowClick={(p) => setOpenId(p.plan_id)}
+                minWidth={980} card={(p) => <PlanCard p={p} />}
                 columns={[
-                  { key: "code", label: "Mã", render: (p) => <Text fw={600} size="sm">{p.code}</Text> },
-                  { key: "full_name", label: "Khách" },
-                  { key: "phone_masked", label: "SĐT", render: (p) => <Text ff="monospace" size="sm">{p.phone_masked}</Text> },
-                  { key: "start_time", label: "Giờ hẹn" },
-                  { key: "services", label: "Dịch vụ", render: (p) => <Text size="sm" lineClamp={1}>{p.services.join(", ")}</Text> },
-                  { key: "arrival_label", label: "Giờ đến", render: (p) => <Text fw={600} size="sm">{p.arrival_label}</Text> },
-                  { key: "method_label", label: "Cách tính", render: (p) => <Badge variant="light" color={p.method === "ai" ? "grape" : p.method === "manual" ? "blue" : "gray"}>{p.method_label}</Badge> },
-                  { key: "status_label", label: "Trạng thái", render: (p) => <Badge color={STATUS_COLOR[p.status]}>{p.status_label}</Badge> },
-                  { key: "reasons", label: "Lý do", render: (p) => <Text size="xs" c="dimmed" lineClamp={2}>{p.reasons.map((r) => r.label).join(", ") || "—"}</Text> },
+                  { key: "code", label: "Mã", nowrap: true, render: (p) => <Text fw={600} size="sm">{p.code}</Text> },
+                  { key: "full_name", label: "Khách", width: 170 },
+                  { key: "phone_masked", label: "SĐT", nowrap: true, render: (p) => <Text ff="monospace" size="sm">{p.phone_masked}</Text> },
+                  { key: "start_time", label: "Giờ hẹn", nowrap: true },
+                  { key: "services", label: "Dịch vụ", width: 190, render: (p) => <Text size="sm" lineClamp={2}>{p.services.join(", ")}</Text> },
+                  { key: "arrival_label", label: "Giờ đến", nowrap: true, render: (p) => <Text fw={700} size="sm">{p.arrival_label}</Text> },
+                  { key: "method_label", label: "Cách tính", nowrap: true, width: 120, render: (p) => <MethodBadge p={p} /> },
+                  { key: "status_label", label: "Trạng thái", nowrap: true, width: 150, render: (p) => <Badge color={STATUS_COLOR[p.status]}>{p.status_label}</Badge> },
+                  { key: "reasons", label: "Lý do", width: 200, render: (p) => <Text size="xs" c="dimmed" lineClamp={2}>{p.reasons.map((r) => r.label).join(", ") || "—"}</Text> },
                 ]} />
             </Box>
           </Paper>
@@ -238,7 +270,8 @@ function PlanDrawer({ id, d, waiting, onClose, onDone }: { id: number | null; d:
                 <Text size="xs" c="dimmed" mt={4}>Độ tin cậy {p.confidence !== null ? `${Math.round(p.confidence * 100)}%` : "—"} · {p.model} · prompt {p.prompt_version}</Text>
                 {p.ga_inconsistent && <Alert mt="xs" color="warn" variant="light">Tuần thai AI đọc lệch &gt; 2 tuần so với lần khám trước – không dùng để chọn form.</Alert>}
               </>
-            ) : <Text size="sm" c="dimmed">Không gọi AI (ghi chú trống, che chưa sạch, hoặc chỉ dùng quy tắc).</Text>}
+            ) : <Text size="sm" c={p.ai_status === "failed" || p.ai_status === "mask_failed" ? "warn.8" : "dimmed"}>
+                {p.ai_status_label || "Không gọi AI."}</Text>}
           </Box>
 
           <Divider />

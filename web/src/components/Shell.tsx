@@ -18,6 +18,17 @@ import classes from "./Shell.module.css";
 
 type Item = { to: string; label: string; icon: ReactNode; perm?: string; badge?: number };
 
+/** Ghi đúng loại AI đang chạy (trước đây ghi cứng "Ollama" kể cả khi chạy mock / OpenAI). */
+function llmLabel(llm?: { provider: string; model: string }): string {
+  switch (llm?.provider) {
+    case "ollama": return `AI chạy trên máy · ${llm.model}`;
+    case "openai": return `AI OpenAI (${llm.model}) · chỉ dữ liệu giả`;
+    case "mock": return "AI chế độ thử (mock)";
+    case "blocked": return "AI đang tắt – cấu hình chưa hợp lệ";
+    default: return "";
+  }
+}
+
 export function Shell({ me }: { me: Me }) {
   const [opened, { toggle, close }] = useDisclosure();
   const logout = useLogout();
@@ -124,7 +135,7 @@ export function Shell({ me }: { me: Me }) {
         </ScrollArea>
         <Stack gap={2} p="md" className={classes.footer}>
           <Text size="xs" c="#9FC9BF">MVP · chỉ dữ liệu giả</Text>
-          <Text size="xs" c="#6E9A90">AI chạy cục bộ (Ollama)</Text>
+          <Text size="xs" c="#6E9A90">{llmLabel(ov?.llm)}</Text>
         </Stack>
       </AppShell.Navbar>
 

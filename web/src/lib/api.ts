@@ -59,6 +59,7 @@ export type Overview = {
   metrics: { appointments_tomorrow: number; forms_today: number; responses_24h: number; open_alerts: number; open_red: number };
   steps: { key: string; label: string; done: boolean; to: string; pending?: number | null }[];
   latest_alerts: (Pick<AlertSummary, "id" | "level" | "status" | "status_label" | "code" | "summary" | "created_at">)[];
+  llm?: { provider: string; model: string };
 };
 
 export type AlertList = {

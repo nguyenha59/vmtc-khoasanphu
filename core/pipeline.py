@@ -28,6 +28,8 @@ class PlannedAppt:
     decision: ReviewDecision
     mask: MaskResult | None = None
     extraction: Extraction | None = None
+    # Vì sao có / không gọi AI – hiện đúng một lý do cho người duyệt (xem AI_STATUS_LABELS ở API).
+    ai_status: str = "no_note"
 
 
 @dataclass
@@ -60,14 +62,24 @@ def plan_appointment(
     extraction: Extraction | None = None
     sensitive: list[str] = []
     external = False
+    ai_status = "no_note"
     if m.note:
         mask = mask_text(m.note, full_name=m.full_name, pid=m.pid, doctor_names=doctors, ner=ner)
         skip_ai = read_fully_by_rules(m.note, rules["arrival"].get("ai_skip_vocabulary", []))
         sensitive = find_sensitive(m.note, (rules.get("privacy") or {}).get("sensitive_topics", []))
         # Ghi chú nhạy cảm không gửi ra API bên ngoài, kể cả khi đã che (chỉ mô hình cục bộ / mock).
         external = getattr(client, "name", "").startswith("openai:")
-        if client is not None and mask.ok and not skip_ai and not (sensitive and external):
+        if client is None:
+            ai_status = "off"
+        elif not mask.ok:
+            ai_status = "mask_failed"
+        elif skip_ai:
+            ai_status = "rules_read"
+        elif sensitive and external:
+            ai_status = "sensitive"
+        else:
             extraction = extract(mask.text, m.services, m.start_time, client, rules)
+            ai_status = "ok" if extraction.ai is not None else "failed"
     ai = extraction.ai if extraction else None
     arrival = compute_arrival(m.start_time, m.services, m.note, ai, rules, slots=m.slots)
     if m.note and sensitive:
@@ -82,11 +94,14 @@ def plan_appointment(
         conflict=m.conflict,
         ai=ai,
         ai_attempted=bool(extraction and extraction.attempted),
+        ai_failed=bool(extraction and extraction.attempted and not extraction.votes and extraction.errors
+                       and all("Giờ đến" not in e for e in extraction.errors)),
         # Chỉ coi là PII_LEFT khi định gửi AI mà che chưa sạch.
         mask_ok=not (client is not None and mask is not None and not mask.ok),
         rules=rules,
     )
-    return PlannedAppt(merged=m, arrival=arrival, decision=decision, mask=mask, extraction=extraction)
+    return PlannedAppt(merged=m, arrival=arrival, decision=decision, mask=mask, extraction=extraction,
+                       ai_status=ai_status)
 
 
 def process_his(

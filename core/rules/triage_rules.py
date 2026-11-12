@@ -96,17 +96,22 @@ def triage(answers: dict[str, Any], ga_weeks: int | None, on_insulin: bool, rule
         if sys_v is not None and not (imp["sys_min"] <= sys_v <= imp["sys_max"]):
             out.implausible.append(f"{prefix}_SYS={sys_v:g}")
             add(f"{prefix}_IMPLAUSIBLE", Level.YELLOW, f"Huyết áp {sys_v:g} phi lý – nghi nhập sai")
-            continue
+            # Tâm thu nhập sai KHÔNG được che tâm trương: "1600/115" vẫn phải đỏ vì tâm trương ≥ ngưỡng đỏ.
+            sys_v = None
+            if dia_v is None:
+                continue
         s_v, d_v = sys_v or 0, dia_v or 0
+        shown = f"{sys_v:g}" if sys_v is not None else "—"
+        shown += "/" + (f"{dia_v:g}" if dia_v is not None else "—")
         slot = {"BP_AM": "am", "BP_PM": "pm"}.get(prefix)
         if sys_v is not None:
             out.readings.append(("bp_sys", sys_v, slot))
         if dia_v is not None:
             out.readings.append(("bp_dia", dia_v, slot))
         if s_v >= th["bp_red"]["sys"] or d_v >= th["bp_red"]["dia"]:
-            add(prefix, Level.RED, f"Huyết áp {s_v:g}/{d_v:g} ≥ {th['bp_red']['sys']}/{th['bp_red']['dia']}")
+            add(prefix, Level.RED, f"Huyết áp {shown} ≥ {th['bp_red']['sys']}/{th['bp_red']['dia']}")
         elif s_v >= th["bp_yellow"]["sys"] or d_v >= th["bp_yellow"]["dia"]:
-            add(prefix, Level.YELLOW, f"Huyết áp {s_v:g}/{d_v:g} ≥ {th['bp_yellow']['sys']}/{th['bp_yellow']['dia']}")
+            add(prefix, Level.YELLOW, f"Huyết áp {shown} ≥ {th['bp_yellow']['sys']}/{th['bp_yellow']['dia']}")
 
     # Đường huyết
     gy = th["glucose_yellow"]

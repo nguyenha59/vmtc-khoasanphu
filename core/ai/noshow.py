@@ -85,7 +85,9 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     out["prior_noshows"] = prior_ns
     out["prior_rate"] = [ns / n if n else 0.0 for ns, n in zip(prior_ns, prior_n, strict=False)]
     out["first_visit"] = first
-    out["foreign"] = (df["nationality"] != "Việt Nam").astype(int)
+    from core.rules.export_worldsms import is_vietnamese
+
+    out["foreign"] = (~df["nationality"].fillna("").map(is_vietnamese)).astype(int)
     out["appointment_id"] = df["appointment_id"].values
     out["appt_date"] = df["appt_date"].values
     out["label"] = df["label"].values
@@ -100,10 +102,12 @@ def _precision_at(y: np.ndarray, p: np.ndarray, frac: float) -> float:
 
 
 def _calibration(y: np.ndarray, p: np.ndarray, bins: int = 10) -> list[dict[str, float]]:
-    edges = np.quantile(p, np.linspace(0, 1, bins + 1))
+    """Bảng dự đoán vs thực tế theo nhóm phân vị. Mỗi ca thuộc đúng MỘT nhóm (tổng n = số ca test)."""
+    edges = np.unique(np.quantile(p, np.linspace(0, 1, bins + 1)))
+    idx = np.clip(np.searchsorted(edges, p, side="right") - 1, 0, max(len(edges) - 2, 0))
     out = []
-    for lo, hi in zip(edges[:-1], edges[1:], strict=False):
-        m = (p >= lo) & (p <= hi)
+    for b in range(max(len(edges) - 1, 1)):
+        m = idx == b
         if m.sum():
             out.append({"pred": float(p[m].mean()), "obs": float(y[m].mean()), "n": int(m.sum())})
     return out
@@ -231,7 +235,10 @@ def predict(bundle: dict[str, Any], feats: pd.DataFrame, top_k: int = 3) -> pd.D
         order = np.argsort(-sv[i])[:top_k]
         factors.append([{"feature": bundle["features"][j], "shap": float(sv[i, j]),
                          "text": factor_text(bundle["features"][j], float(X.iloc[i, j]))} for j in order])
-    return pd.DataFrame({"appointment_id": feats["appointment_id"].values, "prob": prob, "top_factors": factors})
+    # score = điểm thô của mô hình: isotonic gom xác suất thành ít mức (≈50 mức / 3.000 ca) → dùng score để xếp
+    # thứ tự các ca cùng mức (danh sách gọi), prob vẫn là xác suất đã hiệu chỉnh để so ngưỡng.
+    return pd.DataFrame({"appointment_id": feats["appointment_id"].values, "prob": prob, "score": raw,
+                         "top_factors": factors})
 
 
 def action_for(prob: float, rules: Rules) -> str:

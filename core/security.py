@@ -25,6 +25,8 @@ PERMISSIONS: dict[str, set[str]] = {
     "view_profile": {"nurse", "doctor"},
     "reveal_phone": {"nurse", "doctor"},
     "manage_consent": {"nurse", "doctor"},
+    "manage_patient": {"nurse", "doctor"},  # tạo hồ sơ, sửa theo gói / không theo gói
+    "override_monitoring": {"doctor"},  # chỉ định theo dõi từ xa ngoài gói (ca nguy cơ cao), bắt buộc ghi lý do
     "record_delivery": {"nurse", "doctor"},  # nhập ngày sinh → bật form sau sinh S1–S4
     "decide_red": {"doctor"},  # quyết định xử trí ca đỏ "Giữ đỏ"
     "review_downgrades": {"doctor"},  # xem lại ca đỏ bị điều dưỡng hạ mức

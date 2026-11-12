@@ -1,601 +1,601 @@
 pid,appt_date,start_time,services,merged_rows,note,arrival_true,arrival_rule,status_rule,reasons_rule,status_ai,reasons_ai,ga_weeks,ga_days,risk_flags,nationality,doctor
-26008609,2026-10-07,09:45,Khám phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26000482,2026-08-31,12:45,Nghiệm pháp dung nạp glucose (NPDN),1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007265,2026-10-06,11:30,Siêu âm phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26008644,2026-10-15,10:30,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007027,2026-08-15,10:15,Khám phụ khoa,1,soi ctc den 9h45,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010072,2026-10-26,10:30,Siêu âm phụ khoa,1,đến trước 30p làm XN,10:00,10:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007510,2026-10-21,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005410,2026-11-05,13:15,Khám hậu sản,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009638,2026-11-03,12:00,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009456,2026-08-12,10:15,Siêu âm phụ khoa,1,Đã đóng gói thai sản,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26002148,2026-08-23,07:45,Xét nghiệm máu,1,,07:45,07:45,auto,,auto,,,,,Pháp,BS. Ngô Đức Thịnh
-26008315,2026-08-28,13:00,Khám phụ khoa,1,Khám định kỳ,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010989,2026-10-27,11:15,Khám phụ khoa,1,"BN xin đổi lịch, gọi lại",11:15,11:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Trần Quốc Tuấn
-26008630,2026-10-20,09:45,Siêu âm phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26002659,2026-08-22,08:00,Nghiệm pháp dung nạp glucose (NPDN),1,đến trước 1 tiếng để nhịn ăn lấy máu,07:00,08:00,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009659,2026-10-30,08:15,Siêu âm phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26010772,2026-08-31,09:15,Xét nghiệm Pap,1,"HPV duong tinh 16, ctc den 08h30",08:30,08:30,auto,,auto,,,,,Nhật Bản,BS. Đỗ Minh Khang
-26010240,2026-09-27,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26006565,2026-10-07,14:00,Khám phụ khoa,1,có mặt lúc 13g15,13:15,13:15,auto,,auto,,,,,Hàn Quốc,BS. Ngô Đức Thịnh
-26010723,2026-09-23,10:45,Siêu âm phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009036,2026-10-11,10:15,Xét nghiệm Pap,1,TK sau dinh chi thai,10:15,10:15,auto,,auto,,,,,Trung Quốc,BS. Ngô Đức Thịnh
-26007636,2026-09-08,09:00,Khám phụ khoa,1,BS dặn đến lúc 08h30,08:30,08:30,auto,,auto,,,,,Pháp,BS. Đỗ Minh Khang
-26009666,2026-08-26,10:45,Khám phụ khoa,1,SA 4D,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26010709,2026-09-29,08:00,Xét nghiệm Pap,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26005746,2026-11-07,09:45,Siêu âm hình thái 4D,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26001616,2026-11-02,10:45,Siêu âm độ mờ da gáy (NT),1,nhắc mang sổ khám thai,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007678,2026-08-26,14:30,Siêu âm phụ khoa,1,tới trước 15 phút,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26000300,2026-09-24,11:30,Xét nghiệm liên cầu B,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007958,2026-11-01,11:45,Khám phụ khoa,1,,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26004934,2026-09-24,09:00,Siêu âm 2D,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008357,2026-09-19,07:00,Khám phụ khoa,1,đến sớm 30 phút làm xét nghiệm,06:30,07:00,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010100,2026-09-08,14:15,Khám phụ khoa,1,SA hinh thai,14:15,14:15,auto,,auto,,,,,Úc,BS. Bùi Thanh Sơn
-26006978,2026-11-02,11:00,Siêu âm phụ khoa,1,Xét nghiệm nước tiểu,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008777,2026-09-13,08:00,Khám phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26000545,2026-10-31,08:30,Xét nghiệm máu,1,"Thai 31w, SA 4D",08:30,08:30,auto,,auto,,31,3,,Việt Nam,BS. Ngô Đức Thịnh
-26010674,2026-09-15,07:45,Xét nghiệm Pap,1,đến sớm 45p,07:00,07:45,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Lê Thị Bích
-26010737,2026-09-07,11:30,Khám phụ khoa,1,TK sau dinh chi thai,11:30,11:30,auto,,auto,,,,,Úc,BS. Phạm Văn Khải
-26008504,2026-10-18,10:15,Siêu âm phụ khoa,1,co mat luc 9g45 de SA,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26007559,2026-08-17,10:30,Siêu âm phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26008294,2026-10-12,07:15,Khám phụ khoa,1,BN đi cùng chồng,07:15,07:15,auto,,auto,,,,,Mỹ,BS. Bùi Thanh Sơn
-26007643,2026-09-07,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26000132,2026-09-19,08:15,Khám thai,1,,08:15,08:15,auto,,auto,,,,,Úc,BS. Vũ Thị Hằng
-26007356,2026-09-25,15:15,Siêu âm phụ khoa,1,,15:00,15:00,auto,,auto,,,,,Singapore,BS. Lê Thị Bích
-26008728,2026-10-31,11:15,Xét nghiệm Pap,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26010604,2026-10-20,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Hàn Quốc,BS. Lê Thị Bích
-26007398,2026-08-30,13:45,Khám phụ khoa,1,đến trước 30p làm XN,13:15,13:45,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Phạm Văn Khải
-26010961,2026-10-12,10:30,Xét nghiệm Pap,1,,10:30,10:30,auto,,auto,,,,,Trung Quốc,BS. Vũ Thị Hằng
-26007230,2026-08-17,11:00,Siêu âm phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26005669,2026-10-21,14:00,Siêu âm độ mờ da gáy (NT),1,,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009316,2026-09-13,09:45,Siêu âm phụ khoa,1,BS Sơn dặn tái khám sau SA,09:30,09:30,auto,,auto,,,,,Nhật Bản,BS. Bùi Thanh Sơn
-26002981,2026-08-27,07:00,Siêu âm 2D,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010401,2026-08-27,07:45,Siêu âm phụ khoa,1,uống đủ nước trước SA,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007041,2026-11-03,15:15,Khám phụ khoa,1,kham thai dinh ky,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26001882,2026-08-29,16:30,Xét nghiệm liên cầu B,1,gọi xác nhận lại giờ,16:30,16:30,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Mỹ,BS. Phạm Văn Khải
-26007272,2026-09-06,08:00,Khám phụ khoa,1,SA 4D,08:00,08:00,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010338,2026-10-29,10:45,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009260,2026-09-29,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007615,2026-08-23,16:30,Khám phụ khoa,1,,16:30,16:30,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010450,2026-08-29,10:30,Xét nghiệm Pap,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006460,2026-10-01,14:30,Khám phụ khoa,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007104,2026-10-17,08:15,Khám phụ khoa,1,Khám định kỳ,08:15,08:15,auto,,auto,,,,,Trung Quốc,BS. Bùi Thanh Sơn
-26005200,2026-09-01,09:00,Xét nghiệm máu,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008686,2026-09-24,08:00,Siêu âm phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26000398,2026-08-28,11:00,Xét nghiệm máu,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26010786,2026-10-11,12:45,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26000013,2026-10-11,13:00,Khám thai,1,liên hệ người nhà 0950339185,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009666,2026-11-03,08:00,Khám phụ khoa,1,SA 4D,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26005557,2026-10-27,09:45,Khám thai,1,,09:45,09:45,auto,,auto,,,,,Singapore,BS. Đỗ Minh Khang
-26006313,2026-09-24,09:30,Khám phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26001266,2026-09-25,09:45,Siêu âm 2D,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007762,2026-09-28,09:15,Xét nghiệm Pap,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26006397,2026-10-14,08:00,Khám phụ khoa,1,co mat luc 7:15 de SA,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007692,2026-10-12,08:45,Khám phụ khoa,1,gọi xác nhận lại giờ,08:45,08:45,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Phạm Văn Khải
-26001959,2026-09-15,09:15,Khám thai,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010114,2026-10-04,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26006880,2026-09-05,07:45,Khám phụ khoa,1,goi xac nhan truoc 1 ngay,07:45,07:45,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007923,2026-11-01,07:00,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Nhật Bản,BS. Phạm Văn Khải
-26009554,2026-09-12,13:00,Khám phụ khoa,1,Hẹn đến 12g45 làm NPDN,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008287,2026-09-05,16:15,Siêu âm phụ khoa,1,Xét nghiệm nước tiểu,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26005697,2026-08-27,14:30,Xét nghiệm máu,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007454,2026-09-03,09:45,Siêu âm phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007979,2026-09-09,07:45,Siêu âm phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008665,2026-10-23,08:00,Khám phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008763,2026-10-19,08:30,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26011157,2026-08-23,12:45,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010541,2026-08-21,16:15,Xét nghiệm Pap,1,Khám định kỳ,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26006089,2026-09-28,11:00,Khám thai,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26008091,2026-10-16,11:45,Khám phụ khoa,1,,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006481,2026-09-01,09:00,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26007860,2026-11-01,11:00,Siêu âm phụ khoa,1,BN đi cùng chồng,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009841,2026-09-19,09:45,Khám phụ khoa,1,đến sớm 30 phút làm xét nghiệm,09:15,09:45,auto,,needs_review,AI_RULE_DIFF,,,,Mỹ,BS. Phạm Văn Khải
-26009659,2026-08-31,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007125,2026-10-16,16:15,Xét nghiệm Pap,1,,16:15,16:15,auto,,auto,,,,,Úc,BS. Hoàng Thị Lụa
-26007706,2026-08-19,09:45,Khám phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009911,2026-09-02,13:30,Khám phụ khoa,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007034,2026-10-15,11:00,Khám phụ khoa,1,Tái khám theo hẹn,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009470,2026-09-24,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26005067,2026-09-04,11:45,Siêu âm 2D,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010065,2026-10-12,08:45,Xét nghiệm Pap,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008147,2026-10-18,11:45,Siêu âm phụ khoa,1,lịch SA doppler,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26009687,2026-09-11,10:00,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010590,2026-09-07,12:15,Khám phụ khoa,1,đến sớm 30 phút làm xét nghiệm,Khám chờ,Khám chờ,auto,,needs_review,WAITING_NOTE_TIME,,,,Hàn Quốc,BS. Đỗ Minh Khang
-26010828,2026-09-16,14:45,Khám phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008588,2026-08-12,16:15,Khám phụ khoa,1,SA 4D,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26003415,2026-08-27,15:00,Khám thai,1,,15:00,15:00,auto,,auto,,,,,Úc,BS. Vũ Thị Hằng
-26009078,2026-10-24,08:15,Siêu âm phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007888,2026-09-01,12:15,Khám phụ khoa,1,Xét nghiệm nước tiểu,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26008028,2026-10-05,09:30,Siêu âm phụ khoa,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26005046,2026-09-10,15:45,Siêu âm 2D,1,lịch SA doppler,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26006047,2026-08-18,10:15,Siêu âm 2D,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26000937,2026-08-28,11:15,Khám thai,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26004017,2026-09-22,14:15,Khám thai,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009302,2026-08-15,07:15,Xét nghiệm Pap,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007972,2026-09-30,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26005921,2026-08-17,11:30,Khám thai,1,"Thai 33w, SA 4D",11:30,11:30,needs_review,BAD_PHONE,needs_review,BAD_PHONE,33,0,,Việt Nam,BS. Bùi Thanh Sơn
-26000307,2026-08-13,09:00,Nghiệm pháp dung nạp glucose (NPDN),1,"Thai 24 w, tái khám",09:00,09:00,auto,,auto,,24,3,,Việt Nam,BS. Hoàng Thị Lụa
-26011129,2026-09-07,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009659,2026-09-28,08:30,Siêu âm phụ khoa,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26008644,2026-09-09,09:15,Xét nghiệm Pap,1,kq double test binh thuong,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008966,2026-10-31,09:15,Siêu âm phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26000167,2026-10-01,08:00,Xét nghiệm liên cầu B,1,"36 tuan, kham dinh ky",08:00,08:00,auto,,auto,,36,2,,Việt Nam,BS. Phạm Văn Khải
-26000678,2026-08-21,07:30,Khám thai,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007573,2026-09-17,12:00,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006334,2026-09-06,15:15,Khám phụ khoa,1,den truoc 20p,14:55,15:15,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Vũ Thị Hằng
-26006355,2026-11-03,10:15,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009596,2026-11-03,07:00,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Singapore,BS. Vũ Thị Hằng
-26007090,2026-11-01,07:15,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007811,2026-11-01,07:30,Xét nghiệm Pap,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007433,2026-09-08,11:45,Xét nghiệm Pap,1,,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009260,2026-09-01,09:00,Siêu âm phụ khoa,1,"BN nước ngoài, cần phiên dịch",08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007125,2026-11-06,13:45,Siêu âm phụ khoa,1,,13:30,13:30,auto,,auto,,,,,Úc,BS. Lê Thị Bích
-26010352,2026-09-23,16:00,Khám phụ khoa,1,,16:00,16:00,auto,,auto,,,,,Singapore,BS. Lê Thị Bích
-26010730,2026-10-03,12:45,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Hàn Quốc,BS. Phạm Văn Khải
-26011094,2026-09-09,13:15,Khám phụ khoa,1,Đến 12h15 để làm xét nghiệm,12:15,12:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007587,2026-08-14,10:45,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Úc,BS. Phạm Văn Khải
-26002162,2026-10-28,07:15,Xét nghiệm liên cầu B,1,"Thai 35w, SA 4D",07:15,07:15,auto,,auto,,35,2,,Việt Nam,BS. Hoàng Thị Lụa
-26006670,2026-10-03,15:15,Khám phụ khoa,1,,15:15,15:15,auto,,auto,,,,,Pháp,BS. Đỗ Minh Khang
-26007944,2026-10-21,08:15,Khám phụ khoa,1,,08:15,08:15,auto,,auto,,,,,Pháp,BS. Vũ Thị Hằng
-26010219,2026-10-05,13:00,Khám phụ khoa,1,,13:00,13:00,auto,,auto,,,,,Mỹ,BS. Trần Quốc Tuấn
-26009575,2026-10-11,07:45,Xét nghiệm Pap,1,BS dặn đến lúc 7h30,07:30,07:30,auto,,auto,,,,,Singapore,BS. Trần Quốc Tuấn
-26008427,2026-08-15,07:45,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 7h15",07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008539,2026-10-26,10:15,Khám phụ khoa,1,BS hẹn đến 9h45 lấy máu,09:45,09:45,auto,,auto,,,,,Trung Quốc,BS. Lê Thị Bích
-26010828,2026-09-01,11:15,Khám phụ khoa,1,"đến 10:15, mang theo sổ khám",10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26003373,2026-11-08,10:00,Khám thai,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007335,2026-10-23,07:15,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007069,2026-10-03,15:00,Siêu âm phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Hàn Quốc,BS. Bùi Thanh Sơn
-26009932,2026-11-02,08:30,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Mỹ,BS. Hoàng Thị Lụa
-26005109,2026-10-25,15:30,Siêu âm hình thái 4D,1,,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26004192,2026-10-22,10:15,Siêu âm 2D,1,"Thai 38w0d, khám định kỳ",10:00,10:00,needs_review,LATE_GA,needs_review,LATE_GA,38,0,,Việt Nam,BS. Hoàng Thị Lụa
-26001735,2026-10-31,15:15,Khám thai,1,Khách muốn dời lịch,15:15,15:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Đỗ Minh Khang
-26006712,2026-08-30,09:30,Xét nghiệm Pap,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26004948,2026-10-31,08:00,Khám thai,1,Thai 17w,08:00,08:00,auto,,auto,,17,4,,Trung Quốc,BS. Trần Quốc Tuấn
-26009953,2026-08-16,11:15,Xét nghiệm Pap,1,BS Lụa dặn tái khám sau SA,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26008070,2026-09-25,16:15,Siêu âm phụ khoa,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009988,2026-08-25,07:45,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 7 giờ",07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26004241,2026-08-24,15:15,Xét nghiệm liên cầu B,1,,15:15,15:15,auto,,auto,,,,,Úc,BS. Trần Quốc Tuấn
-26006495,2026-08-25,12:00,Xét nghiệm Pap,1,goi xac nhan truoc 1 ngay,Khám chờ,Khám chờ,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Mỹ,BS. Đỗ Minh Khang
-26006474,2026-10-01,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010240,2026-10-06,15:00,Siêu âm phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26008896,2026-08-23,14:15,Khám phụ khoa,1,kham thai dinh ky,14:15,14:15,auto,,auto,,,,,Nhật Bản,BS. Phạm Văn Khải
-26008091,2026-08-17,10:30,Siêu âm phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006628,2026-09-30,08:45,Khám phụ khoa,1,BS hẹn đến 8h lấy máu,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010835,2026-11-03,10:15,Khám phụ khoa,1,có mặt lúc 10:00,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009246,2026-09-30,10:45,Siêu âm phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009806,2026-11-01,08:45,Khám phụ khoa,1,,08:45,08:45,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Mỹ,BS. Lê Thị Bích
-26009512,2026-10-27,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008686,2026-11-05,11:00,Siêu âm phụ khoa,1,xác nhận lại dịch vụ,10:45,10:45,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Phạm Văn Khải
-26006782,2026-08-28,09:45,Khám phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009358,2026-10-27,10:15,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006698,2026-09-24,09:15,Khám phụ khoa,1,BS dặn đến lúc 8h15,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26000734,2026-08-12,07:15,Khám thai,1,thai 32w ngôi đầu,07:15,07:15,auto,,auto,,32,0,,Nhật Bản,BS. Ngô Đức Thịnh
-26003695,2026-09-21,09:30,Khám thai; Xét nghiệm máu,2,nhắc mang sổ khám thai,09:30,09:30,needs_review,CONFLICT,needs_review,CONFLICT,,,,Việt Nam,BS. Lê Thị Bích
-26009400,2026-11-02,08:15,Xét nghiệm Pap,1,,08:15,08:15,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006537,2026-10-15,11:00,Siêu âm phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26010800,2026-08-15,16:30,Khám phụ khoa,1,tới trước 15 phút,16:15,16:30,auto,,auto,,,,,Hàn Quốc,BS. Bùi Thanh Sơn
-26009869,2026-10-19,12:30,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007293,2026-09-27,10:45,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26001343,2026-08-24,14:45,Xét nghiệm máu,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26001609,2026-10-02,07:45,Nghiệm pháp dung nạp glucose (NPDN); Siêu âm 2D,2,,07:30,07:30,auto,,auto,,,,,Trung Quốc,BS. Phạm Văn Khải
-26000993,2026-10-01,12:45,Khám thai,1,Thai 32 tuần 4 ngày,Khám chờ,Khám chờ,auto,,auto,,32,4,,Việt Nam,BS. Vũ Thị Hằng
-26006929,2026-09-09,08:00,Xét nghiệm Pap,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26006817,2026-10-12,07:45,Khám phụ khoa,1,có mặt lúc 7:30,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26010807,2026-08-22,13:30,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 13h",13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006495,2026-09-13,10:30,Khám phụ khoa,1,kham thai dinh ky,10:30,10:30,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
-26008721,2026-10-03,13:30,Xét nghiệm Pap,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009659,2026-10-14,07:00,Siêu âm phụ khoa,1,mang theo kết quả XN lần trước,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007979,2026-08-22,10:15,Xét nghiệm Pap,1,Đã đóng gói thai sản,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26010121,2026-09-04,12:00,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010919,2026-09-16,08:45,Xét nghiệm Pap,1,BS Khang dặn tái khám sau SA,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010947,2026-11-01,13:45,Xét nghiệm Pap,1,đến sớm 30 phút làm xét nghiệm,13:15,13:45,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Vũ Thị Hằng
-26004234,2026-08-24,09:30,Siêu âm hình thái 4D,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26006901,2026-10-28,07:30,Xét nghiệm Pap,1,Đến 7g15 để làm xét nghiệm,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26002673,2026-10-19,07:00,Siêu âm 2D,1,,06:45,06:45,auto,,auto,,,,,Úc,BS. Vũ Thị Hằng
-26010646,2026-10-06,09:15,Siêu âm phụ khoa,1,den 8:30 nhin an lay mau,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26008756,2026-09-22,08:45,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005767,2026-09-15,09:00,Khám thai,1,,09:00,09:00,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
-26010660,2026-09-22,12:15,Xét nghiệm Pap,1,TK sau dinh chi thai,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006656,2026-08-29,10:00,Xét nghiệm Pap,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26002659,2026-11-03,10:00,Xét nghiệm liên cầu B,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008217,2026-10-23,14:00,Khám phụ khoa,1,,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26008763,2026-09-23,16:30,Khám phụ khoa,1,,16:30,16:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26008385,2026-08-17,11:45,Khám phụ khoa,1,Tái khám theo hẹn,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26008175,2026-09-19,14:00,Siêu âm phụ khoa,1,Tái khám theo hẹn,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008126,2026-11-02,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010835,2026-09-22,13:00,Xét nghiệm Pap,1,,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26003898,2026-09-21,13:00,Siêu âm độ mờ da gáy (NT),1,13w ycbs kham va sieu am,12:45,12:45,auto,,auto,,13,3,,Việt Nam,BS. Trần Quốc Tuấn
-26006376,2026-09-16,16:15,Khám phụ khoa,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010275,2026-09-25,14:45,Khám phụ khoa,1,đến sớm 45p,14:00,14:45,auto,,needs_review,AI_RULE_DIFF,,,,Pháp,BS. Lê Thị Bích
-26006327,2026-09-15,14:00,Xét nghiệm Pap,1,,14:00,14:00,auto,,auto,,,,,Singapore,BS. Lê Thị Bích
-26006614,2026-09-26,07:45,Khám phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Mỹ,BS. Vũ Thị Hằng
-26006635,2026-10-19,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010471,2026-10-30,07:45,Khám phụ khoa,1,TK sau dinh chi thai,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009785,2026-08-19,07:30,Khám phụ khoa,1,BS hẹn đến 06h30 lấy máu,06:30,06:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008700,2026-11-01,12:30,Khám phụ khoa,1,liên hệ người nhà 0971771655,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26002302,2026-11-07,13:00,Khám thai,1,BS hẹn đến 12h15 lấy máu,12:15,12:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006558,2026-09-09,10:30,Xét nghiệm Pap,1,,10:30,10:30,auto,,auto,,,,,Úc,BS. Vũ Thị Hằng
-26005816,2026-10-26,11:45,Khám hậu sản,1,,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26001518,2026-09-10,09:45,Siêu âm 2D,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26006649,2026-09-12,07:00,Khám phụ khoa,1,BN đi cùng chồng,07:00,07:00,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
-26000797,2026-10-25,08:45,Siêu âm 2D,1,kq double test binh thuong,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010359,2026-08-22,10:15,Siêu âm phụ khoa,1,?,10:00,10:00,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Hoàng Thị Lụa
-26002337,2026-09-25,08:30,Khám thai,1,,08:30,08:30,auto,,auto,,,,,Úc,BS. Phạm Văn Khải
-26007027,2026-10-26,12:30,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007937,2026-08-24,09:15,Khám phụ khoa,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26001665,2026-09-23,16:00,Xét nghiệm máu,1,37w kham + SA,16:00,16:00,needs_review,LATE_GA,needs_review,LATE_GA,37,2,,Việt Nam,BS. Trần Quốc Tuấn
-26006229,2026-10-24,10:45,Khám thai,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010534,2026-08-26,08:15,Khám phụ khoa,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26006579,2026-08-22,15:45,Khám phụ khoa,1,,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009855,2026-11-10,11:30,Siêu âm phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26008749,2026-09-07,15:00,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 14:30",14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007699,2026-08-29,09:45,Khám phụ khoa,1,uống đủ nước trước SA,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007342,2026-08-23,10:15,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26001553,2026-09-29,16:15,Khám thai,1,"Thai 16w, SA 4D",16:15,16:15,auto,,auto,,16,6,,Việt Nam,BS. Ngô Đức Thịnh
-26003121,2026-10-01,16:00,Siêu âm 2D,1,,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009155,2026-09-15,15:00,Siêu âm phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26002547,2026-10-07,11:45,Xét nghiệm máu,1,"đến 11:15, mang theo sổ khám",11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26011059,2026-09-28,07:15,Khám phụ khoa,1,ycbs den 7 giờ,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26000377,2026-08-20,12:45,Siêu âm 2D; Siêu âm hình thái 4D,2,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26008679,2026-10-09,16:00,Khám phụ khoa,1,soi ctc den 15h,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26002750,2026-09-10,15:15,Xét nghiệm liên cầu B,1,,15:15,15:15,auto,,auto,,,,,Mỹ,BS. Đỗ Minh Khang
-26002715,2026-08-16,15:00,Nghiệm pháp dung nạp glucose (NPDN),1,Thai 27tuần 5ngày,15:00,15:00,auto,,auto,,27,5,,Việt Nam,BS. Bùi Thanh Sơn
-26005998,2026-08-21,07:00,Khám thai,1,Xét nghiệm nước tiểu,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26003443,2026-08-24,09:45,Khám thai,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26010352,2026-10-27,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Singapore,BS. Bùi Thanh Sơn
-26010702,2026-08-19,10:00,Siêu âm phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Singapore,BS. Trần Quốc Tuấn
-26010037,2026-09-30,13:45,Siêu âm phụ khoa,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26006726,2026-10-16,10:30,Siêu âm phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26005627,2026-08-21,11:45,Siêu âm 2D,1,tới trước 15 phút,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010156,2026-11-06,15:30,Siêu âm phụ khoa,1,đến sớm 30 phút làm xét nghiệm,15:00,15:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26008917,2026-10-16,11:30,Siêu âm phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010443,2026-10-07,07:00,Siêu âm phụ khoa,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26008427,2026-11-07,09:15,Siêu âm phụ khoa,1,Khám định kỳ,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26006411,2026-09-23,15:30,Khám phụ khoa,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007860,2026-09-25,10:30,Khám phụ khoa,1,"đến 10h15, mang theo sổ khám",10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007293,2026-10-29,07:15,Xét nghiệm Pap,1,BS dặn đến lúc 7h,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26006740,2026-10-13,09:45,Siêu âm phụ khoa,1,"chưa rõ giờ, hỏi lại BS",09:30,09:30,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Hoàng Thị Lụa
-26010674,2026-09-03,07:30,Khám phụ khoa,1,soi ctc den 7g15,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010142,2026-10-25,08:45,Xét nghiệm Pap,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009414,2026-10-03,09:45,Khám phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006873,2026-11-05,10:15,Xét nghiệm Pap,1,?,10:15,10:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Ngô Đức Thịnh
-26006404,2026-11-06,12:45,Xét nghiệm Pap,1,ycbs den 12h,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Hoàng Thị Lụa
-26000370,2026-09-04,10:30,Khám thai,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26006271,2026-10-15,09:15,Siêu âm 2D,1,"Thai 39w, chưa rõ có làm 4D không",09:00,09:00,needs_review,"CALL_NOTE,LATE_GA",needs_review,"CALL_NOTE,LATE_GA",39,0,,Hàn Quốc,BS. Trần Quốc Tuấn
-26010156,2026-08-26,14:30,Siêu âm phụ khoa,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26000762,2026-08-15,11:15,Xét nghiệm liên cầu B,1,,11:15,11:15,auto,,auto,,,,,Trung Quốc,BS. Đỗ Minh Khang
-26010828,2026-09-09,08:30,Khám phụ khoa,1,TK sau dinh chi thai,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26000650,2026-10-01,16:15,Siêu âm hình thái 4D,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26005704,2026-09-22,08:30,Khám hậu sản,1,,08:30,08:30,auto,,auto,,,,,Pháp,BS. Lê Thị Bích
-26007636,2026-08-21,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Pháp,BS. Ngô Đức Thịnh
-26010240,2026-09-30,12:45,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010884,2026-10-10,07:15,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007748,2026-09-09,09:30,Khám phụ khoa,1,"BN nước ngoài, cần phiên dịch",09:30,09:30,auto,,auto,,,,,Hàn Quốc,BS. Lê Thị Bích
-26008483,2026-10-15,10:45,Xét nghiệm Pap,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26008637,2026-09-02,15:45,Khám phụ khoa,1,,15:45,15:45,auto,,auto,,,,,Trung Quốc,BS. Bùi Thanh Sơn
-26006670,2026-10-14,13:00,Khám phụ khoa,1,kham phu khoa dk,13:00,13:00,auto,,auto,,,,,Pháp,BS. Trần Quốc Tuấn
-26001875,2026-09-02,10:00,Khám thai,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26001938,2026-10-10,15:00,Siêu âm độ mờ da gáy (NT),1,tuổi thai 13 tuần,14:45,14:45,auto,,auto,,13,1,,Việt Nam,BS. Lê Thị Bích
-26010464,2026-08-29,12:30,Khám phụ khoa,1,BS dặn đến lúc 12 giờ,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Trung Quốc,BS. Vũ Thị Hằng
-26011108,2026-09-23,07:00,Khám phụ khoa,1,den truoc 20p,06:40,07:00,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005543,2026-09-24,11:45,Siêu âm 2D,1,34w ycbs kham va sieu am,11:30,11:30,auto,,auto,,34,4,,Việt Nam,BS. Trần Quốc Tuấn
-26008931,2026-10-07,16:00,Siêu âm phụ khoa,1,,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009015,2026-09-14,07:45,Khám phụ khoa,1,TK sau dinh chi thai,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26002981,2026-10-08,11:45,Xét nghiệm liên cầu B,1,Chị Uyên xin đến sớm 30p,11:15,11:45,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Đỗ Minh Khang
-26007307,2026-09-29,07:15,Xét nghiệm Pap,1,"chưa rõ giờ, hỏi lại BS",07:15,07:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Vũ Thị Hằng
-26009918,2026-10-19,13:15,Khám phụ khoa,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26009953,2026-11-02,07:45,Xét nghiệm Pap,1,nhắc mang sổ khám thai,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007818,2026-11-06,12:30,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26004493,2026-10-01,10:45,Xét nghiệm liên cầu B,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26002995,2026-08-12,08:00,Xét nghiệm liên cầu B,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26005494,2026-09-29,15:00,Siêu âm 2D,1,"Thai 38w, chưa rõ có làm 4D không",14:45,14:45,needs_review,"CALL_NOTE,LATE_GA",needs_review,"CALL_NOTE,LATE_GA",38,6,,Mỹ,BS. Ngô Đức Thịnh
-26010618,2026-10-11,10:00,Xét nghiệm Pap,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009652,2026-11-08,08:15,Xét nghiệm Pap,1,"HPV duong tinh 16, ctc den 8h",08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010100,2026-08-15,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Úc,BS. Vũ Thị Hằng
-26009617,2026-10-16,11:30,Khám phụ khoa,1,"đến 10g30, mang theo sổ khám",10:30,10:30,auto,,auto,,,,,Úc,BS. Lê Thị Bích
-26010828,2026-10-01,14:30,Xét nghiệm Pap,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26004108,2026-09-20,10:00,Xét nghiệm liên cầu B,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010303,2026-09-17,16:15,Khám phụ khoa,1,kham phu khoa dk,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26010968,2026-09-22,07:30,Xét nghiệm Pap,1,Khám định kỳ,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009841,2026-09-06,10:30,Siêu âm phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Mỹ,BS. Đỗ Minh Khang
-26008938,2026-09-09,07:00,Xét nghiệm Pap,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26001595,2026-10-04,13:00,Khám thai,1,,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26010730,2026-08-16,11:00,Xét nghiệm Pap,1,,11:00,11:00,auto,,auto,,,,,Hàn Quốc,BS. Lê Thị Bích
-26002183,2026-09-02,12:00,Xét nghiệm liên cầu B,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009841,2026-09-10,09:00,Xét nghiệm Pap,1,,09:00,09:00,auto,,auto,,,,,Mỹ,BS. Trần Quốc Tuấn
-26010660,2026-10-17,07:15,Siêu âm phụ khoa,1,BS hẹn đến 6:45 lấy máu,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26005809,2026-11-03,10:45,Siêu âm độ mờ da gáy (NT),1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26011143,2026-09-26,07:15,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009834,2026-10-25,11:15,Siêu âm phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26004724,2026-09-30,08:00,Xét nghiệm máu,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009638,2026-10-17,11:45,Khám phụ khoa,1,kq double test binh thuong,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006012,2026-09-01,13:00,Khám thai,1,"30 tuan, kham dinh ky",13:00,13:00,auto,,auto,,30,6,,Việt Nam,BS. Ngô Đức Thịnh
-26007279,2026-08-12,09:30,Siêu âm phụ khoa,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26001574,2026-10-29,07:00,Khám thai,1,31w ycbs kham va sieu am,07:00,07:00,auto,,auto,,31,6,,Việt Nam,BS. Lê Thị Bích
-26004738,2026-09-30,09:45,Khám hậu sản,1,BS dặn đến lúc 09h30,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009421,2026-11-09,13:00,Xét nghiệm Pap,1,Tái khám theo hẹn,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26008539,2026-09-10,09:30,Xét nghiệm Pap,1,"BN nước ngoài, cần phiên dịch",09:30,09:30,auto,,auto,,,,,Trung Quốc,BS. Phạm Văn Khải
-26006383,2026-09-08,14:30,Xét nghiệm Pap,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26010016,2026-08-12,14:00,Xét nghiệm Pap,1,uống đủ nước trước SA,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26008889,2026-11-10,09:15,Khám phụ khoa,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26004605,2026-08-22,08:30,Khám thai,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009939,2026-08-23,10:00,Xét nghiệm Pap,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007832,2026-09-08,12:30,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26006537,2026-08-23,10:00,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010366,2026-10-24,10:30,Khám phụ khoa,1,SA hinh thai,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26003772,2026-10-01,07:45,Siêu âm 2D; Siêu âm độ mờ da gáy (NT),2,"Thai 12 w, tái khám",07:30,07:30,auto,,auto,,12,0,,Việt Nam,BS. Phạm Văn Khải
-26003254,2026-09-26,11:15,Khám thai,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007881,2026-09-04,09:30,Khám phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009155,2026-08-13,08:00,Xét nghiệm Pap,1,Tái khám theo hẹn,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26003849,2026-08-29,08:00,Khám thai,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26011094,2026-09-06,10:15,Khám phụ khoa,1,Khách muốn dời lịch,10:15,10:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009274,2026-10-23,14:30,Xét nghiệm Pap,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26006432,2026-09-04,08:45,Siêu âm phụ khoa,1,uống đủ nước trước SA,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008875,2026-09-09,11:00,Siêu âm phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26002288,2026-09-05,09:15,Khám thai,1,đến sớm 45p,08:30,09:15,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Phạm Văn Khải
-26006376,2026-10-02,12:30,Siêu âm phụ khoa,1,uống đủ nước trước SA,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26008021,2026-10-01,13:45,Khám phụ khoa,1,,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26002953,2026-08-12,07:00,Xét nghiệm máu,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009400,2026-09-19,11:45,Xét nghiệm Pap,1,,11:45,11:45,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Lê Thị Bích
-26011185,2026-10-23,09:30,Siêu âm phụ khoa,1,đến sớm 30 phút làm xét nghiệm,09:00,09:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26000916,2026-10-22,08:00,Xét nghiệm máu,1,34w ycbs kham va sieu am,08:00,08:00,auto,,auto,,34,6,,Trung Quốc,BS. Phạm Văn Khải
-26008063,2026-09-21,11:45,Khám phụ khoa,1,,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007790,2026-08-14,11:30,Siêu âm phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006635,2026-10-23,07:00,Siêu âm phụ khoa,1,BS hẹn đến 6:45 lấy máu,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26005130,2026-08-30,07:00,Siêu âm hình thái 4D,1,,06:45,06:45,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
-26002939,2026-08-22,08:45,Xét nghiệm liên cầu B,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26001560,2026-10-23,14:15,Nghiệm pháp dung nạp glucose (NPDN),1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007993,2026-09-09,09:15,Xét nghiệm Pap,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009540,2026-10-09,08:45,Xét nghiệm Pap,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010254,2026-10-31,14:30,Khám phụ khoa,1,đến sớm 30 phút làm xét nghiệm,14:00,14:30,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Phạm Văn Khải
-26010842,2026-09-10,07:30,Khám phụ khoa,1,có mặt lúc 7:15,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007930,2026-08-15,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26006271,2026-09-17,09:45,Xét nghiệm liên cầu B,1,BS Khải dặn tái khám sau SA,09:45,09:45,auto,,auto,,,,,Hàn Quốc,BS. Phạm Văn Khải
-26011031,2026-08-30,14:15,Khám phụ khoa,1,,14:15,14:15,auto,,auto,,,,,Trung Quốc,BS. Vũ Thị Hằng
-26004003,2026-09-26,08:15,Nghiệm pháp dung nạp glucose (NPDN),1,"ĐTĐTK, kiểm soát chế độ ăn",08:15,08:15,auto,,auto,,,,GDM,Trung Quốc,BS. Lê Thị Bích
-26004542,2026-10-06,15:15,Siêu âm độ mờ da gáy (NT),1,"tt 12 tuan 6 ngay, lam NPDN nhịn ăn",15:00,15:00,auto,,auto,,12,6,,Việt Nam,BS. Bùi Thanh Sơn
-26010030,2026-09-01,08:30,Xét nghiệm Pap,1,BS Bích dặn tái khám sau SA,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009358,2026-10-19,16:30,Siêu âm phụ khoa,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009400,2026-10-08,10:15,Khám phụ khoa,1,Đã đóng gói thai sản,10:15,10:15,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Bùi Thanh Sơn
-26010135,2026-08-28,14:45,Khám phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26005228,2026-08-18,09:30,Khám thai,1,Thai 23w,09:30,09:30,auto,,auto,,23,1,,Việt Nam,BS. Bùi Thanh Sơn
-26011101,2026-10-06,15:15,Xét nghiệm Pap,1,Khám định kỳ,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009428,2026-09-19,10:45,Khám phụ khoa,1,xác nhận lại dịch vụ,10:45,10:45,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Lê Thị Bích
-26007615,2026-08-30,14:45,Khám phụ khoa,1,Đến 14g30 để làm xét nghiệm,14:30,14:30,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Lê Thị Bích
-26007937,2026-09-20,07:00,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009512,2026-09-14,10:00,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009827,2026-11-04,16:00,Khám phụ khoa,1,Tái khám theo hẹn,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26011031,2026-08-25,07:00,Siêu âm phụ khoa,1,,06:45,06:45,auto,,auto,,,,,Trung Quốc,BS. Hoàng Thị Lụa
-26000076,2026-10-28,16:15,Khám thai,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009715,2026-09-08,08:30,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007503,2026-11-07,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006887,2026-08-30,14:45,Khám phụ khoa,1,BS dặn đến lúc 14:30,14:30,14:30,auto,,auto,,,,,Trung Quốc,BS. Lê Thị Bích
-26007020,2026-10-20,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010947,2026-09-18,13:30,Siêu âm phụ khoa,1,BS dặn đến lúc 13h15,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006509,2026-10-25,07:30,Siêu âm phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009183,2026-09-07,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26005410,2026-09-21,15:45,Siêu âm 2D,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010779,2026-09-18,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009519,2026-09-13,12:15,Siêu âm phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26008847,2026-10-27,10:15,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26003142,2026-10-06,09:00,Khám thai,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006726,2026-08-31,14:30,Xét nghiệm Pap,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009260,2026-09-25,14:00,Khám phụ khoa,1,Tái khám theo hẹn,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007811,2026-09-22,16:30,Siêu âm phụ khoa,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26000811,2026-09-12,13:00,Siêu âm 2D,2,lịch SA doppler,12:45,12:45,needs_review,CONFLICT,needs_review,CONFLICT,,,,Trung Quốc,BS. Phạm Văn Khải
-26009708,2026-08-28,13:15,Siêu âm phụ khoa,1,,13:00,13:00,auto,,auto,,,,,Trung Quốc,BS. Ngô Đức Thịnh
-26002505,2026-08-26,13:30,Khám thai,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26005984,2026-10-06,08:45,Khám hậu sản,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010086,2026-08-29,09:00,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Trung Quốc,BS. Lê Thị Bích
-26006733,2026-08-28,09:15,Khám phụ khoa,1,BS Sơn dặn tái khám sau SA,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009113,2026-08-15,07:00,Siêu âm phụ khoa,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007111,2026-10-27,11:30,Khám phụ khoa,1,uống đủ nước trước SA,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26006873,2026-09-02,15:00,Khám phụ khoa,1,Khám định kỳ,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009176,2026-09-16,09:15,Xét nghiệm Pap,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26000755,2026-10-14,07:15,Khám thai,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009260,2026-09-30,09:15,Khám phụ khoa,1,kham thai dinh ky,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010919,2026-09-15,08:30,Xét nghiệm Pap,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007202,2026-10-28,10:45,Xét nghiệm Pap,1,BS Lụa dặn tái khám sau SA,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26010996,2026-10-15,12:30,Khám phụ khoa,1,Khám định kỳ,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007370,2026-10-19,09:45,Xét nghiệm Pap,1,Tái khám theo hẹn,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26005676,2026-10-30,10:00,Nghiệm pháp dung nạp glucose (NPDN),1,"tt 27 tuan 2 ngay, lam NPDN nhịn ăn",10:00,10:00,auto,,auto,,27,2,,Hàn Quốc,BS. Bùi Thanh Sơn
-26008945,2026-10-14,12:45,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007307,2026-10-28,09:15,Siêu âm phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26011157,2026-09-21,12:15,Xét nghiệm Pap,1,kq double test binh thuong,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26006474,2026-09-08,07:45,Siêu âm phụ khoa,1,Tái khám theo hẹn,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008812,2026-08-19,07:45,Xét nghiệm Pap,1,Khám định kỳ,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26001371,2026-09-09,12:00,Xét nghiệm máu,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005179,2026-09-10,07:15,Xét nghiệm máu,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010408,2026-10-26,16:30,Khám phụ khoa,1,,16:30,16:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007531,2026-09-11,15:45,Khám phụ khoa,1,BS hẹn đến 15g15 lấy máu,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007720,2026-11-06,07:00,Siêu âm phụ khoa,1,Tái khám theo hẹn,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26003793,2026-09-25,12:00,Siêu âm 2D,1,Hẹn đến 11g15 làm NPDN,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Hoàng Thị Lụa
-26002617,2026-09-30,12:45,Siêu âm hình thái 4D,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007643,2026-09-12,13:15,Siêu âm phụ khoa,1,kq double test binh thuong,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010996,2026-08-30,09:00,Khám phụ khoa,1,SA hinh thai,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009316,2026-09-08,13:00,Khám phụ khoa,1,Khám định kỳ,13:00,13:00,auto,,auto,,,,,Nhật Bản,BS. Phạm Văn Khải
-26001420,2026-10-27,07:30,Xét nghiệm liên cầu B,1,co mat luc 7 giờ de SA,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26008098,2026-09-29,13:15,Siêu âm phụ khoa,1,,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009575,2026-09-13,11:00,Xét nghiệm Pap,1,,11:00,11:00,auto,,auto,,,,,Singapore,BS. Trần Quốc Tuấn
-26008609,2026-10-31,07:45,Khám phụ khoa,1,kham phu khoa dk,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008490,2026-10-18,12:45,Khám phụ khoa,1,goi xac nhan truoc 1 ngay,Khám chờ,Khám chờ,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005361,2026-10-28,08:30,Xét nghiệm liên cầu B,1,SA 4D,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26008581,2026-09-01,16:00,Khám phụ khoa,1,co mat luc 15:15 de SA,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010506,2026-09-11,14:15,Khám phụ khoa,1,đến trước 1 tiếng để nhịn ăn lấy máu,13:15,14:15,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009855,2026-08-18,07:00,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008574,2026-11-10,13:15,Khám phụ khoa,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009015,2026-10-28,08:30,Khám phụ khoa,1,kham thai dinh ky,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009442,2026-08-12,15:00,Khám phụ khoa,1,BS Lụa dặn tái khám sau SA,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26001350,2026-10-11,10:00,Siêu âm hình thái 4D,1,TT 22+2,09:45,09:45,auto,,auto,,22,2,,Việt Nam,BS. Bùi Thanh Sơn
-26006649,2026-10-18,13:45,Khám phụ khoa,1,TK sau dinh chi thai,13:45,13:45,auto,,auto,,,,,Mỹ,BS. Vũ Thị Hằng
-26000741,2026-10-03,12:45,Khám hậu sản,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010737,2026-08-13,09:30,Khám phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Úc,BS. Phạm Văn Khải
-26008133,2026-10-17,10:15,Khám phụ khoa,1,TK sau dinh chi thai,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26011108,2026-10-19,12:45,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006887,2026-10-24,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Trung Quốc,BS. Bùi Thanh Sơn
-26006264,2026-08-28,11:45,Siêu âm độ mờ da gáy (NT),1,thai 13w ngôi đầu,11:30,11:30,auto,,auto,,13,6,,Việt Nam,BS. Ngô Đức Thịnh
-26001245,2026-09-12,09:15,Siêu âm 2D,1,"tt 31 tuan 2 ngay, lam NPDN nhịn ăn",09:00,09:00,auto,,auto,,31,2,,Việt Nam,BS. Lê Thị Bích
-26004794,2026-10-08,16:00,Xét nghiệm liên cầu B,1,uống đủ nước trước SA,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26010429,2026-08-16,08:45,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 8h15",08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26002960,2026-11-10,13:45,Khám thai,1,BS hẹn đến 13 giờ lấy máu,13:00,13:00,auto,,auto,,,,,Pháp,BS. Bùi Thanh Sơn
-26010576,2026-09-06,15:15,Khám phụ khoa,1,,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007545,2026-09-15,14:00,Khám phụ khoa,1,,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009785,2026-09-24,14:30,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 13:30",13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26010380,2026-10-08,13:15,Khám phụ khoa,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005893,2026-10-29,12:45,Siêu âm hình thái 4D,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005452,2026-09-20,11:00,Khám thai,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009498,2026-10-07,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009253,2026-10-01,09:30,Siêu âm phụ khoa,1,kham phu khoa dk,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26006026,2026-11-02,10:00,Siêu âm độ mờ da gáy (NT),1,13w ycbs kham va sieu am,09:45,09:45,auto,,auto,,13,6,,Việt Nam,BS. Vũ Thị Hằng
-26010065,2026-08-17,15:15,Siêu âm phụ khoa,1,nhắc mang sổ khám thai,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26006831,2026-10-01,08:30,Khám phụ khoa,1,có mặt lúc 08:00,08:00,08:00,auto,,auto,,,,,Mỹ,BS. Trần Quốc Tuấn
-26001567,2026-10-27,11:15,Nghiệm pháp dung nạp glucose (NPDN),1,lam XN mau,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26007853,2026-08-12,10:00,Siêu âm phụ khoa,1,Xét nghiệm nước tiểu,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006943,2026-11-05,07:15,Khám phụ khoa,1,SA 4D,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009547,2026-08-19,07:45,Xét nghiệm Pap,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26001147,2026-11-02,08:00,Khám thai,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008084,2026-09-02,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006978,2026-10-11,10:30,Xét nghiệm Pap,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26007104,2026-08-28,08:30,Khám phụ khoa,1,nhắc mang sổ khám thai,08:30,08:30,auto,,auto,,,,,Trung Quốc,BS. Hoàng Thị Lụa
-26008735,2026-08-27,11:45,Khám phụ khoa,1,ycbs den 11h15,11:15,11:15,auto,,auto,,,,,Pháp,BS. Vũ Thị Hằng
-26011206,2026-08-12,10:45,Siêu âm phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26001392,2026-10-20,08:30,Siêu âm 2D; Siêu âm độ mờ da gáy (NT),2,đến trước 1 tiếng để nhịn ăn lấy máu,07:30,08:15,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010429,2026-10-29,09:00,Khám phụ khoa,1,kq double test binh thuong,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010310,2026-10-25,14:45,Siêu âm phụ khoa,1,lam XN mau,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008532,2026-11-04,08:00,Siêu âm phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26003737,2026-10-30,07:30,Khám thai,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006446,2026-09-02,07:15,Xét nghiệm Pap,1,liên hệ người nhà 0976260022,07:15,07:15,auto,,auto,,,,,Singapore,BS. Trần Quốc Tuấn
-26009099,2026-10-21,08:45,Xét nghiệm Pap,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26008756,2026-09-26,10:00,Khám phụ khoa,1,lịch SA doppler,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009771,2026-08-26,13:15,Siêu âm phụ khoa,1,kham phu khoa dk,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26007097,2026-09-23,15:15,Siêu âm phụ khoa,1,,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007692,2026-08-22,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26006698,2026-08-24,10:00,Siêu âm phụ khoa,1,BS hẹn đến 9g45 lấy máu,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007818,2026-09-10,08:00,Khám phụ khoa,1,xác nhận lại dịch vụ,08:00,08:00,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009148,2026-09-07,15:30,Khám phụ khoa,1,uống đủ nước trước SA,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26002505,2026-09-09,11:45,Khám thai,1,lịch SA doppler,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26011171,2026-09-01,15:00,Xét nghiệm Pap,1,,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26010310,2026-10-20,07:30,Xét nghiệm Pap,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007580,2026-10-07,10:00,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008903,2026-10-16,08:15,Khám phụ khoa,1,kham phu khoa dk,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010919,2026-09-23,13:00,Siêu âm phụ khoa,1,Khám định kỳ,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010499,2026-09-09,11:30,Siêu âm phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26004129,2026-09-01,07:45,Xét nghiệm máu,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26010485,2026-09-21,08:45,Khám phụ khoa,1,lịch SA doppler,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009281,2026-10-11,08:30,Xét nghiệm Pap,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010562,2026-09-22,11:15,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26010338,2026-10-19,07:30,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26006341,2026-08-23,08:15,Khám phụ khoa,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006999,2026-09-05,13:45,Siêu âm phụ khoa,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26001126,2026-11-08,08:45,Siêu âm độ mờ da gáy (NT),1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26009050,2026-09-02,16:15,Khám phụ khoa,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009379,2026-08-17,08:15,Xét nghiệm Pap,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26004346,2026-11-02,09:00,Khám thai,1,BS hẹn đến 8g45 lấy máu,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26003590,2026-10-04,09:45,Khám thai; Siêu âm 2D,2,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009603,2026-08-20,16:15,Khám phụ khoa,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009253,2026-09-19,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007482,2026-09-09,09:30,Khám phụ khoa,1,Xét nghiệm nước tiểu,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26008952,2026-09-20,09:30,Khám phụ khoa,1,có mặt lúc 8h30,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010212,2026-11-08,13:30,Khám phụ khoa,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009995,2026-11-05,16:15,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 15g15",15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007748,2026-08-20,11:45,Xét nghiệm Pap,1,có mặt lúc 11:30,11:30,11:30,auto,,auto,,,,,Hàn Quốc,BS. Ngô Đức Thịnh
-26002449,2026-10-26,07:00,Siêu âm độ mờ da gáy (NT),1,Tái khám theo hẹn,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26005228,2026-11-08,08:15,Xét nghiệm máu,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010170,2026-09-09,13:30,Khám phụ khoa,1,,13:30,13:30,auto,,auto,,,,,Singapore,BS. Lê Thị Bích
-26000643,2026-09-26,14:45,Khám thai,1,"Thai 8w, SA 4D",14:45,14:45,auto,,auto,,8,0,,Trung Quốc,BS. Trần Quốc Tuấn
-26006376,2026-09-04,14:30,Khám phụ khoa,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009365,2026-08-15,10:15,Xét nghiệm Pap,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26008462,2026-09-30,09:00,Xét nghiệm Pap,1,"đến 08h15, mang theo sổ khám",08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26007237,2026-10-28,16:15,Khám phụ khoa,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008147,2026-09-25,13:00,Khám phụ khoa,1,Hẹn đến 12h làm NPDN,12:00,12:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26000699,2026-09-29,08:45,Khám thai,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26008203,2026-11-09,08:15,Xét nghiệm Pap,1,TK sau dinh chi thai,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009785,2026-11-03,08:00,Siêu âm phụ khoa,1,Đã đóng gói thai sản,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009666,2026-08-22,15:45,Xét nghiệm Pap,1,?,15:45,15:45,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Lê Thị Bích
-26000993,2026-09-17,07:15,Xét nghiệm máu,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26002554,2026-09-20,15:00,Khám hậu sản,1,SA hinh thai,15:00,15:00,auto,,auto,,,,,Hàn Quốc,BS. Ngô Đức Thịnh
-26006355,2026-09-03,11:15,Siêu âm phụ khoa,1,đến sớm 30 phút làm xét nghiệm,10:45,11:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26011045,2026-08-24,11:00,Xét nghiệm Pap,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26009988,2026-09-18,09:15,Siêu âm phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26004696,2026-10-13,08:00,Siêu âm 2D,1,SA hinh thai,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26010933,2026-11-08,14:00,Siêu âm phụ khoa,1,,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009799,2026-08-19,08:45,Siêu âm phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26000216,2026-10-27,09:45,Khám hậu sản,1,,09:45,09:45,auto,,auto,,,,,Úc,BS. Bùi Thanh Sơn
-26007937,2026-08-15,09:00,Siêu âm phụ khoa,1,Đến 8 giờ để làm xét nghiệm,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26008693,2026-11-09,10:45,Khám phụ khoa,1,TK sau dinh chi thai,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26000454,2026-09-29,12:00,Xét nghiệm máu,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26006551,2026-11-08,16:15,Khám phụ khoa,1,"chưa rõ giờ, hỏi lại BS",16:15,16:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Nhật Bản,BS. Vũ Thị Hằng
-26002533,2026-10-28,07:45,Nghiệm pháp dung nạp glucose (NPDN),1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26001091,2026-08-12,09:00,Khám thai,1,?,09:00,09:00,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Trần Quốc Tuấn
-26005767,2026-10-17,11:00,Siêu âm độ mờ da gáy (NT),1,,10:45,10:45,auto,,auto,,,,,Mỹ,BS. Đỗ Minh Khang
-26002085,2026-09-16,07:45,Siêu âm 2D,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005459,2026-08-18,07:45,Nghiệm pháp dung nạp glucose (NPDN),1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009239,2026-10-24,11:00,Xét nghiệm Pap,1,Xét nghiệm nước tiểu,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26011045,2026-10-17,08:00,Siêu âm phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26006950,2026-10-18,11:15,Xét nghiệm Pap,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010660,2026-11-05,15:45,Khám phụ khoa,1,,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26009890,2026-09-29,08:15,Xét nghiệm Pap,1,,08:15,08:15,auto,,auto,,,,,Nhật Bản,BS. Vũ Thị Hằng
-26001742,2026-10-16,11:00,Xét nghiệm liên cầu B,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26001784,2026-09-30,09:45,Siêu âm 2D,1,uống đủ nước trước SA,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007265,2026-09-29,12:30,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26006733,2026-09-21,10:00,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010891,2026-10-04,10:15,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009533,2026-09-13,10:00,Xét nghiệm Pap,1,lam XN mau,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26004843,2026-11-10,16:00,Khám hậu sản,1,xác nhận lại dịch vụ,16:00,16:00,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Vũ Thị Hằng
-26008959,2026-10-20,11:45,Khám phụ khoa,1,,11:45,11:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26009274,2026-09-24,08:15,Siêu âm phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26000657,2026-09-21,11:15,Siêu âm 2D,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009540,2026-10-11,16:30,Siêu âm phụ khoa,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26007559,2026-10-18,10:45,Siêu âm phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26001245,2026-10-31,13:00,Khám thai,1,,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26010884,2026-08-24,12:30,Xét nghiệm Pap,1,SA hinh thai,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006530,2026-11-02,11:00,Siêu âm phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26005613,2026-09-14,15:15,Khám thai,1,,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009540,2026-09-13,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26009827,2026-10-07,07:45,Khám phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26005480,2026-09-29,08:30,Siêu âm hình thái 4D,1,tới trước 15 phút,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26010205,2026-09-25,16:15,Siêu âm phụ khoa,1,den 15:15 nhin an lay mau,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26006663,2026-09-20,10:30,Xét nghiệm Pap,1,Tái khám theo hẹn,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26009659,2026-09-13,08:30,Khám phụ khoa,1,?,08:30,08:30,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Lê Thị Bích
-26004423,2026-11-06,11:15,Nghiệm pháp dung nạp glucose (NPDN),1,Xét nghiệm nước tiểu,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26006509,2026-11-08,10:45,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009246,2026-09-21,10:15,Xét nghiệm Pap,1,lam XN mau,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26010037,2026-10-28,08:45,Siêu âm phụ khoa,1,kham phu khoa dk,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26008301,2026-10-25,10:15,Xét nghiệm Pap,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007874,2026-11-08,16:15,Khám phụ khoa,1,Khám định kỳ,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26011122,2026-11-02,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Singapore,BS. Lê Thị Bích
-26001637,2026-08-14,14:00,Khám thai,1,,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26004850,2026-10-18,10:15,Khám thai,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26000923,2026-11-04,14:15,Khám thai,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26000160,2026-09-27,11:00,Siêu âm 2D,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007678,2026-10-15,14:15,Khám phụ khoa,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26008833,2026-11-05,11:30,Khám phụ khoa,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
-26004668,2026-11-04,15:15,Siêu âm 2D,1,,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26008280,2026-08-17,10:00,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26007818,2026-10-21,12:00,Khám phụ khoa,1,soi ctc den 11:45,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Trần Quốc Tuấn
-26001854,2026-08-28,12:15,Xét nghiệm liên cầu B,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26001196,2026-10-21,13:45,Siêu âm 2D,1,"Thai 32 tuần, SA hình thái",13:30,13:30,auto,,auto,,32,1,,Việt Nam,BS. Lê Thị Bích
-26009022,2026-08-13,12:15,Xét nghiệm Pap,1,Chị Hương xin đến sớm 30p,Khám chờ,Khám chờ,auto,,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Lê Thị Bích
-26008616,2026-08-14,11:45,Xét nghiệm Pap,1,Đến 11:00 để làm xét nghiệm,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009337,2026-09-24,14:15,Khám phụ khoa,1,SA hinh thai,14:15,14:15,auto,,auto,,,,,Pháp,BS. Phạm Văn Khải
-26004808,2026-10-03,13:45,Khám thai,1,,13:45,13:45,auto,,auto,,,,,Pháp,BS. Đỗ Minh Khang
-26007069,2026-08-15,07:30,Xét nghiệm Pap,1,tới trước 15 phút,07:15,07:30,auto,,auto,,,,,Hàn Quốc,BS. Ngô Đức Thịnh
-26009414,2026-09-27,07:30,Xét nghiệm Pap,1,lam XN mau,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
-26000188,2026-08-26,15:00,Khám thai,1,,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26006383,2026-08-14,10:30,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 10:15",10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26006691,2026-11-03,16:15,Siêu âm phụ khoa,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26009407,2026-10-23,09:00,Siêu âm phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
-26004885,2026-08-12,11:00,Khám thai,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26007034,2026-09-09,11:15,Siêu âm phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26009722,2026-10-17,09:00,Khám phụ khoa,1,có mặt lúc 8h00,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26004395,2026-09-02,09:00,Khám thai,1,den truoc 20p,08:40,09:00,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Lê Thị Bích
-26003590,2026-09-27,14:00,Khám thai,1,Chị Nhung xin đến sớm 30p,13:30,14:00,auto,,needs_review,AI_RULE_DIFF,,,,Việt Nam,BS. Hoàng Thị Lụa
-26003373,2026-10-18,10:45,Xét nghiệm máu,1,"chưa rõ giờ, hỏi lại BS",10:45,10:45,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Ngô Đức Thịnh
-26008630,2026-09-19,11:00,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
-26006271,2026-10-01,09:30,Xét nghiệm máu,1,37w kham + SA,09:30,09:30,needs_review,LATE_GA,needs_review,LATE_GA,37,0,,Hàn Quốc,BS. Trần Quốc Tuấn
-26001749,2026-10-06,15:30,Siêu âm 2D,1,,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26008777,2026-08-24,10:30,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
-26010947,2026-08-22,07:30,Khám phụ khoa,1,uống đủ nước trước SA,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
-26010646,2026-10-30,07:30,Khám phụ khoa,1,SA 4D,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
-26002491,2026-10-06,10:45,Siêu âm 2D,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
-26007559,2026-10-21,07:15,Siêu âm phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000475,2026-10-30,16:15,Siêu âm 2D,1,,15:55,15:55,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000363,2026-10-29,13:15,Siêu âm độ mờ da gáy (NT),1,ycbs den 12h15,12:15,12:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002407,2026-10-20,13:15,Siêu âm phụ khoa,1,,12:55,12:55,auto,,auto,,,,,Nhật Bản,BS. Hoàng Thị Lụa
+26001420,2026-10-15,07:00,Khám thai,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002589,2026-09-25,12:15,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002323,2026-10-09,10:30,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003114,2026-09-25,09:15,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002897,2026-10-05,15:45,Khám phụ khoa,1,xác nhận lại dịch vụ,15:30,15:30,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Vũ Thị Hằng
+26000951,2026-10-24,15:00,Xét nghiệm máu,1,Tái khám theo hẹn,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003030,2026-10-16,14:30,Siêu âm phụ khoa,1,,14:10,14:10,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002792,2026-09-16,12:00,Siêu âm phụ khoa,1,Đã đóng gói thai sản,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001644,2026-11-06,09:45,Nghiệm pháp dung nạp glucose (NPDN),1,Khách muốn dời lịch,09:15,09:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Trần Quốc Tuấn
+26003142,2026-09-18,09:15,Siêu âm phụ khoa,1,"HPV duong tinh 16, ctc den 9h",08:55,08:55,auto,,auto,,,,,Pháp,BS. Phạm Văn Khải
+26000839,2026-09-28,07:30,Siêu âm 2D,1,"chưa rõ giờ, hỏi lại BS",07:10,07:10,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Lê Thị Bích
+26002330,2026-11-03,11:45,Xét nghiệm Pap,1,ycbs den 11g15,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002176,2026-11-10,10:00,Siêu âm phụ khoa,1,lịch SA doppler,09:40,09:40,auto,,auto,,,,,Trung Quốc,BS. Đỗ Minh Khang
+26002400,2026-10-20,09:15,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26001623,2026-11-06,09:00,Xét nghiệm máu,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002169,2026-10-07,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002610,2026-09-24,16:15,Khám phụ khoa,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000888,2026-10-11,16:30,Siêu âm 2D,1,,16:10,16:10,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002260,2026-09-14,12:15,Xét nghiệm Pap,1,soi ctc den 12 giờ,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Trung Quốc,BS. Phạm Văn Khải
+26002232,2026-10-19,09:15,Khám phụ khoa,1,BS hẹn đến 8g45 lấy máu,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002638,2026-10-12,13:00,Siêu âm phụ khoa,1,,12:40,12:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26001686,2026-10-26,07:45,Khám thai,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002960,2026-10-29,14:15,Khám phụ khoa,1,SA 4D,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002148,2026-10-16,11:00,Siêu âm phụ khoa,1,BS Bích dặn tái khám sau SA,10:40,10:40,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002701,2026-10-16,14:00,Siêu âm phụ khoa,1,goi xac nhan truoc 1 ngay,13:40,13:40,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Đỗ Minh Khang
+26002533,2026-09-18,11:45,Khám phụ khoa,1,Khám định kỳ,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000300,2026-11-05,12:30,Siêu âm 2D,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000167,2026-10-13,09:15,Siêu âm 2D,1,,08:55,08:55,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002589,2026-11-08,08:00,Siêu âm phụ khoa,1,,07:40,07:40,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000370,2026-10-05,15:45,Khám thai,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003037,2026-10-10,12:00,Siêu âm phụ khoa,1,có mặt lúc 11:00,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Lê Thị Bích
+26000202,2026-09-27,07:15,Siêu âm 2D,1,,06:55,06:55,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002925,2026-10-25,12:00,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002939,2026-10-15,10:30,Xét nghiệm Pap,1,goi xac nhan truoc 1 ngay,10:00,10:00,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Vũ Thị Hằng
+26001147,2026-10-10,07:00,Khám thai,1,"tt 30 tuan 1 ngay, lam NPDN nhịn ăn",06:30,06:30,auto,,auto,,30,1,,Việt Nam,BS. Bùi Thanh Sơn
+26002337,2026-10-07,07:45,Khám phụ khoa,1,"đến 07h15, mang theo sổ khám",07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002162,2026-09-19,13:00,Khám phụ khoa,1,,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002400,2026-10-12,10:30,Siêu âm phụ khoa,1,mang theo kết quả XN lần trước,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002848,2026-10-15,14:00,Khám phụ khoa,1,BS hẹn đến 13h15 lấy máu,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002407,2026-09-22,15:45,Xét nghiệm Pap,1,,15:15,15:15,auto,,auto,,,,,Nhật Bản,BS. Đỗ Minh Khang
+26000328,2026-09-19,07:00,Xét nghiệm liên cầu B,1,,06:30,06:30,auto,,auto,,,,,Singapore,BS. Vũ Thị Hằng
+26002855,2026-09-28,15:00,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 14h15",14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002197,2026-10-14,08:45,Khám phụ khoa,1,đến sớm 45p,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000496,2026-11-07,07:15,Khám thai,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002757,2026-09-20,15:00,Siêu âm phụ khoa,1,,14:40,14:40,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002757,2026-10-24,08:30,Khám phụ khoa,1,"BN xin đổi lịch, gọi lại",08:15,08:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Đỗ Minh Khang
+26002127,2026-10-13,07:15,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002813,2026-10-24,11:15,Siêu âm phụ khoa,1,,10:55,10:55,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002337,2026-10-10,14:30,Khám phụ khoa,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003065,2026-09-19,16:00,Khám phụ khoa,1,,15:45,15:45,auto,,auto,,,,,Hàn Quốc,BS. Đỗ Minh Khang
+26002925,2026-10-17,14:00,Khám phụ khoa,1,lam XN mau,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002316,2026-11-07,13:15,Xét nghiệm Pap,1,,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26003044,2026-11-05,07:45,Khám phụ khoa,1,Chị Yến xin đến sớm 30p,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002701,2026-10-12,09:45,Siêu âm phụ khoa,1,,09:25,09:25,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002589,2026-09-18,08:00,Khám phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26001973,2026-11-04,07:00,Khám thai,1,liên hệ người nhà 0949961077,06:45,06:45,auto,,auto,,,,,Mỹ,BS. Trần Quốc Tuấn
+26002449,2026-10-18,08:15,Xét nghiệm Pap,1,tới trước 15 phút,07:45,07:45,auto,,auto,,,,,Singapore,BS. Bùi Thanh Sơn
+26002533,2026-09-15,12:00,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002722,2026-10-12,10:15,Khám phụ khoa,1,SA 4D,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002561,2026-09-27,07:15,Xét nghiệm Pap,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002218,2026-09-23,14:30,Siêu âm phụ khoa,1,,14:10,14:10,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002533,2026-09-27,09:00,Siêu âm phụ khoa,1,,08:40,08:40,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002295,2026-09-15,11:00,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000874,2026-10-07,07:45,Xét nghiệm máu,1,,07:15,07:15,auto,,auto,,,,,Singapore,BS. Lê Thị Bích
+26002603,2026-09-24,09:45,Khám phụ khoa,1,kham thai dinh ky,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002351,2026-10-08,08:30,Siêu âm phụ khoa,1,,08:10,08:10,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000377,2026-10-27,13:15,Nghiệm pháp dung nạp glucose (NPDN),1,,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000720,2026-09-23,11:00,Nghiệm pháp dung nạp glucose (NPDN),1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002575,2026-10-01,07:30,Siêu âm phụ khoa,1,,07:10,07:10,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002582,2026-10-08,10:30,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002512,2026-11-10,08:30,Xét nghiệm Pap,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002386,2026-11-10,10:00,Khám phụ khoa,1,nhắc mang sổ khám thai,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26003051,2026-10-28,07:15,Xét nghiệm Pap,1,TK sau dinh chi thai,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26003121,2026-09-28,10:30,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000958,2026-09-21,07:45,Nghiệm pháp dung nạp glucose (NPDN),1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002953,2026-10-04,12:15,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Trung Quốc,BS. Trần Quốc Tuấn
+26002484,2026-10-12,10:30,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Hàn Quốc,BS. Đỗ Minh Khang
+26002428,2026-10-19,07:30,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Hàn Quốc,BS. Đỗ Minh Khang
+26001665,2026-10-23,09:45,Siêu âm 2D,1,tuổi thai 37 tuần,09:25,09:25,needs_review,LATE_GA,needs_review,LATE_GA,37,0,,Việt Nam,BS. Vũ Thị Hằng
+26003100,2026-09-14,10:15,Khám phụ khoa,1,tới trước 15 phút,10:00,10:00,auto,,auto,,,,,Úc,BS. Phạm Văn Khải
+26002043,2026-09-20,09:30,Siêu âm 2D,1,,09:10,09:10,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26001406,2026-09-29,07:00,Xét nghiệm máu,1,SA hinh thai,06:30,06:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002400,2026-10-31,15:45,Khám phụ khoa,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002792,2026-11-10,16:15,Xét nghiệm Pap,1,ycbs den 16 giờ,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002848,2026-09-25,12:30,Khám phụ khoa,1,?,Khám chờ,Khám chờ,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Phạm Văn Khải
+26002582,2026-09-22,07:00,Siêu âm phụ khoa,1,,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002267,2026-10-05,08:15,Siêu âm phụ khoa,1,,07:55,07:55,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002491,2026-09-29,14:45,Xét nghiệm Pap,1,BS Khang dặn tái khám sau SA,14:15,14:15,auto,,auto,,,,,Pháp,BS. Đỗ Minh Khang
+26002260,2026-10-06,16:30,Xét nghiệm Pap,1,liên hệ người nhà 0945670893,16:00,16:00,auto,,auto,,,,,Trung Quốc,BS. Trần Quốc Tuấn
+26002960,2026-10-02,14:00,Siêu âm phụ khoa,1,?,13:40,13:40,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002799,2026-10-06,10:45,Siêu âm phụ khoa,1,ycbs den 10:15,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002169,2026-10-23,13:30,Khám phụ khoa,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002414,2026-09-23,07:15,Xét nghiệm Pap,1,,06:45,06:45,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Lê Thị Bích
+26000965,2026-09-15,07:15,Siêu âm 2D,1,Khám định kỳ,06:55,06:55,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
+26002190,2026-10-16,11:00,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003156,2026-10-10,14:45,Xét nghiệm Pap,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000370,2026-09-21,09:00,Khám thai,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002239,2026-10-22,08:00,Khám phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001609,2026-10-19,08:15,Nghiệm pháp dung nạp glucose (NPDN),1,,07:45,07:45,auto,,auto,,,,,Trung Quốc,BS. Lê Thị Bích
+26000328,2026-10-10,15:00,Khám thai,1,,14:45,14:45,auto,,auto,,,,,Singapore,BS. Hoàng Thị Lụa
+26002736,2026-09-24,15:00,Xét nghiệm Pap,1,,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002596,2026-10-31,09:15,Khám phụ khoa,1,kham phu khoa dk,09:00,09:00,auto,,auto,,,,,Hàn Quốc,BS. Trần Quốc Tuấn
+26002645,2026-10-10,13:30,Khám phụ khoa,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002890,2026-09-25,07:45,Khám phụ khoa,1,xác nhận lại dịch vụ,07:30,07:30,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002806,2026-10-16,13:00,Khám phụ khoa,1,,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26003058,2026-10-05,14:15,Khám phụ khoa,1,den 13h30 nhin an lay mau,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002239,2026-10-06,09:30,Siêu âm phụ khoa,1,BN đi cùng chồng,09:10,09:10,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000580,2026-11-12,14:00,Khám hậu sản,1,,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002484,2026-10-31,13:45,Xét nghiệm Pap,1,,13:15,13:15,auto,,auto,,,,,Hàn Quốc,BS. Hoàng Thị Lụa
+26000286,2026-09-13,16:00,Xét nghiệm máu,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002477,2026-09-19,10:30,Siêu âm phụ khoa,1,soi ctc den 10 giờ,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002827,2026-09-25,09:45,Siêu âm phụ khoa,1,Hẹn đến 9:30 làm NPDN,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002806,2026-10-04,07:45,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001882,2026-09-20,07:30,Xét nghiệm máu,1,34w ycbs kham va sieu am,07:00,07:00,auto,,auto,,34,1,,Mỹ,BS. Hoàng Thị Lụa
+26002792,2026-11-04,09:30,Xét nghiệm Pap,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002694,2026-10-12,07:15,Siêu âm phụ khoa,1,,06:55,06:55,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26001518,2026-10-08,07:00,Khám thai,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002876,2026-10-31,12:00,Khám phụ khoa,1,co mat luc 11:45 de SA,Khám chờ,Khám chờ,needs_review,"WAITING_NOTE_TIME,BAD_PHONE",needs_review,"WAITING_NOTE_TIME,BAD_PHONE",,,,Việt Nam,BS. Vũ Thị Hằng
+26001630,2026-09-27,12:15,Siêu âm độ mờ da gáy (NT),1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002162,2026-10-29,14:15,Khám phụ khoa,1,,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002876,2026-09-14,11:00,Xét nghiệm Pap,1,Hẹn đến 10g45 làm NPDN,10:30,10:30,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002078,2026-10-25,09:00,Khám thai,1,kham thai dinh ky,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001420,2026-09-16,07:30,Nghiệm pháp dung nạp glucose (NPDN),1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000566,2026-10-28,13:15,Xét nghiệm máu,1,,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26001294,2026-11-12,15:45,Khám thai,1,kq double test binh thuong,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000657,2026-10-15,07:45,Siêu âm 2D; Xét nghiệm máu,2,SA 4D,07:15,07:15,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Lê Thị Bích
+26003044,2026-10-13,08:15,Xét nghiệm Pap,1,"HPV duong tinh 16, ctc den 7g45",07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26003009,2026-10-09,07:30,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26001203,2026-10-01,12:15,Khám thai,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002589,2026-11-11,12:45,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002533,2026-11-08,12:15,Siêu âm phụ khoa,1,"chưa rõ giờ, hỏi lại BS",Khám chờ,Khám chờ,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Đỗ Minh Khang
+26002561,2026-10-13,07:45,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002666,2026-11-02,15:45,Xét nghiệm Pap,1,BN đi cùng chồng,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000657,2026-10-22,11:15,Siêu âm 2D,1,,10:55,10:55,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Lê Thị Bích
+26002904,2026-10-21,09:00,Siêu âm phụ khoa,1,soi ctc den 8 giờ,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002953,2026-09-22,12:45,Khám phụ khoa,1,soi ctc den 12h15,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Trung Quốc,BS. Hoàng Thị Lụa
+26001924,2026-10-09,11:00,Xét nghiệm máu,1,ycbs den 10:00,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002659,2026-10-08,14:00,Khám phụ khoa,1,,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26001973,2026-10-14,08:45,Khám thai,1,SA 4D,08:30,08:30,auto,,auto,,,,,Mỹ,BS. Hoàng Thị Lụa
+26002547,2026-10-25,16:00,Siêu âm phụ khoa,1,,15:40,15:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003023,2026-11-06,09:45,Siêu âm phụ khoa,1,nhắc mang sổ khám thai,09:25,09:25,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002211,2026-09-28,10:00,Khám phụ khoa,1,Khám định kỳ,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002918,2026-10-17,08:45,Siêu âm phụ khoa,1,,08:25,08:25,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26003016,2026-09-14,16:30,Xét nghiệm Pap,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000482,2026-11-12,11:15,Xét nghiệm máu,1,Đến 10g15 để làm xét nghiệm,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002477,2026-10-20,10:15,Khám phụ khoa,1,đến sớm 30 phút làm xét nghiệm,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002393,2026-10-14,07:00,Khám phụ khoa,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000734,2026-10-09,13:45,Xét nghiệm liên cầu B,1,Thai 35tuần 5ngày,13:15,13:15,auto,,auto,,35,5,,Nhật Bản,BS. Ngô Đức Thịnh
+26002141,2026-10-22,11:15,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002498,2026-09-26,08:15,Xét nghiệm Pap,1,BS hẹn đến 8h00 lấy máu,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002148,2026-10-21,13:15,Siêu âm phụ khoa,1,,12:55,12:55,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002645,2026-10-03,10:00,Khám phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002379,2026-10-10,10:00,Siêu âm phụ khoa,1,BS hẹn đến 9h00 lấy máu,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26001777,2026-10-11,08:15,Khám thai,1,,08:00,08:00,auto,,auto,,,,,Pháp,BS. Lê Thị Bích
+26002890,2026-10-27,09:00,Siêu âm phụ khoa,1,"HPV duong tinh 16, ctc den 8:45",08:40,08:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002939,2026-09-26,07:30,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001539,2026-11-05,08:30,Khám thai; Xét nghiệm máu,2,,08:15,08:15,needs_review,CONFLICT,needs_review,CONFLICT,,,,Việt Nam,BS. Lê Thị Bích
+26001343,2026-10-01,12:45,Khám thai,1,gọi xác nhận lại giờ,Khám chờ,Khám chờ,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Vũ Thị Hằng
+26002554,2026-09-29,08:30,Khám phụ khoa,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000279,2026-09-20,08:30,Siêu âm 2D,1,,08:10,08:10,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002624,2026-09-24,10:30,Siêu âm phụ khoa,1,,10:10,10:10,auto,,auto,,,,,Singapore,BS. Bùi Thanh Sơn
+26002841,2026-10-10,07:00,Siêu âm phụ khoa,1,,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002680,2026-09-15,07:15,Xét nghiệm Pap,1,,06:45,06:45,auto,,auto,,,,,Mỹ,BS. Hoàng Thị Lụa
+26003072,2026-09-15,16:15,Khám phụ khoa,1,đến sớm 45p,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002841,2026-11-02,10:45,Siêu âm phụ khoa,1,TK sau dinh chi thai,10:25,10:25,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002813,2026-10-29,11:15,Xét nghiệm Pap,1,BS hẹn đến 10h45 lấy máu,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26003037,2026-10-21,15:30,Xét nghiệm Pap,1,,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002869,2026-11-02,16:00,Khám phụ khoa,1,BN đi cùng chồng,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002722,2026-09-14,10:45,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26003065,2026-09-27,12:15,Khám phụ khoa,1,kq double test binh thuong,Khám chờ,Khám chờ,auto,,auto,,,,,Hàn Quốc,BS. Vũ Thị Hằng
+26002155,2026-09-21,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002211,2026-10-31,08:30,Khám phụ khoa,1,Khám định kỳ,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002701,2026-10-10,10:30,Siêu âm phụ khoa,1,,10:10,10:10,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26001833,2026-10-21,10:30,Xét nghiệm máu,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002659,2026-10-07,09:15,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 9h00",09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002386,2026-10-17,10:45,Xét nghiệm Pap,1,BS hẹn đến 9g45 lấy máu,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002869,2026-11-11,07:00,Khám phụ khoa,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001476,2026-10-30,09:45,Khám thai,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26000027,2026-09-21,08:00,Siêu âm 2D,1,,07:40,07:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002239,2026-10-23,10:15,Khám phụ khoa,1,ycbs den 09h45,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002239,2026-10-07,15:00,Khám phụ khoa,1,co mat luc 14h30 de SA,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002624,2026-11-07,08:00,Siêu âm phụ khoa,1,kq double test binh thuong,07:40,07:40,auto,,auto,,,,,Singapore,BS. Lê Thị Bích
+26000839,2026-11-01,13:15,Nghiệm pháp dung nạp glucose (NPDN),1,Xét nghiệm nước tiểu,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002939,2026-10-24,08:00,Khám phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002687,2026-10-22,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002911,2026-10-31,16:30,Xét nghiệm Pap,1,,16:00,16:00,auto,,auto,,,,,Mỹ,BS. Hoàng Thị Lụa
+26003016,2026-10-11,11:30,Xét nghiệm Pap,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002470,2026-09-24,11:30,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26003016,2026-09-13,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002918,2026-09-21,10:45,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002330,2026-10-29,08:45,Xét nghiệm Pap,1,nhắc mang sổ khám thai,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002568,2026-10-19,12:00,Khám phụ khoa,1,Đến 11h15 để làm xét nghiệm,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Đỗ Minh Khang
+26002764,2026-11-02,09:45,Khám phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002603,2026-10-05,09:30,Xét nghiệm Pap,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002225,2026-09-14,16:00,Khám phụ khoa,1,Khám định kỳ,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26001273,2026-09-23,11:15,Khám thai,1,18w kham + SA,11:00,11:00,auto,,auto,,18,0,,Việt Nam,BS. Phạm Văn Khải
+26002141,2026-10-27,16:30,Xét nghiệm Pap,1,Đã đóng gói thai sản,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002967,2026-10-31,09:30,Siêu âm phụ khoa,1,SA 4D,09:10,09:10,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002890,2026-10-15,14:30,Xét nghiệm Pap,1,,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002330,2026-10-05,15:45,Khám phụ khoa,1,lam XN mau,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002309,2026-10-26,11:15,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002386,2026-09-17,12:00,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003023,2026-10-06,08:45,Xét nghiệm Pap,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002456,2026-09-25,08:15,Siêu âm phụ khoa,1,,07:55,07:55,auto,,auto,,,,,Mỹ,BS. Vũ Thị Hằng
+26000307,2026-10-25,14:15,Siêu âm 2D,1,,13:55,13:55,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000363,2026-09-29,10:30,Khám thai,1,Thai 8w,10:15,10:15,auto,,auto,,8,6,,Việt Nam,BS. Hoàng Thị Lụa
+26002477,2026-10-02,09:45,Khám phụ khoa,1,nhắc mang sổ khám thai,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002645,2026-09-25,10:45,Xét nghiệm Pap,1,SA 4D,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000062,2026-10-25,08:00,Khám hậu sản,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000244,2026-11-02,12:15,Khám thai,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002568,2026-10-24,09:00,Xét nghiệm Pap,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002526,2026-10-10,10:30,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000720,2026-10-26,07:00,Siêu âm 2D,1,,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002764,2026-10-13,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002554,2026-11-12,09:45,Khám phụ khoa,1,SA 4D,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002967,2026-11-07,10:00,Siêu âm phụ khoa,1,,09:40,09:40,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000328,2026-10-17,09:30,Khám thai,1,,09:15,09:15,auto,,auto,,,,,Singapore,BS. Bùi Thanh Sơn
+26002134,2026-09-26,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Hàn Quốc,BS. Bùi Thanh Sơn
+26003107,2026-10-09,08:30,Xét nghiệm Pap,1,Tái khám theo hẹn,08:00,08:00,auto,,auto,,,,,Singapore,BS. Đỗ Minh Khang
+26003079,2026-11-12,07:00,Siêu âm phụ khoa,1,,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002694,2026-10-08,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000188,2026-11-07,09:45,Nghiệm pháp dung nạp glucose (NPDN),1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000734,2026-11-06,09:30,Khám thai,1,,09:15,09:15,auto,,auto,,,,,Nhật Bản,BS. Ngô Đức Thịnh
+26002190,2026-11-07,07:00,Khám phụ khoa,1,Đã đóng gói thai sản,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26000475,2026-09-19,08:15,Khám thai,1,tuổi thai 10 tuần,08:00,08:00,auto,,auto,,10,2,,Việt Nam,BS. Vũ Thị Hằng
+26002890,2026-09-26,08:30,Xét nghiệm Pap,1,BS dặn đến lúc 8h15,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002239,2026-10-03,12:30,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003072,2026-10-01,14:45,Siêu âm phụ khoa,1,BS dặn đến lúc 14 giờ,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002526,2026-09-16,12:30,Siêu âm phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26003065,2026-09-13,12:30,Khám phụ khoa,1,BS hẹn đến 11h30 lấy máu,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Hàn Quốc,BS. Đỗ Minh Khang
+26002778,2026-10-19,07:15,Khám phụ khoa,1,kq double test binh thuong,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000965,2026-10-13,15:00,Siêu âm 2D,1,33w ycbs kham va sieu am,14:40,14:40,auto,,auto,,33,6,,Mỹ,BS. Trần Quốc Tuấn
+26002197,2026-10-05,11:15,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 10h30",10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26001959,2026-10-09,12:30,Siêu âm 2D,1,thai 37w ngôi đầu,Khám chờ,Khám chờ,needs_review,LATE_GA,needs_review,LATE_GA,37,4,,Việt Nam,BS. Vũ Thị Hằng
+26002554,2026-11-10,13:45,Siêu âm phụ khoa,1,,13:25,13:25,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003093,2026-09-22,10:15,Xét nghiệm Pap,1,uống đủ nước trước SA,09:45,09:45,auto,,auto,,,,,Singapore,BS. Phạm Văn Khải
+26002792,2026-10-02,07:00,Siêu âm phụ khoa,1,,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001070,2026-10-14,08:45,Khám thai,1,xác nhận lại dịch vụ,08:30,08:30,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Singapore,BS. Lê Thị Bích
+26002659,2026-11-02,14:00,Khám phụ khoa,1,Khám định kỳ,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26003114,2026-09-18,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000195,2026-10-19,14:15,Siêu âm 2D,1,,13:55,13:55,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26000482,2026-10-29,11:30,Siêu âm 2D,1,TT 31+5,11:10,11:10,auto,,auto,,31,5,,Việt Nam,BS. Ngô Đức Thịnh
+26002729,2026-09-26,07:30,Siêu âm phụ khoa,1,,07:10,07:10,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002148,2026-10-25,09:00,Xét nghiệm Pap,1,soi ctc den 8h30,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002022,2026-10-28,11:45,Khám hậu sản,1,,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26001763,2026-10-14,10:45,Siêu âm 2D,2,,10:25,10:25,needs_review,CONFLICT,needs_review,CONFLICT,,,,Mỹ,BS. Lê Thị Bích
+26002946,2026-11-05,07:00,Khám phụ khoa,1,TK sau dinh chi thai,06:45,06:45,auto,,auto,,,,,Mỹ,BS. Đỗ Minh Khang
+26002918,2026-09-28,08:15,Khám phụ khoa,1,BS hẹn đến 7:15 lấy máu,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001455,2026-10-18,10:15,Khám thai,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002561,2026-10-31,11:00,Xét nghiệm Pap,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002617,2026-09-16,10:30,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002519,2026-09-15,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003030,2026-10-07,14:45,Khám phụ khoa,1,BS Thịnh dặn tái khám sau SA,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003156,2026-10-19,09:15,Khám phụ khoa,1,den 8:30 nhin an lay mau,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002120,2026-09-19,10:45,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002736,2026-10-20,07:00,Siêu âm phụ khoa,1,Tái khám theo hẹn,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002638,2026-11-01,10:30,Siêu âm phụ khoa,1,đến trước 1 tiếng để nhịn ăn lấy máu,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002988,2026-10-02,16:00,Xét nghiệm Pap,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26003142,2026-11-09,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Pháp,BS. Bùi Thanh Sơn
+26002393,2026-09-25,08:00,Siêu âm phụ khoa,1,,07:40,07:40,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002274,2026-10-19,08:30,Siêu âm phụ khoa,1,,08:10,08:10,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26001091,2026-09-18,08:45,Siêu âm 2D,1,,08:25,08:25,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002281,2026-10-04,09:15,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002470,2026-10-18,08:30,Khám phụ khoa,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002386,2026-10-29,09:00,Siêu âm phụ khoa,1,ycbs den 8g30,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000335,2026-11-08,12:45,Khám thai,1,Thai 39w,Khám chờ,Khám chờ,needs_review,LATE_GA,needs_review,LATE_GA,39,2,,Việt Nam,BS. Hoàng Thị Lụa
+26002659,2026-09-25,15:00,Siêu âm phụ khoa,1,BS hẹn đến 14:00 lấy máu,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26003100,2026-11-04,10:45,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 10h00",10:00,10:00,auto,,auto,,,,,Úc,BS. Lê Thị Bích
+26000398,2026-09-24,09:15,Xét nghiệm máu,1,lam XN mau,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001665,2026-10-30,13:00,Khám thai,1,,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000300,2026-10-01,12:45,Xét nghiệm máu,1,tới trước 15 phút,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002652,2026-10-07,15:45,Xét nghiệm Pap,1,BS dặn đến lúc 15h15,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003051,2026-10-24,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001539,2026-10-03,10:45,Xét nghiệm máu,1,đến trước 1 tiếng để nhịn ăn lấy máu,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26001903,2026-10-14,10:00,Xét nghiệm máu,1,Xét nghiệm nước tiểu,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002932,2026-10-08,13:30,Khám phụ khoa,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000468,2026-09-29,11:45,Khám thai,1,den 11g30 nhin an lay mau,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000993,2026-10-29,08:30,Xét nghiệm máu,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000804,2026-11-09,11:45,Siêu âm 2D,1,,11:25,11:25,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000482,2026-10-15,14:00,Xét nghiệm máu,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002358,2026-09-29,12:00,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002183,2026-10-23,07:45,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 7 giờ",07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002421,2026-10-15,12:15,Khám phụ khoa,1,đến sớm 45p,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Phạm Văn Khải
+26001686,2026-10-12,08:30,Siêu âm 2D,1,Khám định kỳ,08:10,08:10,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003149,2026-11-08,11:45,Khám phụ khoa,1,kham thai dinh ky,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002715,2026-10-21,09:45,Khám phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Nhật Bản,BS. Hoàng Thị Lụa
+26002687,2026-10-14,09:15,Khám phụ khoa,1,gọi xác nhận lại giờ,09:00,09:00,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002477,2026-10-31,11:15,Siêu âm phụ khoa,1,"HPV duong tinh 16, ctc den 10g15",10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000083,2026-09-18,07:45,Nghiệm pháp dung nạp glucose (NPDN),1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26000391,2026-10-02,08:00,Khám thai,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002932,2026-09-16,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003072,2026-11-05,09:30,Khám phụ khoa,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002463,2026-10-15,09:45,Siêu âm phụ khoa,1,,09:25,09:25,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000587,2026-10-16,08:15,Xét nghiệm liên cầu B,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26003072,2026-10-30,09:15,Khám phụ khoa,1,SA 4D,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002505,2026-09-24,16:30,Xét nghiệm Pap,1,TK sau dinh chi thai,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000286,2026-09-20,12:00,Khám thai,1,kq double test binh thuong,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002337,2026-11-03,13:45,Xét nghiệm Pap,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26001196,2026-10-23,12:00,Nghiệm pháp dung nạp glucose (NPDN),1,Thai 27 tuần 6 ngày,Khám chờ,Khám chờ,auto,,auto,,27,6,,Việt Nam,BS. Ngô Đức Thịnh
+26002575,2026-10-23,09:15,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002932,2026-10-03,07:15,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002974,2026-09-26,07:45,Siêu âm phụ khoa,1,,07:25,07:25,auto,,auto,,,,,Hàn Quốc,BS. Ngô Đức Thịnh
+26002883,2026-10-09,12:30,Xét nghiệm Pap,1,kham thai dinh ky,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26003149,2026-10-16,13:30,Khám phụ khoa,1,,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26001476,2026-09-30,16:15,Khám thai,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000804,2026-10-26,16:15,Xét nghiệm liên cầu B,1,"đến 15g15, mang theo sổ khám",15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002267,2026-10-08,09:00,Khám phụ khoa,1,Đã đóng gói thai sản,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002995,2026-09-28,07:00,Xét nghiệm Pap,1,,06:30,06:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002533,2026-11-07,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000657,2026-09-17,11:30,Khám thai,1,kham thai dinh ky,11:15,11:15,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Phạm Văn Khải
+26001147,2026-10-24,07:00,Siêu âm 2D,1,ycbs den 6h45,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002834,2026-11-10,07:00,Siêu âm phụ khoa,1,Hẹn đến 06h45 làm NPDN,06:30,06:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002918,2026-09-30,11:30,Xét nghiệm Pap,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003051,2026-10-05,15:00,Khám phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003030,2026-10-18,10:00,Siêu âm phụ khoa,1,,09:40,09:40,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000076,2026-10-30,07:00,Siêu âm 2D,1,,06:40,06:40,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003044,2026-09-30,08:45,Xét nghiệm Pap,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000195,2026-09-28,08:00,Siêu âm 2D,1,,07:40,07:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002918,2026-09-24,12:30,Xét nghiệm Pap,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002533,2026-09-19,10:15,Siêu âm phụ khoa,1,,09:55,09:55,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002834,2026-10-23,16:30,Khám phụ khoa,1,Đã đóng gói thai sản,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002225,2026-09-24,14:00,Siêu âm phụ khoa,1,Khách muốn dời lịch,13:40,13:40,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002925,2026-11-01,09:00,Xét nghiệm Pap,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002498,2026-10-22,07:15,Khám phụ khoa,1,"đến 6:45, mang theo sổ khám",06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003142,2026-09-29,11:15,Xét nghiệm Pap,1,,10:45,10:45,auto,,auto,,,,,Pháp,BS. Trần Quốc Tuấn
+26002568,2026-09-22,08:00,Khám phụ khoa,1,Đến 07:00 để làm xét nghiệm,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002547,2026-09-23,09:45,Khám phụ khoa,1,có mặt lúc 08h45,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002764,2026-11-05,15:15,Xét nghiệm Pap,1,uống đủ nước trước SA,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002183,2026-09-25,12:30,Khám phụ khoa,1,liên hệ người nhà 0920836248,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001707,2026-09-21,08:45,Khám thai,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002834,2026-11-03,08:00,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 7 giờ",07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002925,2026-09-19,12:30,Siêu âm phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002505,2026-09-15,11:45,Xét nghiệm Pap,1,"đến 11h00, mang theo sổ khám",11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26003107,2026-10-19,08:30,Siêu âm phụ khoa,1,,08:10,08:10,auto,,auto,,,,,Singapore,BS. Trần Quốc Tuấn
+26001042,2026-09-20,15:00,Siêu âm hình thái 4D,1,,14:40,14:40,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002764,2026-10-10,13:15,Xét nghiệm Pap,1,gọi xác nhận lại giờ,12:45,12:45,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Phạm Văn Khải
+26000244,2026-10-03,15:30,Siêu âm 2D,1,,15:10,15:10,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002120,2026-10-19,15:45,Khám phụ khoa,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000216,2026-10-11,11:45,Khám thai,1,,11:30,11:30,auto,,auto,,,,,Úc,BS. Đỗ Minh Khang
+26002806,2026-10-09,09:00,Xét nghiệm Pap,1,BS hẹn đến 8 giờ lấy máu,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002421,2026-11-03,12:30,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002435,2026-11-09,14:00,Xét nghiệm Pap,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002120,2026-09-16,10:00,Khám phụ khoa,1,Đã đóng gói thai sản,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002316,2026-11-03,09:30,Xét nghiệm Pap,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002988,2026-09-18,08:45,Xét nghiệm Pap,1,den 08h15 nhin an lay mau,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002631,2026-09-27,13:45,Khám phụ khoa,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002701,2026-09-29,10:15,Khám phụ khoa,1,Đã đóng gói thai sản,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002575,2026-11-06,13:00,Xét nghiệm Pap,1,,12:30,12:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000783,2026-10-16,07:45,Khám hậu sản,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000979,2026-09-14,15:30,Khám thai,1,,15:15,15:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002736,2026-10-27,10:30,Khám phụ khoa,1,den 9h30 nhin an lay mau,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002575,2026-09-23,07:00,Xét nghiệm Pap,1,Khám định kỳ,06:30,06:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002008,2026-11-11,10:00,Xét nghiệm máu,1,lịch SA doppler,09:30,09:30,auto,,auto,,,,,Hàn Quốc,BS. Phạm Văn Khải
+26002309,2026-10-05,09:15,Xét nghiệm Pap,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002834,2026-10-22,11:15,Siêu âm phụ khoa,1,soi ctc den 10h15,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002330,2026-10-19,14:15,Xét nghiệm Pap,1,,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002666,2026-11-12,15:00,Khám phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26001798,2026-09-14,11:00,Siêu âm độ mờ da gáy (NT),1,BS hẹn đến 10h lấy máu,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002869,2026-10-20,14:00,Xét nghiệm Pap,1,,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002008,2026-11-04,08:30,Khám thai,1,,08:15,08:15,auto,,auto,,,,,Hàn Quốc,BS. Vũ Thị Hằng
+26002204,2026-10-31,11:30,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26001196,2026-09-19,08:15,Siêu âm 2D,1,,07:55,07:55,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002694,2026-11-04,15:45,Khám phụ khoa,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002841,2026-10-03,11:15,Siêu âm phụ khoa,1,,10:55,10:55,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002617,2026-09-13,11:45,Siêu âm phụ khoa,1,,11:25,11:25,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002470,2026-10-15,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000454,2026-09-19,07:15,Nghiệm pháp dung nạp glucose (NPDN),1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002442,2026-10-17,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Singapore,BS. Phạm Văn Khải
+26002498,2026-09-29,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002407,2026-10-21,13:30,Xét nghiệm Pap,1,ycbs den 13h15,13:00,13:00,auto,,auto,,,,,Nhật Bản,BS. Ngô Đức Thịnh
+26002232,2026-10-10,09:45,Khám phụ khoa,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001595,2026-11-10,08:00,Xét nghiệm máu,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000027,2026-10-20,08:15,Siêu âm hình thái 4D,1,,07:55,07:55,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26003128,2026-10-29,11:00,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002428,2026-09-24,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Hàn Quốc,BS. Trần Quốc Tuấn
+26002813,2026-10-12,10:30,Khám phụ khoa,1,BS dặn đến lúc 9:30,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002673,2026-10-04,10:45,Khám phụ khoa,1,"đến 10:00, mang theo sổ khám",10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002883,2026-11-01,10:30,Khám phụ khoa,1,TK sau dinh chi thai,10:15,10:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002624,2026-09-23,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Singapore,BS. Bùi Thanh Sơn
+26002827,2026-10-30,08:15,Khám phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002624,2026-09-22,16:30,Siêu âm phụ khoa,1,,16:10,16:10,auto,,auto,,,,,Singapore,BS. Đỗ Minh Khang
+26002561,2026-10-29,13:15,Khám phụ khoa,1,,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002911,2026-11-02,09:15,Xét nghiệm Pap,1,,08:45,08:45,auto,,auto,,,,,Mỹ,BS. Trần Quốc Tuấn
+26001931,2026-09-18,15:30,Xét nghiệm liên cầu B,1,,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002820,2026-10-01,07:45,Siêu âm phụ khoa,1,,07:25,07:25,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002911,2026-09-21,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Mỹ,BS. Phạm Văn Khải
+26002225,2026-09-21,10:30,Xét nghiệm Pap,1,SA 4D,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26003051,2026-10-29,14:30,Khám phụ khoa,1,mang theo kết quả XN lần trước,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002344,2026-11-01,07:15,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000216,2026-09-27,12:30,Xét nghiệm liên cầu B,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Úc,BS. Đỗ Minh Khang
+26000104,2026-10-13,08:15,Xét nghiệm liên cầu B,1,"Thai 35w1d, khám định kỳ",07:45,07:45,auto,,auto,,35,1,,Việt Nam,BS. Lê Thị Bích
+26002106,2026-09-19,08:15,Xét nghiệm liên cầu B,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26003002,2026-10-19,08:00,Khám phụ khoa,1,"đến 7g45, mang theo sổ khám",07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002603,2026-11-09,07:30,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 6g45",06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26001126,2026-11-10,08:45,Siêu âm 2D,1,,08:25,08:25,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002820,2026-09-19,12:15,Khám phụ khoa,1,đến trước 1 tiếng để nhịn ăn lấy máu,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002442,2026-11-10,07:15,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Singapore,BS. Vũ Thị Hằng
+26000881,2026-11-04,12:00,Khám hậu sản,1,kq double test binh thuong,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002645,2026-10-30,15:15,Khám phụ khoa,1,,15:00,15:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002967,2026-10-13,13:30,Khám phụ khoa,1,nhắc mang sổ khám thai,13:15,13:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002869,2026-10-05,08:00,Khám phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002869,2026-10-23,11:30,Xét nghiệm Pap,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002876,2026-10-16,08:15,Siêu âm phụ khoa,1,có mặt lúc 7g15,07:15,07:15,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002806,2026-09-24,09:30,Xét nghiệm Pap,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002960,2026-10-11,08:15,Khám phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002771,2026-10-31,13:30,Xét nghiệm Pap,1,ycbs den 12h30,12:30,12:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003072,2026-09-13,08:30,Xét nghiệm Pap,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26001427,2026-09-23,09:00,Siêu âm hình thái 4D,1,,08:40,08:40,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26003093,2026-11-12,13:15,Siêu âm phụ khoa,1,,12:55,12:55,auto,,auto,,,,,Singapore,BS. Hoàng Thị Lụa
+26002757,2026-09-21,08:30,Siêu âm phụ khoa,1,BS hẹn đến 8:15 lấy máu,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002925,2026-10-13,08:15,Siêu âm phụ khoa,1,Khám định kỳ,07:55,07:55,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002365,2026-10-10,11:00,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 10:00",10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002337,2026-11-09,08:45,Siêu âm phụ khoa,1,,08:25,08:25,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000937,2026-09-24,09:45,Xét nghiệm máu,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002344,2026-09-29,11:15,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002792,2026-11-09,09:30,Xét nghiệm Pap,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26001679,2026-11-01,15:00,Khám thai,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002666,2026-09-23,16:15,Khám phụ khoa,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002183,2026-09-27,12:45,Siêu âm phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000601,2026-10-03,08:00,Khám thai,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002876,2026-11-02,08:30,Xét nghiệm Pap,1,,08:00,08:00,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002281,2026-09-23,14:00,Siêu âm phụ khoa,1,nhắc mang sổ khám thai,13:40,13:40,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002519,2026-10-12,08:30,Xét nghiệm Pap,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002890,2026-10-17,12:00,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000888,2026-09-27,12:30,Khám thai,1,BS hẹn đến 11h30 lấy máu,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000370,2026-09-28,07:00,Khám thai,1,38w ycbs kham va sieu am,06:45,06:45,needs_review,LATE_GA,needs_review,LATE_GA,38,3,,Việt Nam,BS. Bùi Thanh Sơn
+26002148,2026-09-30,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002792,2026-10-25,08:00,Xét nghiệm Pap,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000125,2026-09-18,08:00,Khám thai,1,nhắc mang sổ khám thai,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000986,2026-10-30,07:45,Nghiệm pháp dung nạp glucose (NPDN),1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26003079,2026-11-01,14:30,Khám phụ khoa,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002512,2026-09-18,12:45,Siêu âm phụ khoa,1,uống đủ nước trước SA,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002918,2026-11-01,09:30,Xét nghiệm Pap,1,SA 4D,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002498,2026-10-21,16:15,Xét nghiệm Pap,1,,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002771,2026-09-25,15:00,Khám phụ khoa,1,Hẹn đến 14:00 làm NPDN,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002890,2026-11-12,15:15,Siêu âm phụ khoa,1,Đã đóng gói thai sản,14:55,14:55,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000104,2026-10-27,15:15,Siêu âm 2D,1,,14:55,14:55,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000825,2026-11-06,13:45,Siêu âm độ mờ da gáy (NT),1,,13:25,13:25,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003023,2026-09-30,08:00,Xét nghiệm Pap,1,BS hẹn đến 7g30 lấy máu,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002918,2026-09-13,07:45,Siêu âm phụ khoa,1,"HPV duong tinh 16, ctc den 7h15",07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002764,2026-10-27,11:15,Siêu âm phụ khoa,1,,10:55,10:55,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26001672,2026-11-08,09:45,Nghiệm pháp dung nạp glucose (NPDN),1,BN đi cùng chồng,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002743,2026-09-21,11:45,Siêu âm phụ khoa,1,"HPV duong tinh 16, ctc den 11:15",11:15,11:15,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
+26001434,2026-10-29,10:00,Siêu âm độ mờ da gáy (NT),1,,09:40,09:40,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002624,2026-11-10,07:15,Xét nghiệm Pap,1,,06:45,06:45,auto,,auto,,,,,Singapore,BS. Ngô Đức Thịnh
+26002687,2026-09-24,14:00,Khám phụ khoa,1,,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000559,2026-09-23,12:00,Khám thai,1,goi xac nhan truoc 1 ngay,Khám chờ,Khám chờ,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Đỗ Minh Khang
+26002337,2026-09-15,15:00,Siêu âm phụ khoa,1,,14:40,14:40,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002883,2026-10-14,14:00,Siêu âm phụ khoa,1,BS hẹn đến 13h30 lấy máu,13:30,13:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002239,2026-09-16,09:30,Siêu âm phụ khoa,1,,09:10,09:10,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002554,2026-09-18,07:15,Siêu âm phụ khoa,1,,06:55,06:55,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002344,2026-10-16,14:45,Xét nghiệm Pap,1,,14:15,14:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002806,2026-10-07,07:30,Xét nghiệm Pap,1,Khám định kỳ,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003107,2026-10-25,09:00,Siêu âm phụ khoa,1,,08:40,08:40,auto,,auto,,,,,Singapore,BS. Trần Quốc Tuấn
+26000895,2026-10-11,11:15,Xét nghiệm liên cầu B,1,ycbs den 10g45,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002533,2026-11-09,11:45,Siêu âm phụ khoa,1,co mat luc 10h45 de SA,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000293,2026-11-05,11:00,Khám hậu sản,1,,10:45,10:45,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
+26002218,2026-10-23,07:00,Khám phụ khoa,1,Tái khám theo hẹn,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002806,2026-09-16,08:00,Khám phụ khoa,1,Xét nghiệm nước tiểu,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002750,2026-09-15,07:30,Khám phụ khoa,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002974,2026-09-24,11:00,Siêu âm phụ khoa,1,TK sau dinh chi thai,10:40,10:40,auto,,auto,,,,,Hàn Quốc,BS. Đỗ Minh Khang
+26000937,2026-10-08,10:15,Xét nghiệm máu,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000734,2026-10-23,10:15,Siêu âm 2D,1,,09:55,09:55,auto,,auto,,,,,Nhật Bản,BS. Trần Quốc Tuấn
+26002869,2026-10-28,11:45,Khám phụ khoa,1,có mặt lúc 11:30,11:30,11:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003079,2026-09-26,12:15,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 11:45",Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Lê Thị Bích
+26002288,2026-10-21,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001462,2026-11-08,12:45,Siêu âm 2D,1,có mặt lúc 12:00,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Pháp,BS. Đỗ Minh Khang
+26002575,2026-09-30,07:30,Xét nghiệm Pap,1,,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002309,2026-09-29,07:45,Xét nghiệm Pap,1,ycbs den 7h,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002127,2026-11-09,08:00,Khám phụ khoa,1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002967,2026-09-24,12:30,Khám phụ khoa,1,có mặt lúc 11h45,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002295,2026-11-02,12:30,Siêu âm phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002379,2026-11-05,08:00,Xét nghiệm Pap,1,den 7 giờ nhin an lay mau,07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002323,2026-10-27,11:30,Siêu âm phụ khoa,1,,11:10,11:10,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000496,2026-09-30,07:45,Khám thai,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002407,2026-11-04,12:45,Xét nghiệm Pap,1,soi ctc den 11g45,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Nhật Bản,BS. Trần Quốc Tuấn
+26002449,2026-10-17,10:30,Khám phụ khoa,1,,10:15,10:15,auto,,auto,,,,,Singapore,BS. Đỗ Minh Khang
+26002890,2026-10-24,11:30,Khám phụ khoa,1,liên hệ người nhà 0978421391,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002827,2026-09-30,12:45,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26003142,2026-10-05,08:00,Siêu âm phụ khoa,1,,07:40,07:40,auto,,auto,,,,,Pháp,BS. Vũ Thị Hằng
+26002736,2026-11-08,07:45,Xét nghiệm Pap,1,"đến 7h, mang theo sổ khám",07:00,07:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002351,2026-10-03,09:30,Xét nghiệm Pap,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002883,2026-10-28,07:45,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002673,2026-10-31,11:45,Xét nghiệm Pap,1,,11:15,11:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002729,2026-10-30,07:15,Xét nghiệm Pap,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002498,2026-09-15,09:15,Xét nghiệm Pap,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000587,2026-09-18,08:00,Siêu âm 2D,1,,07:40,07:40,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000181,2026-10-19,11:00,Khám thai; Siêu âm 2D,2,Hẹn đến 10:45 làm NPDN,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002484,2026-10-01,08:00,Xét nghiệm Pap,1,,07:30,07:30,auto,,auto,,,,,Hàn Quốc,BS. Phạm Văn Khải
+26002295,2026-11-10,14:15,Khám phụ khoa,1,,14:00,14:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002729,2026-10-17,11:15,Khám phụ khoa,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26003079,2026-10-28,16:30,Xét nghiệm Pap,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26001819,2026-09-30,08:15,Nghiệm pháp dung nạp glucose (NPDN),1,,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002169,2026-10-20,08:30,Khám phụ khoa,1,đến sớm 45p,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002162,2026-10-25,09:00,Xét nghiệm Pap,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002232,2026-10-11,15:45,Khám phụ khoa,1,,15:30,15:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26001245,2026-10-20,08:00,Siêu âm 2D; Xét nghiệm máu,2,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002722,2026-10-21,07:15,Siêu âm phụ khoa,1,,06:55,06:55,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002645,2026-10-13,15:00,Xét nghiệm Pap,1,Khám định kỳ,14:30,14:30,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002750,2026-09-26,12:00,Xét nghiệm Pap,1,đến sớm 30 phút làm xét nghiệm,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002414,2026-10-02,13:15,Khám phụ khoa,1,,13:00,13:00,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002526,2026-11-06,13:15,Khám phụ khoa,1,SA hinh thai,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26001217,2026-10-16,08:00,Xét nghiệm máu,1,Khám định kỳ,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002701,2026-10-06,09:15,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001301,2026-10-03,12:45,Siêu âm hình thái 4D,1,Tái khám theo hẹn,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26001021,2026-10-17,09:45,Khám thai,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002589,2026-09-15,07:15,Siêu âm phụ khoa,1,,06:55,06:55,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002428,2026-10-14,07:30,Khám phụ khoa,1,nhắc mang sổ khám thai,07:15,07:15,auto,,auto,,,,,Hàn Quốc,BS. Vũ Thị Hằng
+26002652,2026-10-20,10:45,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002729,2026-09-14,14:45,Khám phụ khoa,1,ycbs den 13h45,13:45,13:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002092,2026-10-20,08:30,Nghiệm pháp dung nạp glucose (NPDN),1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002540,2026-10-29,11:30,Xét nghiệm Pap,1,"BN xin đổi lịch, gọi lại",11:00,11:00,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Singapore,BS. Bùi Thanh Sơn
+26001791,2026-11-07,12:15,Khám hậu sản,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002666,2026-10-12,13:00,Siêu âm phụ khoa,1,,12:40,12:40,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002729,2026-11-05,09:30,Khám phụ khoa,1,BS hẹn đến 9h lấy máu,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002309,2026-10-15,10:15,Xét nghiệm Pap,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26000160,2026-11-06,07:00,Khám thai,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002008,2026-10-14,08:00,Khám thai,1,"đến 7h, mang theo sổ khám",07:00,07:00,auto,,auto,,,,,Hàn Quốc,BS. Trần Quốc Tuấn
+26002085,2026-09-18,13:15,Khám thai,1,,13:00,13:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000125,2026-10-02,11:15,Siêu âm 2D,1,,10:55,10:55,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002960,2026-10-14,08:30,Khám phụ khoa,1,,08:15,08:15,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000097,2026-09-30,09:00,Siêu âm hình thái 4D,1,,08:40,08:40,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26000811,2026-11-09,09:15,Xét nghiệm liên cầu B,1,,08:45,08:45,auto,,auto,,,,,Trung Quốc,BS. Lê Thị Bích
+26003086,2026-09-18,11:45,Siêu âm phụ khoa,1,TK sau dinh chi thai,11:25,11:25,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002939,2026-10-08,09:15,Siêu âm phụ khoa,1,,08:55,08:55,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002820,2026-09-27,11:00,Siêu âm phụ khoa,1,,10:40,10:40,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002988,2026-09-21,10:45,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000671,2026-11-05,12:15,Khám thai; Xét nghiệm máu,2,,Khám chờ,Khám chờ,needs_review,CONFLICT,needs_review,CONFLICT,,,,Singapore,BS. Bùi Thanh Sơn
+26002659,2026-09-14,13:15,Xét nghiệm Pap,1,,12:45,12:45,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002092,2026-09-18,14:30,Siêu âm hình thái 4D,1,uống đủ nước trước SA,14:10,14:10,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002099,2026-10-26,12:45,Khám thai,1,co mat luc 12h15 de SA,Khám chờ,Khám chờ,needs_review,WAITING_NOTE_TIME,needs_review,WAITING_NOTE_TIME,,,,Việt Nam,BS. Lê Thị Bích
+26002708,2026-09-28,08:30,Xét nghiệm Pap,1,co mat luc 7g45 de SA,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002057,2026-09-28,14:45,Siêu âm 2D,1,,14:25,14:25,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26000300,2026-09-17,11:15,Siêu âm 2D,1,,10:55,10:55,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002652,2026-10-11,08:30,Siêu âm phụ khoa,1,TK sau dinh chi thai,08:10,08:10,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26000279,2026-10-04,09:30,Khám thai,1,xác nhận lại dịch vụ,09:15,09:15,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002582,2026-09-20,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002960,2026-10-27,12:30,Khám phụ khoa,1,liên hệ người nhà 0990510118,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000118,2026-10-25,08:15,Khám thai,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001553,2026-11-08,07:30,Khám thai,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002575,2026-10-09,09:15,Xét nghiệm Pap,1,TK sau dinh chi thai,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002386,2026-10-19,07:45,Khám phụ khoa,1,,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002267,2026-09-13,10:45,Siêu âm phụ khoa,1,,10:25,10:25,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002463,2026-10-05,08:00,Khám phụ khoa,1,Khám định kỳ,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26002176,2026-09-23,14:00,Khám phụ khoa,1,,13:45,13:45,auto,,auto,,,,,Trung Quốc,BS. Phạm Văn Khải
+26003093,2026-09-27,15:00,Khám phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Singapore,BS. Vũ Thị Hằng
+26002855,2026-11-03,16:00,Khám phụ khoa,1,BN đi cùng chồng,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002505,2026-11-09,07:30,Khám phụ khoa,1,Hẹn đến 6:45 làm NPDN,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003079,2026-09-15,08:45,Siêu âm phụ khoa,1,,08:25,08:25,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002561,2026-10-11,09:30,Khám phụ khoa,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26003149,2026-10-08,13:45,Siêu âm phụ khoa,1,,13:25,13:25,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002379,2026-10-14,09:00,Khám phụ khoa,1,,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002918,2026-09-20,10:30,Xét nghiệm Pap,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002988,2026-10-21,09:15,Xét nghiệm Pap,1,kq double test binh thuong,08:45,08:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000048,2026-11-08,07:30,Siêu âm độ mờ da gáy (NT),1,,07:10,07:10,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002792,2026-10-24,08:15,Xét nghiệm Pap,1,Tái khám theo hẹn,07:45,07:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26003086,2026-10-23,13:30,Khám phụ khoa,1,Đến 12h30 để làm xét nghiệm,12:30,12:30,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải
+26002113,2026-10-04,09:15,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000300,2026-10-15,07:45,Khám thai,1,34w kham + SA,07:30,07:30,auto,,auto,,34,3,,Việt Nam,BS. Đỗ Minh Khang
+26002351,2026-09-24,14:30,Siêu âm phụ khoa,1,,14:10,14:10,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26002925,2026-10-24,09:30,Khám phụ khoa,1,,09:15,09:15,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26000853,2026-10-22,12:30,Siêu âm hình thái 4D,1,SA 4D,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26001924,2026-09-25,11:15,Khám thai,1,lịch SA doppler,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000167,2026-09-15,08:15,Khám thai,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000370,2026-09-14,07:45,Xét nghiệm liên cầu B,1,,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26003023,2026-11-01,09:45,Khám phụ khoa,1,BS hẹn đến 9h lấy máu,09:00,09:00,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26002974,2026-11-06,07:45,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 7g30",07:30,07:30,auto,,auto,,,,,Hàn Quốc,BS. Đỗ Minh Khang
+26002701,2026-11-05,16:15,Khám phụ khoa,1,,16:00,16:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26000678,2026-09-23,14:00,Khám thai,1,32w ycbs kham va sieu am,13:45,13:45,auto,,auto,,32,6,,Việt Nam,BS. Bùi Thanh Sơn
+26003051,2026-10-10,07:45,Xét nghiệm Pap,1,Hẹn đến 7h15 làm NPDN,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001595,2026-10-27,11:30,Xét nghiệm máu,1,,11:00,11:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002813,2026-10-26,10:15,Khám phụ khoa,1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26000076,2026-09-21,10:30,Nghiệm pháp dung nạp glucose (NPDN),1,,10:00,10:00,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002169,2026-09-18,15:00,Khám phụ khoa,1,,14:45,14:45,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26002848,2026-10-01,10:00,Xét nghiệm Pap,1,,09:30,09:30,auto,,auto,,,,,Việt Nam,BS. Lê Thị Bích
+26001182,2026-10-18,16:30,Khám hậu sản,1,,16:15,16:15,auto,,auto,,,,,Việt Nam,BS. Bùi Thanh Sơn
+26003121,2026-11-12,08:45,Khám phụ khoa,1,"HPV duong tinh 16, ctc den 8h30",08:30,08:30,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002456,2026-10-31,07:45,Khám phụ khoa,1,lịch SA doppler,07:30,07:30,auto,,auto,,,,,Mỹ,BS. Ngô Đức Thịnh
+26002680,2026-10-06,08:45,Khám phụ khoa,1,,08:30,08:30,auto,,auto,,,,,Mỹ,BS. Đỗ Minh Khang
+26002449,2026-09-29,09:15,Khám phụ khoa,1,,09:00,09:00,auto,,auto,,,,,Singapore,BS. Đỗ Minh Khang
+26001091,2026-10-28,16:00,Khám thai,1,,15:45,15:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26001511,2026-11-01,07:30,Khám thai,1,Khám định kỳ,07:15,07:15,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26000916,2026-11-11,15:00,Xét nghiệm máu,1,lam XN mau,14:30,14:30,auto,,auto,,,,,Trung Quốc,BS. Lê Thị Bích
+26002792,2026-09-26,08:15,Khám phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Việt Nam,BS. Đỗ Minh Khang
+26002533,2026-10-27,11:00,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26002281,2026-10-09,08:00,Khám phụ khoa,1,Xét nghiệm nước tiểu,07:30,07:30,auto,,auto,,,,,Việt Nam,BS. Vũ Thị Hằng
+26003142,2026-10-26,14:30,Khám phụ khoa,1,,14:15,14:15,auto,,auto,,,,,Pháp,BS. Bùi Thanh Sơn
+26002596,2026-09-19,08:15,Khám phụ khoa,1,,08:00,08:00,auto,,auto,,,,,Hàn Quốc,BS. Ngô Đức Thịnh
+26000069,2026-10-20,09:45,Khám thai,1,34w ycbs kham va sieu am,09:30,09:30,auto,,auto,,34,3,,Việt Nam,BS. Bùi Thanh Sơn
+26002407,2026-09-28,12:30,Siêu âm phụ khoa,1,liên hệ người nhà 0955461203,Khám chờ,Khám chờ,auto,,auto,,,,,Nhật Bản,BS. Vũ Thị Hằng
+26002547,2026-09-24,10:00,Khám phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Ngô Đức Thịnh
+26002351,2026-09-29,10:00,Khám phụ khoa,1,,09:45,09:45,auto,,auto,,,,,Việt Nam,BS. Hoàng Thị Lụa
+26003156,2026-11-07,15:15,Siêu âm phụ khoa,1,,14:55,14:55,auto,,auto,,,,,Việt Nam,BS. Trần Quốc Tuấn
+26003107,2026-09-28,15:15,Khám phụ khoa,1,,15:00,15:00,auto,,auto,,,,,Singapore,BS. Trần Quốc Tuấn
+26001385,2026-11-07,09:30,Nghiệm pháp dung nạp glucose (NPDN),1,"Thai 27 tuần, SA hình thái",09:00,09:00,auto,,auto,,27,5,,Việt Nam,BS. Hoàng Thị Lụa
+26002134,2026-10-03,15:15,Khám phụ khoa,1,liên hệ người nhà 0956808469,15:00,15:00,auto,,auto,,,,,Hàn Quốc,BS. Vũ Thị Hằng
+26002344,2026-10-07,07:00,Khám phụ khoa,1,,06:45,06:45,auto,,auto,,,,,Việt Nam,BS. Phạm Văn Khải

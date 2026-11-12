@@ -27,7 +27,7 @@ export function Overview() {
     return (
       <Stack>
         <Skeleton h={40} w={320} />
-        <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>{[0, 1, 2, 3].map((i) => <Skeleton key={i} h={120} radius="lg" />)}</SimpleGrid>
+        <SimpleGrid cols={{ base: 2, lg: 4 }} spacing={{ base: "xs", sm: "md" }}>{[0, 1, 2, 3].map((i) => <Skeleton key={i} h={120} radius="lg" />)}</SimpleGrid>
         <Skeleton h={360} radius="lg" />
       </Stack>
     );
@@ -46,7 +46,7 @@ export function Overview() {
           </Button>
         )} />
 
-      <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }} mb="lg">
+      <SimpleGrid cols={{ base: 2, lg: 4 }} spacing={{ base: "xs", sm: "md" }} mb="lg">
         <StatCard label="Lịch hẹn ngày mai" value={m.appointments_tomorrow} hint={fmtDate(data.tomorrow)} icon={<IconCalendarEvent size={22} />} />
         <StatCard label="Form gửi hôm nay" value={m.forms_today} hint="đã xuất tin nhắn" icon={<IconMailForward size={22} />} color="blue" />
         <StatCard label="Câu trả lời 24 giờ" value={m.responses_24h} hint="từ thai phụ" icon={<IconMessage2 size={22} />} color="grape" />

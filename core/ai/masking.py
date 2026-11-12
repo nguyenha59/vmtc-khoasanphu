@@ -112,6 +112,36 @@ def default_ner() -> NerFn | None:
 # Đệm tên tiếng Việt không tự định danh một người – không che riêng lẻ để khỏi làm hỏng ghi chú.
 _NAME_PARTICLES = {"thị", "văn", "thi", "van"}
 
+# Thuật ngữ y khoa có chữ trùng họ / tên người ("Dương" – dương tính, "Đường" – đường huyết, "Hồng" – hồng cầu,
+# "Tâm" – tâm thu…). Giữ nguyên khi che tên, nếu không ghi chú mất nghĩa ("HPV [TÊN] tính 16").
+# So cả dạng có dấu và không dấu, không phân biệt hoa thường; chỉ giữ đúng CỤM (một chữ "Dương" đứng riêng vẫn bị che).
+_MEDICAL_TERMS = [
+    "dương tính", "âm tính", "đường huyết", "đường máu", "đường niệu", "hồng cầu", "bạch cầu", "tiểu cầu",
+    "tâm thu", "tâm trương", "huyết áp", "thai nhi", "tử cung", "cổ tử cung", "phụ khoa", "sản khoa",
+]
+_MEDICAL_RE = re.compile(
+    r"(?<!\w)(?:" + "|".join(sorted({re.escape(v) for t in _MEDICAL_TERMS for v in (t, deaccent(t))}, key=len, reverse=True))
+    + r")(?!\w)",
+    re.IGNORECASE,
+)
+_SHIELD_BASE = 0xE100  # ký tự vùng riêng (không phải \w) giữ chỗ cho cụm thuật ngữ trong lúc che
+
+
+def _shield_terms(text: str) -> tuple[str, list[str]]:
+    kept: list[str] = []
+
+    def keep(m: re.Match[str]) -> str:
+        kept.append(m.group(0))
+        return chr(_SHIELD_BASE + len(kept) - 1)
+
+    return _MEDICAL_RE.sub(keep, text), kept
+
+
+def _unshield(text: str, kept: list[str]) -> str:
+    for i, term in enumerate(kept):
+        text = text.replace(chr(_SHIELD_BASE + i), term)
+    return text
+
 
 def _name_variants(full_name: str) -> list[str]:
     """Họ tên đầy đủ, từng từ trong tên và từng cặp từ liền nhau, kèm dạng không dấu.
@@ -202,6 +232,7 @@ def mask_text(
         return MaskResult(text=text, ok=True)
 
     masked, counts = _regex_pass(text, pid)
+    masked, shielded = _shield_terms(masked)
     name_words = _name_variants(full_name or "")
     masked, k = _sub_words(masked, name_words, "[TÊN]")
     counts["TÊN"] = counts.get("TÊN", 0) + k
@@ -227,6 +258,7 @@ def mask_text(
         if re.search(rf"(?<!\w){re.escape(w)}(?!\w)", masked, re.IGNORECASE):
             leftovers.append("TÊN")
     leftovers += ["NER" for _p in _ner_persons(masked, ner_fn)]
+    masked = _unshield(masked, shielded)
     return MaskResult(
         text=masked, ok=not leftovers, replaced={k: v for k, v in counts.items() if v}, leftovers=leftovers,
         persons=sorted(set(persons)),

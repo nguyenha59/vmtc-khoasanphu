@@ -10,7 +10,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { EmptyState, LevelBadge, LevelDot, PageHeader } from "../components/ui";
+import { EmptyState, LevelBadge, LevelDot, PageHeader, ReasonTags, StatusBadge } from "../components/ui";
+import { reasonTags } from "../lib/reasons";
 import { VitalsCharts } from "../components/VitalsChart";
 import { api, type AlertDetail, type AlertList, type DownReview } from "../lib/api";
 import { useCan } from "../lib/auth";
@@ -21,8 +22,10 @@ import classes from "./Alerts.module.css";
 const TEMP_VI: Record<string, string> = { current: "hiện tại", past_resolved: "đã qua", unknown: "không rõ" };
 const EXP_VI: Record<string, string> = { patient: "thai phụ", other: "người khác" };
 
+/** Tiêu đề ngắn của cảnh báo – cùng cách đọc với nhãn lý do (bỏ thuật ngữ thống kê, bỏ trùng). */
 function headline(reasons: string[]): string {
-  return reasons.length ? reasons.join(" · ") : "Chưa ghi lý do";
+  const tags = reasonTags(reasons);
+  return tags.length ? tags.map((t) => t.text).join(" · ") : "Chưa ghi lý do";
 }
 
 /* ------------------------------------------------------------------ Danh sách */
@@ -87,24 +90,21 @@ export function Alerts() {
         )}
         {items.map((i) => (
           <UnstyledButton key={i.id} component={Link} to={`/canh-bao/${i.id}`} className={classes.row} data-level={i.level}>
-            <Group gap="md" wrap="nowrap" align="center">
-              <LevelDot level={i.level} />
+            <Group gap="sm" wrap="nowrap" align="flex-start">
+              <Box pt={6}><LevelDot level={i.level} /></Box>
               <Box flex={1} style={{ minWidth: 0 }}>
-                <Group gap={8} wrap="wrap">
-                  <Text fw={700} size="sm" c={i.level === "red" ? "danger.8" : "ink.9"}>Cảnh báo về: {headline(i.reasons)}</Text>
-                  {i.demo && <Badge size="xs" color="gray" variant="outline">DEMO – nhân viên tự điền</Badge>}
+                <Group gap={8} wrap="wrap" mb={6} align="baseline">
+                  <Text fw={700} size="sm">{i.code}</Text>
+                  <Text size="xs" c="dimmed">{i.ga.startsWith("Hậu sản") ? i.ga : `tuần thai ${i.ga}`} · form {i.form} · {relTime(i.created_at)}</Text>
+                  {i.demo && <Badge size="xs" color="gray" variant="outline">DEMO</Badge>}
                   {i.status !== "closed" && (i.patient_open ?? 0) > 1 && (
-                    <Badge size="xs" color="brand" variant="light">+{(i.patient_open ?? 1) - 1} cảnh báo khác – gọi 1 lần</Badge>
+                    <Badge size="xs" color="brand" variant="light">+{(i.patient_open ?? 1) - 1} cảnh báo khác · gọi 1 lần</Badge>
                   )}
                 </Group>
-                <Text size="xs" c="dimmed" mt={2}>
-                  <b>{i.code}</b> · tuần thai {i.ga} · form {i.form} · {relTime(i.created_at)}
-                </Text>
+                <ReasonTags tags={reasonTags(i.reasons)} level={i.level} />
               </Box>
-              <Badge size="sm" variant={i.status === "open" || i.status === "escalated" ? "filled" : "light"}
-                color={i.status === "open" ? (i.level === "red" ? "danger" : "warn") : i.status === "escalated" ? "grape" : "gray"}>
-                {i.status_label}</Badge>
-              <IconChevronRight size={18} color="var(--mantine-color-ink-4)" />
+              <StatusBadge status={i.status} label={i.status_label} level={i.level} />
+              <Box visibleFrom="sm" pt={2}><IconChevronRight size={18} color="var(--mantine-color-ink-4)" /></Box>
             </Group>
           </UnstyledButton>
         ))}

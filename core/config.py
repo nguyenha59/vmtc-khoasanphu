@@ -116,6 +116,11 @@ def load_his_columns(path: Path | str | None = None) -> HisColumns:
     )
 
 
+def load_clinical_reference(path: Path | str | None = None) -> dict[str, Any]:
+    """Bảng tham chiếu lâm sàng (khoảng xét nghiệm, sinh trắc siêu âm, ICD-10) – config/clinical_reference.yaml."""
+    return _read_yaml(Path(path) if path else CONFIG_DIR / "clinical_reference.yaml")
+
+
 def load_forms(path: Path | str | None = None) -> FormsConfig:
     p = Path(path) if path else CONFIG_DIR / "forms.yaml"
     d = _read_yaml(p)

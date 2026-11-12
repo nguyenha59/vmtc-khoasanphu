@@ -27,6 +27,7 @@ from api.routers import (
     form_schedule,
     noshow,
     overview,
+    patients,
     profile,
     public_form,
     quality,
@@ -157,7 +158,7 @@ def build_app(title: str, routers: Iterable[APIRouter], *, docs: bool, spa_paths
 
 
 STAFF_ROUTERS = (auth.router, overview.router, alerts.router, appointments.router, form_schedule.router,
-                 profile.router, noshow.router, quality.router, config.router, public_form.router)
+                 profile.router, patients.router, noshow.router, quality.router, config.router, public_form.router)
 
 
 def create_app(serve_web: bool = True) -> FastAPI:

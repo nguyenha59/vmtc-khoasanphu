@@ -46,7 +46,15 @@ export const theme = createTheme({
     Paper: { defaultProps: { withBorder: true, shadow: "xs", radius: "lg" } },
     Card: { defaultProps: { withBorder: true, shadow: "xs", radius: "lg" } },
     Button: { defaultProps: { radius: "md" } },
-    Badge: { defaultProps: { radius: "sm", variant: "light" } },
+    // Badge mặc định dùng inline-grid: với chữ tiếng Việt có dấu, cột chữ bị đo thiếu (~10%) → cắt "CẦN XÁC N…".
+    // Dùng inline-flex để nhãn rộng đúng bằng nội dung, áp cho mọi nhãn trong app.
+    Badge: {
+      defaultProps: { radius: "sm", variant: "light" },
+      styles: {
+        root: { display: "inline-flex", alignItems: "center", gap: 4, flex: "none" },
+        label: { overflow: "visible", textOverflow: "clip" },
+      },
+    },
     TextInput: { defaultProps: { radius: "md" } },
     PasswordInput: { defaultProps: { radius: "md" } },
   },

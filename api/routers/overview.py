@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends
@@ -9,7 +10,7 @@ from sqlalchemy import func, select
 
 from api.deps import CurrentUser, current_user
 from core.alerts import STATUS_VI
-from core.config import TZ
+from core.config import TZ, llm_provider, load_rules
 from core.db import now, session_scope
 from core.models import (
     Alert,
@@ -28,6 +29,18 @@ router = APIRouter(prefix="/api", tags=["overview"])
 
 def shift_label(h: int) -> str:
     return "Ca sáng" if 6 <= h < 12 else "Ca chiều" if 12 <= h < 18 else "Ca tối"
+
+
+def _llm_info() -> dict[str, str]:
+    """Loại AI đang chạy – để giao diện ghi đúng (trước đây ghi cứng "Ollama")."""
+    rules = load_rules()
+    try:
+        provider = llm_provider(rules)
+    except ValueError:
+        return {"provider": "blocked", "model": ""}
+    model = {"ollama": rules["llm"]["model"],
+             "openai": os.environ.get("OPENAI_MODEL") or rules["llm"].get("openai_model", "")}.get(provider, "mock")
+    return {"provider": provider, "model": model}
 
 
 @router.get("/overview")
@@ -73,5 +86,5 @@ def overview(user: CurrentUser = Depends(current_user)) -> dict:
         "today": today.isoformat(), "tomorrow": tmr.isoformat(), "shift": shift_label(datetime.now(TZ).hour),
         "metrics": {"appointments_tomorrow": n_appt, "forms_today": n_forms, "responses_24h": n_resp,
                     "open_alerts": n_open, "open_red": n_red},
-        "steps": steps, "latest_alerts": latest_rows,
+        "steps": steps, "latest_alerts": latest_rows, "llm": _llm_info(),
     }

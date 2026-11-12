@@ -127,7 +127,10 @@ def save_his_result(
                         created_at=now())
     s.add(batch)
     s.flush()
-    old_ids = s.scalars(select(Appointment.id).where(Appointment.appt_date == target_date)).all()
+    # Thay lịch của đúng những ngày có trong file (không theo ngày đang chọn trên màn hình): chọn nhầm ngày
+    # thì không xóa lịch của ngày khác, tải lại cùng file thì không bị trùng hai bộ.
+    days = {plan.merged.appt_date for plan in res.planned} or {target_date}
+    old_ids = s.scalars(select(Appointment.id).where(Appointment.appt_date.in_(days))).all()
     if old_ids:
         s.execute(delete(ArrivalPlan).where(ArrivalPlan.appointment_id.in_(old_ids)))
         s.execute(delete(NoteExtraction).where(NoteExtraction.appointment_id.in_(old_ids)))
@@ -168,6 +171,7 @@ def save_his_result(
             status=plan.decision.status, reasons=plan.decision.reasons, rules_version=res.rules_version,
             details={
                 "rule_applied": plan.arrival.rule_applied,
+                "ai_status": plan.ai_status,
                 "rule_time": _t(plan.arrival.rule_time),
                 "rule_minutes": plan.arrival.rule_minutes,
                 "explicit_time": _t(plan.arrival.explicit_time),

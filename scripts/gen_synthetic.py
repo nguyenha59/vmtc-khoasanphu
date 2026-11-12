@@ -1,6 +1,6 @@
 """Sinh dữ liệu giả cho MVP (docs/03 mục 3). KHÔNG dùng dữ liệu thật.
 
-Ví dụ: python scripts/gen_synthetic.py --days 90 --per-day 110 --seed 42
+Ví dụ: python scripts/gen_synthetic.py --seed 42   (mặc định gọn: 60 ngày, 40 lịch/ngày, ~450 khách)
 
 Đầu ra:
   data/synthetic/  patients.csv, appointments_all.csv, arrivals_all.csv, arrivals_<ngày>.xlsx,
@@ -169,7 +169,6 @@ NOTE_TEMPLATES: list[NoteT] = [
     NoteT("lam XN mau"),
     NoteT("SA hinh thai"),
     NoteT("uống đủ nước trước SA"),
-    NoteT("BN nước ngoài, cần phiên dịch"),
     NoteT("nhắc mang sổ khám thai"),
     NoteT("Xét nghiệm nước tiểu"),
     NoteT("kq double test binh thuong"),
@@ -898,13 +897,13 @@ def make_vitals(rng: random.Random, pats: list[Pat], anchor: date) -> pd.DataFra
 # ---------------------------------------------------------------- main
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--days", type=int, default=90, help="số ngày lịch sử (có danh sách khách đến)")
-    ap.add_argument("--per-day", type=int, default=110)
+    ap.add_argument("--days", type=int, default=60, help="số ngày lịch sử (có danh sách khách đến)")
+    ap.add_argument("--per-day", type=int, default=40)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--future-days", type=int, default=42)
-    ap.add_argument("--patients", type=int, default=900, help="số thai phụ giả")
-    ap.add_argument("--gyn-patients", type=int, default=700, help="số khách khám phụ khoa giả")
-    ap.add_argument("--forms", type=int, default=2000)
+    ap.add_argument("--patients", type=int, default=300, help="số thai phụ giả")
+    ap.add_argument("--gyn-patients", type=int, default=150, help="số khách khám phụ khoa giả")
+    ap.add_argument("--forms", type=int, default=400)
     ap.add_argument("--anchor", type=str, default=None, help="ngày 'hôm nay' (YYYY-MM-DD)")
     ap.add_argument("--bad-phone-rate", type=float, default=0.01,
                     help="tỉ lệ khách có SĐT lỗi (để thử cảnh báo E06); 0 = mọi khách đều có SĐT hợp lệ")
@@ -1086,6 +1085,7 @@ def main() -> None:
     fr, fl = make_form_responses(rng, pats, forms_cfg, anchor, args.forms, sched)
     fr.to_csv(out / "form_responses.csv", index=False, encoding="utf-8")
     fl.to_csv(golden / "form_expected.csv", index=False, encoding="utf-8")
+    fl.to_csv(out / "form_expected.csv", index=False, encoding="utf-8")  # seed_demo đọc cùng bộ với form_responses.csv
     with open(ROOT / "tests" / "redteam" / "form_cases.yaml", "w", encoding="utf-8") as f:
         yaml.safe_dump({"cases": make_redteam()}, f, allow_unicode=True, sort_keys=False)
 

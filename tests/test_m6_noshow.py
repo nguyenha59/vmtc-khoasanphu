@@ -85,3 +85,24 @@ def test_priority_windows(rules):
 @pytest.mark.parametrize("prob", [0.0, 1.0])
 def test_action_edges(rules, prob):
     assert action_for(prob, rules) in ("—", "Gọi xác nhận")
+
+
+def test_calibration_bins_do_not_overlap():
+    """Mỗi ca thuộc đúng một nhóm (trước đây ca ở biên bị đếm nhiều lần → tổng n gấp ~2,4 lần)."""
+    import numpy as np
+
+    from core.ai.noshow import _calibration
+
+    rng = np.random.default_rng(0)
+    p = np.round(rng.random(1000), 1)  # nhiều giá trị trùng như isotonic
+    y = (rng.random(1000) < p).astype(int)
+    assert sum(b["n"] for b in _calibration(y, p)) == 1000
+
+
+def test_foreign_uses_vietnam_aliases():
+    import pandas as pd
+
+    from core.rules.export_worldsms import is_vietnamese
+
+    s = pd.Series(["Việt Nam", "VN", "Viet Nam", "", "Hàn Quốc"])
+    assert list((~s.map(is_vietnamese)).astype(int)) == [0, 0, 0, 0, 1]

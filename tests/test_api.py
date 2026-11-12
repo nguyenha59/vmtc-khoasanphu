@@ -440,3 +440,91 @@ def test_his_upload_updates_patient_name(client):
         p = upsert_patient(s, "99555001", "Nguyễn Thị Mới", "0900000001", "Việt Nam")
         assert patient_name(p) == "Nguyễn Thị Mới"
     assert _audit_count("patient_name_updated_from_his") >= 1
+
+
+def test_profile_visit_history(client):
+    """Lịch sử khám: mỗi lần khám có trạng thái đến; phần kết quả khám để trống (chưa nối HIS/LIS), không bịa."""
+    _login(client, "doctor")
+    code = client.get("/api/profile/recent").json()["codes"][0]
+    d = client.get("/api/profile", params={"q": code}).json()
+    assert d["visits"], "thai phụ demo phải có lịch hẹn"
+    v = d["visits"][0]
+    for k in ("date", "time", "ga", "services", "doctor", "note", "attend", "attend_label", "next_date", "results"):
+        assert k in v
+    assert v["attend"] in {"came", "no_show", "unknown", "upcoming"}
+    for x in d["visits"]:  # kết quả khám: None (chưa có) hoặc đủ các phần của phiếu khám thai
+        if x["results"] is not None:
+            assert {"vitals", "labs", "diagnoses", "plan"} <= set(x["results"])
+            assert x["results"]["source"] == "synthetic"
+    assert "program" in d
+    assert [x["date"] for x in d["visits"]] == sorted((x["date"] for x in d["visits"]), reverse=True)
+
+
+
+# ---------------------------------------------------------------- quản lý hồ sơ (tạo, theo gói, chỉ định ngoài gói)
+def _new(pid: str, **kw) -> dict:
+    return {"pid": pid, "full_name": "Thử Thị Hồ Sơ", "phone": "0912345678", "nationality": "Việt Nam",
+            "edd": "2027-03-01", **kw}
+
+
+def test_create_patient_validation_and_audit(client):
+    _login(client, "nurse")
+    before = _audit_count("create_patient")
+    r = client.post("/api/patients", json=_new("TEST9001", in_package=True, package_name="Gói thai sản trọn gói"))
+    assert r.status_code == 201, r.text
+    assert _audit_count("create_patient") == before + 1
+    assert client.post("/api/patients", json=_new("TEST9001")).status_code == 409  # trùng PID
+    assert client.post("/api/patients", json=_new("TEST9002", phone="0912")).status_code == 422
+    assert client.post("/api/patients", json=_new("TEST9003", in_package=True)).status_code == 422  # thiếu tên gói
+    assert client.post("/api/patients", json=_new("TEST9004", full_name="An")).status_code == 422
+    d = client.get("/api/profile", params={"q": "TEST9001"}).json()
+    assert d["program"]["in_package"] and d["program"]["package_name"] == "Gói thai sản trọn gói"
+
+
+def test_admin_cannot_create_patient(client):
+    _login(client, "admin")
+    assert client.post("/api/patients", json=_new("TEST9010")).status_code == 403
+
+
+def test_override_monitoring_doctor_only_with_reason(client):
+    _login(client, "nurse")
+    pid = client.post("/api/patients", json=_new("TEST9020")).json()["patient_id"]
+    body = {"in_package": False, "override_monitoring": True, "override_reason": "Tiền sản giật, cần theo dõi sát"}
+    assert client.put(f"/api/patients/{pid}/program", json=body).status_code == 403  # điều dưỡng không chỉ định được
+    _login(client, "doctor")
+    short = {**body, "override_reason": "THA"}
+    assert client.put(f"/api/patients/{pid}/program", json=short).status_code == 422  # lý do quá ngắn
+    before = _audit_count("update_patient_program")
+    r = client.put(f"/api/patients/{pid}/program", json=body)
+    assert r.status_code == 200 and r.json()["override_monitoring"] is True
+    assert _audit_count("update_patient_program") == before + 1
+    _login(client, "nurse")  # điều dưỡng vẫn đổi được theo gói, không làm mất chỉ định của bác sĩ
+    r = client.put(f"/api/patients/{pid}/program", json={**body, "in_package": True, "package_name": "Gói thai sản trọn gói"})
+    assert r.status_code == 200 and r.json()["in_package"] and r.json()["override_monitoring"]
+
+
+def test_patient_list_filters(client):
+    _login(client, "nurse")
+    all_ = client.get("/api/patients", params={"size": 100}).json()
+    pkg = client.get("/api/patients", params={"program": "package", "size": 100}).json()
+    assert pkg["total"] > 0 and pkg["total"] < all_["total"]
+    assert all(i["in_package"] for i in pkg["items"])
+    assert all("••" in i["phone_masked"] or i["phone_masked"] == "•••" for i in all_["items"])  # SĐT luôn che
+    one = client.get("/api/patients", params={"q": "TEST9001"}).json()
+    assert [i["pid"] for i in one["items"]] == ["TEST9001"]
+
+
+def test_form_schedule_only_eligible_patients(client):
+    """Luật package_only: lịch gửi form chỉ gồm khách theo gói hoặc được bác sĩ chỉ định ngoài gói."""
+    from sqlalchemy import select
+
+    from core.db import session_scope
+    from core.models import Patient, PatientProgram
+
+    _login(client, "nurse")
+    d = client.get("/api/form-schedule").json()
+    codes = {x["code"] for x in d["send"] + d["skip"]}
+    with session_scope() as s:
+        ok = {code for code, pr in s.execute(select(Patient.code, PatientProgram).join(
+            PatientProgram, PatientProgram.patient_id == Patient.id)) if pr.in_package or pr.override_monitoring}
+    assert codes and codes <= ok

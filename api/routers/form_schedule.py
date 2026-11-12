@@ -45,7 +45,7 @@ def overview(user: CurrentUser = Depends(require("form_schedule"))) -> dict:
     fc = rules["forms"]
     today = _today()
     with session_scope() as s:
-        decisions = plan_forms(build_states(s, today), today, rules)
+        decisions = plan_forms(build_states(s, today, rules), today, rules)
         proposals = [
             {"patient_id": p.id, "code": p.code, "flags": list(p.proposed_risk_flags or []),
              "modules": suggested_modules(p.proposed_risk_flags or []), "current": list(p.risk_groups or [])}
@@ -81,7 +81,7 @@ def export(user: CurrentUser = Depends(require("export_form_sms"))) -> dict:
     rules, forms_cfg = load_rules(), load_forms()
     today = _today()
     with session_scope() as s:
-        decisions = plan_forms(build_states(s, today), today, rules)
+        decisions = plan_forms(build_states(s, today, rules), today, rules)
         if not any(d.send for d in decisions):
             raise HTTPException(409, "Hôm nay không có form cần gửi.")
         save_plan(s, decisions, today, rules.rules_version)

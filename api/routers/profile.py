@@ -17,10 +17,20 @@ from core import audit, consent
 from core.alerts import FINAL_LEVELS, STATUS_VI, history_for
 from core.config import TZ, load_rules
 from core.db import session_scope
-from core.models import Alert, Appointment, Assessment, FormResponse, FormToken, Patient
+from core.models import (
+    Alert,
+    Appointment,
+    Arrival,
+    ArrivalPlan,
+    Assessment,
+    FormResponse,
+    FormToken,
+    Patient,
+)
+from core.patients import history_of, program_of, visit_results
 from core.repo import ga_on, patient_phone, stage_text
 from core.reports import profile_html, profile_pdf
-from core.security import mask_phone
+from core.security import decrypt, mask_phone
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 CONSENT_VI = {"none": "Chưa ghi nhận", "granted": "Đã đồng ý", "withdrawn": "Đã rút đồng ý"}
@@ -39,6 +49,69 @@ def recent(user: CurrentUser = Depends(require("view_profile"))) -> dict:
         rows = s.execute(select(Patient.code).join(FormResponse, FormResponse.patient_id == Patient.id)
                          .group_by(Patient.code).order_by(func.max(FormResponse.submitted_at).desc()).limit(8)).all()
     return {"codes": [c for (c,) in rows]}
+
+
+def _visits(s: Any, p: Patient, today: date) -> list[dict[str, Any]]:
+    """Lịch sử khám theo cấu trúc phiếu khám thai (QĐ 4128/QĐ-BYT – chăm sóc trước sinh).
+
+    Có dữ liệu: ngày giờ, tuổi thai tại lần khám, dịch vụ (lý do khám), bác sĩ, ghi chú bác sĩ từ HIS, có đến hay không
+    (từ danh sách khách đến), giờ hẹn đến đã nhắn, lần hẹn kế tiếp.
+    Chưa có dữ liệu (cần nối HIS/LIS – docs/11): chỉ số tại phòng khám, khám sản, xét nghiệm, siêu âm, chẩn đoán ICD-10
+    → trả `results: None`, giao diện ghi rõ "chưa có dữ liệu", KHÔNG suy đoán.
+    """
+    appts = s.execute(select(Appointment).where(Appointment.patient_id == p.id)
+                      .order_by(Appointment.appt_date.desc(), Appointment.start_time.desc())).scalars().all()
+    if not appts:
+        return []
+    days = {a.appt_date for a in appts}
+    came = {d: t for d, t in s.execute(select(Arrival.visit_date, func.min(Arrival.checkin_time))
+                                       .where(Arrival.pid == p.pid, Arrival.visit_date.in_(days))
+                                       .group_by(Arrival.visit_date)).all()}
+    # Ngày đã nhập danh sách khách đến (của cả khoa) – chỉ những ngày này mới kết luận được "không đến".
+    imported = set(s.scalars(select(Arrival.visit_date).where(Arrival.visit_date.in_(days)).distinct()).all())
+    results = visit_results(s, [a.id for a in appts])
+    rules = load_rules()
+    th = rules.get("thresholds") or {}
+    for r in results.values():  # cờ huyết áp theo ngưỡng cấu hình (giao diện không tự đặt ngưỡng)
+        v = r.get("vitals") or {}
+        if "bp_sys" in v:
+            lvl = "red" if _bp_over(v, th.get("bp_red")) else "yellow" if _bp_over(v, th.get("bp_yellow")) else ""
+            r["vitals"] = {**v, "bp_flag": lvl}
+        r["rules_version"] = rules.rules_version
+    plans = {pl.appointment_id: pl for pl in s.scalars(
+        select(ArrivalPlan).where(ArrivalPlan.appointment_id.in_([a.id for a in appts]))).all()}
+    dates_asc = sorted(days)
+    out = []
+    for a in appts:
+        ga = ga_on(p, a.appt_date)
+        if a.appt_date >= today:
+            attend, attend_label = "upcoming", "Sắp tới"
+        elif a.appt_date in came:
+            t = came[a.appt_date]
+            attend, attend_label = "came", "Đã đến" + (f" lúc {t:%H:%M}" if t else "")
+        elif a.appt_date in imported:
+            attend, attend_label = "no_show", "Không đến"
+        else:
+            attend, attend_label = "unknown", "Chưa có danh sách khách đến"
+        later = [d for d in dates_asc if d > a.appt_date]
+        pl = plans.get(a.id)
+        out.append({
+            "id": a.id, "date": a.appt_date.isoformat(), "time": a.start_time.strftime("%H:%M"),
+            "ga": f"{ga[0]}+{ga[1]}" if ga else stage_text(p, a.appt_date),
+            "services": list(a.services or []), "doctor": a.doctor or "", "department": a.department or "",
+            "note": decrypt(a.note_enc) or "" if a.note_enc else "",
+            "attend": attend, "attend_label": attend_label,
+            "arrival_sms": pl.arrival_time.strftime("%H:%M") if pl and pl.arrival_time else None,
+            "next_date": later[0].isoformat() if later else None,
+            "merged": len(a.merged_from or []) > 1,
+            # Kết quả khám (dữ liệu giả hoặc từ HIS/LIS khi nối); None = chưa có → giao diện ghi rõ, không suy đoán.
+            "results": results.get(a.id),
+        })
+    return out
+
+
+def _bp_over(v: dict[str, Any], lim: dict[str, int] | None) -> bool:
+    return bool(lim) and (v["bp_sys"] >= lim["sys"] or v["bp_dia"] >= lim["dia"])
 
 
 def _build(s: Any, p: Patient) -> dict[str, Any]:
@@ -95,6 +168,9 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
         "period_table": [{"Thời điểm": r["at"].strftime("%d/%m %H:%M"), "Form": r["form"], "Mức": r["level"],
                           "Tóm tắt": r["summary"][:120]} for r in period_resp[:20]],
         "alerts": alert_rows,
+        "visits": _visits(s, p, today),
+        "program": program_of(s, pid_),
+        "history": history_of(s, pid_),
         "charts": series_for(hist, load_rules()),
     }
 

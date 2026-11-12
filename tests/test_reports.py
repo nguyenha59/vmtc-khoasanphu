@@ -14,3 +14,10 @@ def test_profile_pdf_many_lines_and_table():
         assert profile_html("t", lines, table).startswith(b"<html")
         return
     assert pdf.startswith(b"%PDF")
+
+
+def test_summary_postpartum_wording():
+    from core.ai.summary import template_summary
+
+    assert template_summary({"ga": "Hậu sản 52 ngày", "level": "green"}).startswith("Hậu sản 52 ngày.")
+    assert template_summary({"ga": "32+1", "level": "green"}).startswith("Tuần thai 32+1.")

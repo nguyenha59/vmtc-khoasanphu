@@ -118,7 +118,7 @@ def test_trend_too_few_skipped(rules):
 levels = st.sampled_from([Level.GREEN, Level.YELLOW, Level.RED])
 
 
-@settings(max_examples=500)
+@settings(max_examples=500, deadline=None)  # không giới hạn thời gian mỗi ví dụ: tránh chập chờn khi máy tải nặng
 @given(rule=levels, trend=levels, ai=st.one_of(st.none(), levels), ok=st.booleans(),
        conf=st.one_of(st.none(), st.floats(0, 1)))
 def test_combine_never_below_rule_level(rule, trend, ai, ok, conf):
@@ -243,3 +243,20 @@ def test_acceptance_r0412_red_alert(db, rules):
     payload = json.dumps(ch.sent[0].to_dict(), ensure_ascii=False)
     assert "R0412" in payload and "Thu" not in payload
     assert not re.search(r"0\d{9}", payload)
+
+
+def test_implausible_systolic_does_not_hide_red_diastolic(rules):
+    """1600/115: tâm thu nhập sai nhưng tâm trương 115 ≥ 110 → vẫn ĐỎ (trước đây chỉ vàng)."""
+    from core.rules.triage_rules import triage
+
+    r = triage({"BP_SYS": "1600", "BP_DIA": "115"}, 30, False, rules)
+    assert r.level.code == "red"
+    assert any("phi lý" in f.reason for f in r.findings)
+    assert ("bp_sys", 1600.0, None) not in r.readings  # số phi lý không lưu vào chuỗi đo
+
+
+def test_missing_systolic_shown_as_dash(rules):
+    from core.rules.triage_rules import triage
+
+    r = triage({"BP_DIA": "112"}, 30, False, rules)
+    assert r.level.code == "red" and "—/112" in r.findings[0].reason

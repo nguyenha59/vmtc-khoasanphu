@@ -177,15 +177,21 @@ def test_before_earliest_rejected(rules):
 
 # ---------------- review
 def _decide(rules, note="", ai=None, attempted=False, phone_ok=True, conflict=False, mask_ok=True,
-            services=("Khám thai",)):
+            services=("Khám thai",), failed=False):
     arr = compute_arrival(time(9, 0), list(services), note, ai, rules)
     return decide(arrival=arr, note=note, phone_ok=phone_ok, conflict=conflict, ai=ai,
-                  ai_attempted=attempted, mask_ok=mask_ok, rules=rules)
+                  ai_attempted=attempted, mask_ok=mask_ok, rules=rules, ai_failed=failed)
 
 
 def test_review_low_conf(rules):
     d = _decide(rules, note="x", ai=NoteAI(ok=True, confidence=0.6), attempted=True)
     assert d.reasons == ["LOW_CONF"]
+
+
+def test_review_ai_failed_not_reported_as_low_conf(rules):
+    """Hết ngân sách / lỗi mạng: báo AI_FAILED, không nói 'AI không chắc chắn'; vẫn phải cần xác nhận."""
+    d = _decide(rules, note="x", ai=None, attempted=True, failed=True)
+    assert d.reasons == ["AI_FAILED"] and d.status == "needs_review"
 
 
 def test_review_call_note(rules):
@@ -420,3 +426,29 @@ def test_pipeline_skips_ai_for_plain_note(rules):
 
     p = plan_appointment(appt("thai moi ycbs"), rules, Spy(), [], ner=False)
     assert not calls and p.arrival.arrival_time == time(8, 45) and p.decision.status == "auto"
+
+
+def test_pipeline_records_why_ai_was_or_was_not_called(rules):
+    """Màn hình hiện đúng một lý do: không ghi chú / tắt AI / quy tắc đọc hết / nhạy cảm / lỗi / có kết quả."""
+    from core.ai.llm_client import LlmError
+    from core.pipeline import plan_appointment
+    from core.rules.merge import MergedAppt
+
+    class Failing:
+        model, name = "x", "openai:x"
+
+        def generate_json(self, prompt, schema, temperature=0.0, seed=None):  # noqa: ANN001
+            raise LlmError("hết ngân sách")
+
+    def appt(note: str) -> MergedAppt:
+        return MergedAppt(pid="1", appt_date=D, start_time=time(9, 0), end_time=None, services=["Khám thai"],
+                          note=note, full_name="A", phone="0900000001", phone_raw="", nationality="Việt Nam",
+                          department="", doctor="", booking_source="", booked_at=None)
+
+    st = lambda note, client: plan_appointment(appt(note), rules, client, [], ner=False).ai_status  # noqa: E731
+    assert st("", Failing()) == "no_note"
+    assert st("BN đi cùng chồng", None) == "off"
+    assert st("thai moi ycbs", Failing()) == "rules_read"
+    assert st("TK sau đình chỉ thai", Failing()) == "sensitive"
+    p = plan_appointment(appt("BN đi cùng chồng"), rules, Failing(), [], ner=False)
+    assert p.ai_status == "failed" and "AI_FAILED" in p.decision.reasons

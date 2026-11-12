@@ -88,3 +88,20 @@ def test_sensitive_note_flagged_without_ai(rules):
 
     p = plan_appointment(_appt("TK sau đình chỉ thai"), rules, None, [], ner=False)
     assert any("Đình chỉ / phá thai" in d for d in p.arrival.details)
+
+
+# ---------------------------------------------------------------- thuật ngữ y khoa trùng tên người (12/11/2026)
+@pytest.mark.parametrize("note,name,term", [
+    ("HPV duong tinh 16, ctc den 9g15", "Trần Thị Dương", "duong tinh"),
+    ("HPV dương tính 16", "Lê Dương", "dương tính"),
+    ("đường huyết đói 5.6", "Nguyễn Văn Đường", "đường huyết"),
+    ("hong cau thap", "Phạm Thị Hồng", "hong cau"),
+])
+def test_medical_terms_not_masked_as_name(note, name, term):
+    r = mask_text(note, full_name=name, ner=False)
+    assert term in r.text and "[TÊN]" not in r.text and r.ok
+
+
+def test_name_alone_still_masked_next_to_medical_term():
+    r = mask_text("Chị Dương xét nghiệm HPV dương tính", full_name="Trần Thị Dương", ner=False)
+    assert r.text.startswith("Chị [TÊN]") and "dương tính" in r.text and r.ok

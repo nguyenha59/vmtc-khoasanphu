@@ -1,5 +1,5 @@
 # Cấu hình mặc định – MVP. Ngưỡng y khoa phải được bác sĩ duyệt trước khi dùng thật.
-rules_version: "0.10.0"
+rules_version: "0.11.0"
 
 departments_included: ["Phòng khám Sản phụ khoa"]   # [CẦN XÁC NHẬN tên khoa trong file HIS]
 
@@ -57,6 +57,9 @@ privacy:
                                              "giấu gia đình", "không báo người nhà", "giấu chồng", "bảo mật"]}
 
 forms:
+  # Ai được theo dõi từ xa (gửi form): package_only = chỉ khách theo gói thai sản + ca bác sĩ chỉ định ngoài gói
+  # (người dùng chọn 12/11/2026). Tắt (false) = mọi thai phụ đã đồng ý.
+  eligibility: {package_only: true}
   min_gap_days: 14
   skip_if_visit_within_days: 3
   stop_routine_from_ga_weeks: 36

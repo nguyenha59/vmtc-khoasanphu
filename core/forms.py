@@ -14,7 +14,15 @@ from core.channels import record_send
 from core.channels.base import SendResult, SmsChannel, SmsRow
 from core.config import FormsConfig, Rules
 from core.db import now
-from core.models import Appointment, Arrival, FormResponse, FormSchedule, FormToken, Patient
+from core.models import (
+    Appointment,
+    Arrival,
+    FormResponse,
+    FormSchedule,
+    FormToken,
+    Patient,
+    PatientProgram,
+)
 from core.repo import patient_phone
 from core.rules.form_scheduler import FormDecision, PatientState
 
@@ -27,8 +35,13 @@ def form_link(token: str) -> str:
     return f"{base_url()}/form?token={token}"
 
 
-def build_states(s: Session, today: date) -> list[PatientState]:
+def build_states(s: Session, today: date, rules: Rules | None = None) -> list[PatientState]:
     patients = s.scalars(select(Patient).where(Patient.consent_status == "granted")).all()
+    if rules is not None and (rules.get("forms.eligibility") or {}).get("package_only"):
+        # Chỉ khách theo gói hoặc bác sĩ chỉ định ngoài gói (core.patients.monitoring_eligible).
+        progs = {pr.patient_id: pr for pr in s.scalars(
+            select(PatientProgram).where(PatientProgram.patient_id.in_([p.id for p in patients])))}
+        patients = [p for p in patients if (pr := progs.get(p.id)) is not None and (pr.in_package or pr.override_monitoring)]
     ids = [p.id for p in patients]
     if not ids:
         return []

@@ -18,7 +18,9 @@ TEMP_VI = {"current": "hiện tại", "past_resolved": "đã qua", "unknown": "k
 
 def template_summary(data: dict[str, Any]) -> str:
     """data: ga, risk_groups, vitals {kind: (value, trend_text)}, concepts [(name, temporality)], level, reasons."""
-    parts = [f"Tuần thai {data.get('ga') or 'chưa rõ'}."]
+    ga = data.get("ga") or "chưa rõ"
+    # Sau sinh, ga đã là "Hậu sản N ngày" → không thêm "Tuần thai" (trước đây ra "Tuần thai Hậu sản 52 ngày").
+    parts = [f"{ga}." if str(ga).startswith("Hậu sản") else f"Tuần thai {ga}."]
     risks = [RISK_VI.get(r, r) for r in data.get("risk_groups", [])]
     parts.append("Nhóm nguy cơ: " + (", ".join(risks) if risks else "không") + ".")
     vit = data.get("vitals", {})

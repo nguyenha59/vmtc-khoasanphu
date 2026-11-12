@@ -10,11 +10,12 @@ from core.rules.note_patterns import find_ga
 from core.textutil import contains_keyword
 
 REASON_ORDER = [
-    "LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "WAITING_MIXED", "BAD_PHONE", "PII_LEFT",
+    "AI_FAILED", "LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "WAITING_MIXED", "BAD_PHONE", "PII_LEFT",
     "NO_RULE",
 ]
 
 REASON_LABELS = {
+    "AI_FAILED": "AI không chạy được (lỗi kết nối / hết ngân sách) – kiểm tra theo ghi chú",
     "LOW_CONF": "AI không chắc chắn",
     "CALL_NOTE": "Ghi chú yêu cầu gọi / xác nhận",
     "LATE_GA": "Tuần thai ≥ 37",
@@ -50,11 +51,15 @@ def decide(
     ai_attempted: bool,
     mask_ok: bool,
     rules: Rules,
+    ai_failed: bool = False,
 ) -> ReviewDecision:
     cfg = rules["arrival"]
     reasons: set[str] = set(arrival.reasons)
 
-    if ai_attempted and (ai is None or not ai.ok or ai.confidence < cfg["ai_confidence_min"]):
+    # AI không trả lời được lần nào (lỗi mạng, hết ngân sách) ≠ AI trả lời nhưng không chắc: báo đúng nguyên nhân.
+    if ai_attempted and ai_failed:
+        reasons.add("AI_FAILED")
+    elif ai_attempted and (ai is None or not ai.ok or ai.confidence < cfg["ai_confidence_min"]):
         reasons.add("LOW_CONF")
     if note and is_call_note(note, cfg["call_note_keywords"]):
         reasons.add("CALL_NOTE")
