@@ -1,0 +1,44 @@
+.page {
+  min-height: 100vh;
+  background: var(--mantine-color-ink-0);
+}
+
+.top {
+  background: linear-gradient(120deg, #0b3b36, #0e5b51);
+}
+
+.emergency {
+  border: 1px solid var(--mantine-color-danger-2);
+}
+
+.tel {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.progress {
+  position: sticky;
+  top: 8px;
+  z-index: 4;
+}
+
+.q {
+  transition: border-color 150ms ease;
+
+  &[data-done] {
+    border-color: var(--mantine-color-brand-3);
+  }
+}
+
+.submit {
+  position: sticky;
+  bottom: 12px;
+  box-shadow: var(--mantine-shadow-lg);
+}
+
+.red {
+  text-align: center;
+  border: 2px solid var(--mantine-color-danger-6);
+  background: var(--mantine-color-danger-0);
+}

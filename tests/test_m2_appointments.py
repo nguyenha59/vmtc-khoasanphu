@@ -1,0 +1,296 @@
+from __future__ import annotations
+
+from datetime import date, datetime, time
+from pathlib import Path
+
+import pandas as pd
+import pytest
+
+from core.ingest.his_reader import HisRow, read_raw
+from core.ingest.validators import check_columns, validate_rows
+from core.pipeline import process_his
+from core.rules.arrival import NoteAI, arrival_text, compute_arrival, waiting_label
+from core.rules.export_worldsms import ExportLocked, ExportRow, build_exports
+from core.rules.merge import filter_departments, merge_appointments
+from core.rules.review import decide
+
+GOLDEN = Path(__file__).parent / "golden"
+D = date(2026, 11, 10)
+
+
+def row(n: int, pid: str = "P1", start: str = "08:00", end: str = "08:30", service: str = "Khám thai",
+        dept: str = "Phòng khám Sản phụ khoa", note: str = "", phone: str = "0900123456", d: date = D) -> HisRow:
+    return HisRow(row_no=n, pid=pid, full_name="Trần Thị Lan", phone=phone, nationality="Việt Nam",
+                  appt_date=d, start_time=time.fromisoformat(start), end_time=time.fromisoformat(end),
+                  service=service, department=dept, note=note)
+
+
+# ---------------- validators
+def test_missing_column_E01(his_cfg):
+    raw = read_raw(GOLDEN / "his_error_missing_col.xlsx")
+    rep = check_columns(raw, his_cfg)
+    assert not rep.ok and rep.fatal[0].code == "E01"
+    assert "Điện thoại" in rep.fatal[0].message
+
+
+def test_swapped_columns_E02_stops(his_cfg, rules):
+    raw = read_raw(GOLDEN / "his_error_swapped_cols.xlsx")
+    res = process_his(raw, his_cfg, rules, None, client=None, ner=False)
+    assert not res.ok
+    assert res.report.fatal[0].code == "E02"
+    assert res.planned == []
+
+
+def test_bad_time_E04_E03(his_cfg, rules):
+    raw = read_raw(GOLDEN / "his_error_bad_time.xlsx")
+    res = process_his(raw, his_cfg, rules, None, client=None, ner=False)
+    assert res.ok
+    codes = {i.code for i in res.report.row_issues}
+    assert "E04" in codes and "E03" in codes
+
+
+def test_E05_other_date(rules):
+    rep = validate_rows([row(2, d=date(2026, 11, 11))], rules, D)
+    assert [i.code for i in rep.row_issues] == ["E05"]
+
+
+def test_E06_bad_phone(rules):
+    rep = validate_rows([row(2, phone="09123")], rules, D)
+    assert "E06" in {i.code for i in rep.row_issues}
+
+
+# ---------------- merge
+def test_merge_same_pid_same_day(rules):
+    rows = [row(2, start="09:00", end="09:30", service="Siêu âm 2D"), row(3, start="08:00", service="Khám thai")]
+    m = merge_appointments(rows, 180, rules["arrival"]["fasting_keywords"])
+    assert len(m) == 1
+    assert m[0].start_time == time(8, 0)
+    assert set(m[0].services) == {"Khám thai", "Siêu âm 2D"}
+    assert m[0].merged_from == [3, 2]
+    assert not m[0].conflict
+
+
+def test_merge_different_days_not_merged(rules):
+    rows = [row(2), row(3, d=date(2026, 11, 11))]
+    assert len(merge_appointments(rows, 180, [])) == 2
+
+
+def test_merge_conflict_over_180(rules):
+    rows = [row(2, start="08:00"), row(3, start="11:30", end="11:45", service="Siêu âm 2D")]
+    m = merge_appointments(rows, 180, [])
+    assert m[0].conflict
+
+
+def test_merge_conflict_fasting_later(rules):
+    rows = [row(2, start="08:00"), row(3, start="09:00", end="09:15", service="Xét nghiệm máu")]
+    m = merge_appointments(rows, 180, rules["arrival"]["fasting_keywords"])
+    assert m[0].conflict
+
+
+def test_filter_department(rules):
+    keep, dropped = filter_departments([row(2), row(3, dept="Phòng khám Nội tổng quát")],
+                                       rules["departments_included"])
+    assert len(keep) == 1 and len(dropped) == 1
+
+
+# ---------------- arrival
+def test_ultrasound_15_minutes(rules):
+    r = compute_arrival(time(8, 30), ["Siêu âm 4D"], "", None, rules)
+    assert r.arrival_time == time(8, 15) and r.method == "rule"
+
+
+def test_other_service_0_minutes(rules):
+    assert compute_arrival(time(8, 30), ["Khám thai"], "", None, rules).arrival_time == time(8, 30)
+
+
+def test_explicit_time_priority(rules):
+    r = compute_arrival(time(8, 0), ["Siêu âm 2D"], "BS hẹn đến 7h30 lấy máu", None, rules)
+    assert r.arrival_time == time(7, 30)
+    assert "ghi rõ" in r.rule_applied
+
+
+def test_multi_service_earliest(rules):
+    r = compute_arrival(time(9, 0), ["Khám thai", "Siêu âm 2D"], "", None, rules)
+    assert r.arrival_time == time(8, 45)
+
+
+def test_arrival_after_appt_rejected(rules):
+    r = compute_arrival(time(8, 0), ["Khám thai"], "có mặt lúc 9h", None, rules)
+    assert r.arrival_time != time(9, 0)
+    assert "NO_RULE" in r.reasons
+
+
+def test_ai_hint_too_early_rejected(rules):
+    ai = NoteAI(ok=True, confidence=1.0, minutes_early=120)
+    r = compute_arrival(time(9, 0), ["Khám thai"], "", ai, rules)
+    assert r.arrival_time == time(9, 0) and r.method == "rule"
+
+
+def test_ai_hint_applied_within_diff(rules):
+    ai = NoteAI(ok=True, confidence=1.0, minutes_early=20)
+    r = compute_arrival(time(9, 0), ["Siêu âm 2D"], "", ai, rules)
+    assert r.arrival_time == time(8, 40) and r.method == "ai" and not r.reasons
+
+
+def test_before_earliest_rejected(rules):
+    r = compute_arrival(time(6, 40), ["Siêu âm 2D"], "", None, rules)
+    assert r.arrival_time is None and "NO_RULE" in r.reasons
+
+
+# ---------------- review
+def _decide(rules, note="", ai=None, attempted=False, phone_ok=True, conflict=False, mask_ok=True,
+            services=("Khám thai",)):
+    arr = compute_arrival(time(9, 0), list(services), note, ai, rules)
+    return decide(arrival=arr, note=note, phone_ok=phone_ok, conflict=conflict, ai=ai,
+                  ai_attempted=attempted, mask_ok=mask_ok, rules=rules)
+
+
+def test_review_low_conf(rules):
+    d = _decide(rules, note="x", ai=NoteAI(ok=True, confidence=0.6), attempted=True)
+    assert d.reasons == ["LOW_CONF"]
+
+
+def test_review_call_note(rules):
+    assert _decide(rules, note="gọi xác nhận lại giờ").reasons == ["CALL_NOTE"]
+    assert _decide(rules, note="?").reasons == ["CALL_NOTE"]
+    assert _decide(rules, note="goi xac nhan truoc 1 ngay").reasons == ["CALL_NOTE"]
+    assert _decide(rules, note="Đã đóng gói thai sản").status == "auto"
+
+
+def test_review_late_ga(rules):
+    assert _decide(rules, note="38w, dặn vào viện nếu đau bụng").reasons == ["LATE_GA"]
+    assert _decide(rules, note="Thai 32w").status == "auto"
+
+
+def test_review_conflict(rules):
+    assert _decide(rules, conflict=True).reasons == ["CONFLICT"]
+
+
+def test_review_ai_rule_diff(rules):
+    d = _decide(rules, note="đến trước 30p làm XN", ai=NoteAI(ok=True, confidence=1.0, minutes_early=30),
+                attempted=True)
+    assert d.reasons == ["AI_RULE_DIFF"]
+
+
+def test_review_bad_phone(rules):
+    assert _decide(rules, phone_ok=False).reasons == ["BAD_PHONE"]
+
+
+def test_review_pii_left(rules):
+    assert _decide(rules, mask_ok=False).reasons == ["PII_LEFT"]
+
+
+# ---------------- export
+def _er(pid: str, nat: str = "Việt Nam", status: str = "auto", arrival: time | None = time(7, 45)) -> ExportRow:
+    return ExportRow(phone="0900123456", full_name="A", pid=pid, appt_date=D, start_time=time(8, 0),
+                     arrival_time=arrival, status=status, nationality=nat)
+
+
+def test_export_columns_and_split():
+    out = build_exports([_er("1"), _er("2", nat="Hàn Quốc"), _er("3")], D)
+    vn, nn = out["nhac_hen_VN_2026-11-10.xlsx"], out["nhac_hen_NN_2026-11-10.xlsx"]
+    assert list(vn.columns) == ["Số điện thoại", "P", "P1", "P2", "P3", "P4", "P5", "P6"]
+    assert len(vn) == 2 and len(nn) == 1
+    r = vn.iloc[0]
+    assert (r["P2"], r["P3"], r["P4"], r["P5"], r["P6"]) == ("08:00", "10", "11", "2026", "07:45")
+
+
+def test_export_skips_invalid_phone():
+    bad = _er("9")
+    bad.phone = "09123"
+    out = build_exports([_er("1"), bad], D)
+    assert len(out["nhac_hen_VN_2026-11-10.xlsx"]) == 1
+
+
+def test_export_locked_when_needs_review():
+    with pytest.raises(ExportLocked):
+        build_exports([_er("1"), _er("2", status="needs_review")], D)
+
+
+# ---------------- golden
+def _golden_days() -> list[str]:
+    return sorted(p.stem.replace("his_day_", "") for p in GOLDEN.glob("his_day_*.xlsx"))
+
+
+@pytest.mark.parametrize("day", _golden_days())
+def test_golden_rules_only(day, his_cfg, rules):
+    raw = read_raw(GOLDEN / f"his_day_{day}.xlsx")
+    res = process_his(raw, his_cfg, rules, date.fromisoformat(day), client=None, ner=False)
+    assert res.ok
+    exp = pd.read_csv(GOLDEN / f"expected_arrivals_{day}.csv", dtype=str, keep_default_na=False)
+    got = {p.merged.pid: p for p in res.planned}
+    assert set(got) == set(exp["pid"])
+    for _, e in exp.iterrows():
+        p = got[e["pid"]]
+        assert p.merged.start_time.strftime("%H:%M") == e["start_time"], e["pid"]
+        assert arrival_text(p.arrival, rules["arrival"]) == e["arrival_rule"], e.to_dict()
+        assert p.decision.status == e["status_rule"], (e.to_dict(), p.decision.reasons)
+        assert ",".join(p.decision.reasons) == e["reasons_rule"], e.to_dict()
+    assert res.auto_rate >= 0.85
+
+
+@pytest.mark.parametrize("day", _golden_days())
+def test_golden_worldsms_export(day, his_cfg, rules):
+    raw = read_raw(GOLDEN / f"his_day_{day}.xlsx")
+    res = process_his(raw, his_cfg, rules, date.fromisoformat(day), client=None, ner=False)
+    exp = pd.read_csv(GOLDEN / f"expected_arrivals_{day}.csv", dtype=str, keep_default_na=False).set_index("pid")
+    rows = []
+    for p in res.planned:
+        arrival = p.arrival.arrival_time
+        waiting = p.arrival.waiting
+        if p.decision.status == "needs_review":  # điều dưỡng xác nhận giờ đúng
+            true = exp.loc[p.merged.pid, "arrival_true"]
+            waiting = true == waiting_label(rules["arrival"])
+            arrival = None if waiting else time.fromisoformat(true)
+        rows.append(ExportRow(phone=p.merged.phone, full_name=p.merged.full_name, pid=p.merged.pid,
+                              appt_date=p.merged.appt_date, start_time=p.merged.start_time,
+                              arrival_time=arrival, status="confirmed", nationality=p.merged.nationality,
+                              waiting=waiting))
+    out = build_exports(rows, date.fromisoformat(day), waiting_label(rules["arrival"]) or "")
+    for kind in ("VN", "NN"):
+        expected = pd.read_excel(GOLDEN / f"worldsms_expected_{kind}_{day}.xlsx", dtype=str, keep_default_na=False)
+        got = out[f"nhac_hen_{kind}_{day}.xlsx"].astype(str).reset_index(drop=True)
+        pd.testing.assert_frame_equal(got, expected.reset_index(drop=True), check_dtype=False)
+
+
+def test_booked_at_parsed(his_cfg):
+    raw = read_raw(GOLDEN / f"his_day_{_golden_days()[0]}.xlsx")
+    from core.ingest.his_reader import standardize
+
+    rows = standardize(raw, his_cfg)
+    assert all(isinstance(r.booked_at, datetime) for r in rows)
+
+
+# ---------------------------------------------------------------- khám chờ (12:00–13:00)
+def test_waiting_slot_no_arrival_time(rules):
+    from core.rules.review import decide
+
+    for appt in (time(12, 0), time(12, 45)):
+        res = compute_arrival(appt, ["Khám thai"], "thai moi", None, rules)
+        assert res.waiting and res.arrival_time is None
+        assert arrival_text(res, rules["arrival"]) == "Khám chờ"
+        d = decide(arrival=res, note="thai moi", phone_ok=True, conflict=False, ai=None, ai_attempted=False,
+                   mask_ok=True, rules=rules)
+        assert d.status == "auto" and "NO_RULE" not in d.reasons
+    assert not compute_arrival(time(13, 0), ["Khám thai"], "", None, rules).waiting
+    assert not compute_arrival(time(11, 45), ["Khám thai"], "", None, rules).waiting
+
+
+def test_waiting_slot_with_note_time_needs_review(rules):
+    from core.rules.review import decide
+
+    res = compute_arrival(time(12, 30), ["Khám thai"], "ycbs den 11h45", None, rules)
+    assert res.waiting and "WAITING_NOTE_TIME" in res.reasons
+    d = decide(arrival=res, note="ycbs den 11h45", phone_ok=True, conflict=False, ai=None, ai_attempted=False,
+               mask_ok=True, rules=rules)
+    assert d.status == "needs_review"
+
+
+def test_export_waiting_label():
+    row = ExportRow(phone="0900000001", full_name="A", pid="1", appt_date=D, start_time=time(12, 15),
+                    arrival_time=None, status="auto", nationality="Việt Nam", waiting=True)
+    out = build_exports([row], D, "Khám chờ")
+    assert out[f"nhac_hen_VN_{D.isoformat()}.xlsx"].iloc[0]["P6"] == "Khám chờ"
+    with pytest.raises(ExportLocked):  # không phải khám chờ mà thiếu giờ → vẫn khóa
+        build_exports([ExportRow(phone="0900000001", full_name="A", pid="1", appt_date=D, start_time=time(9, 0),
+                                 arrival_time=None, status="auto", nationality="Việt Nam")], D)

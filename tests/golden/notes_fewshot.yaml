@@ -1,0 +1,93 @@
+examples:
+- note: den 8h00 nhin an lay mau
+  output:
+    explicit_arrival_time: 08:00
+    minutes_early: null
+    needs_fasting: true
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: den 8h00 nhin an lay mau
+- note: Thai 29 tuần 0 ngày
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: 29
+    ga_days: 0
+    risk_flags: []
+    asks_confirmation: false
+    evidence: Thai 29 tuần 0 ngày
+- note: soi ctc den 11 giờ
+  output:
+    explicit_arrival_time: '11:00'
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: soi ctc den 11 giờ
+- note: liên hệ người nhà 0997206227
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: liên hệ người nhà 0997206227
+- note: HA cao, thai 20w
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: 20
+    ga_days: null
+    risk_flags:
+    - HTN
+    asks_confirmation: false
+    evidence: HA cao, thai 20w
+- note: Chị Ella xin đến sớm 30p
+  output:
+    explicit_arrival_time: null
+    minutes_early: 30
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: Chị Ella xin đến sớm 30p
+- note: tt 36 tuan 5 ngay, lam NPDN nhịn ăn
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: true
+    ga_weeks: 36
+    ga_days: 5
+    risk_flags: []
+    asks_confirmation: false
+    evidence: tt 36 tuan 5 ngay, lam NPDN nhịn ăn
+- note: Thai 36w, chưa rõ có làm 4D không
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: 36
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: true
+    evidence: Thai 36w, chưa rõ có làm 4D không
+- note: VMC cũ 1 lần
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags:
+    - PREV_CSECTION
+    asks_confirmation: false
+    evidence: VMC cũ 1 lần

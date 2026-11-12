@@ -1,0 +1,85 @@
+"""Quyết định 'Cần xác nhận' (docs/04 A5)."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from core.config import Rules
+from core.rules.arrival import ArrivalResult, NoteAI
+from core.rules.note_patterns import find_ga
+from core.textutil import contains_keyword
+
+REASON_ORDER = [
+    "LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "BAD_PHONE", "PII_LEFT",
+    "NO_RULE",
+]
+
+REASON_LABELS = {
+    "LOW_CONF": "AI không chắc chắn",
+    "CALL_NOTE": "Ghi chú yêu cầu gọi / xác nhận",
+    "LATE_GA": "Tuần thai ≥ 37",
+    "CONFLICT": "Hai lịch trong ngày xung đột",
+    "AI_RULE_DIFF": "AI và quy tắc lệch nhau",
+    "WAITING_NOTE_TIME": "Khám chờ nhưng ghi chú có giờ đến",
+    "BAD_PHONE": "Số điện thoại không hợp lệ",
+    "PII_LEFT": "Che dữ liệu chưa sạch – không gửi AI",
+    "NO_RULE": "Không quy tắc nào áp dụng được",
+}
+
+
+@dataclass
+class ReviewDecision:
+    status: str  # auto | needs_review
+    reasons: list[str]
+    ga_weeks: int | None
+    ga_days: int | None
+
+
+def is_call_note(note: str, keywords: list[str]) -> bool:
+    return any(contains_keyword(note, k) for k in keywords)
+
+
+def decide(
+    *,
+    arrival: ArrivalResult,
+    note: str,
+    phone_ok: bool,
+    conflict: bool,
+    ai: NoteAI | None,
+    ai_attempted: bool,
+    mask_ok: bool,
+    rules: Rules,
+) -> ReviewDecision:
+    cfg = rules["arrival"]
+    reasons: set[str] = set(arrival.reasons)
+
+    if ai_attempted and (ai is None or not ai.ok or ai.confidence < cfg["ai_confidence_min"]):
+        reasons.add("LOW_CONF")
+    if note and is_call_note(note, cfg["call_note_keywords"]):
+        reasons.add("CALL_NOTE")
+    if ai is not None and ai.ok and ai.asks_confirmation:
+        reasons.add("CALL_NOTE")
+
+    ga_w: int | None = None
+    ga_d: int | None = None
+    if ai is not None and ai.ok and ai.ga_weeks is not None:
+        ga_w, ga_d = ai.ga_weeks, ai.ga_days
+    else:
+        found = find_ga(note) if note else None
+        if found:
+            ga_w, ga_d = found
+    if ga_w is not None and ga_w >= cfg["late_ga_weeks"]:
+        reasons.add("LATE_GA")
+    if conflict:
+        reasons.add("CONFLICT")
+    if not phone_ok:
+        reasons.add("BAD_PHONE")
+    if not mask_ok:
+        reasons.add("PII_LEFT")
+    if arrival.arrival_time is None and not arrival.waiting:
+        reasons.add("NO_RULE")
+
+    ordered = sorted(reasons, key=REASON_ORDER.index)
+    return ReviewDecision(
+        status="needs_review" if ordered else "auto", reasons=ordered, ga_weeks=ga_w, ga_days=ga_d
+    )

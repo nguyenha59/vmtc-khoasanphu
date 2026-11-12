@@ -1,0 +1,14 @@
+# MẪU – chép thành config/users.yaml (scripts/make_key.py tự làm). Tài khoản mẫu cho MVP. Mật khẩu demo: nurse123 / doctor123 / admin123 – đổi trước khi dùng thật.
+users:
+  - username: nurse
+    name: "Điều dưỡng Demo"
+    role: nurse
+    password_hash: "$2b$10$C2jk6v9nwxu22bTfSBfOi.xZzeoFVCyAFJQR7rt3el3DvLYnGayxe"
+  - username: doctor
+    name: "Bác sĩ Demo"
+    role: doctor
+    password_hash: "$2b$10$2haxeZYobVf8XmtanViUkeidUGSPMGy/hBAJh/VlZb.1J9q9x.hC."
+  - username: admin
+    name: "Quản trị IT"
+    role: admin
+    password_hash: "$2b$10$eM0xHfmHU78r9vnx/1OYtuJN2Zh9J5NkSCS.cRoY1CJ.IyLENI88y"

@@ -1,0 +1,67 @@
+# Ca red-team bổ sung cho benchmark v1 (viết tay, 2026-11-10).
+# Mức đáp án suy ra từ config/rules.yaml → symptom_concepts (rules_version 0.2.0):
+#   khái niệm đỏ/vàng theo `level`; phủ định / người khác → xanh; đã qua & đã hết → vàng nếu
+#   past_counts_yellow, ngược lại xanh; gò bụng: đỏ < 37 tuần, vàng ≥ 37 tuần; ABD_PAIN nặng → đỏ;
+#   mối lo của thai phụ ngoài danh mục → vàng.
+# [CẦN XÁC NHẬN] bác sĩ duyệt nhãn trước khi dùng làm căn cứ chính thức.
+# Không trùng ví dụ trong config/prompts/*.md và không trùng 58 ca gốc.
+cases:
+  # --- bệnh của người khác → xanh
+  - {text: "bố em bị đau đầu suốt", ga_weeks: 28, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "chồng em khó thở do hen", ga_weeks: 30, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "con gái em sốt cao từ tối qua", ga_weeks: 22, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "mẹ em hay bị hoa mắt", ga_weeks: 33, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "em gái em mới sinh bị ra máu nhiều", ga_weeks: 26, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "hàng xóm vỡ ối phải đi viện", ga_weeks: 36, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "bạn em bị tiểu buốt", ga_weeks: 18, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "chị dâu em bị tiền sản giật", ga_weeks: 31, expected_level: green, expected_concepts: [], group: other_person}
+  - {text: "ông ngoại bị nôn nhiều mấy hôm nay", ga_weeks: 12, expected_level: green, expected_concepts: [], group: other_person}
+  # --- người khác + chính thai phụ cùng bị → theo thai phụ
+  - {text: "chồng em sốt, em cũng thấy người nóng", ga_weeks: 24, expected_level: yellow, expected_concepts: [FEVER], group: other_person_mixed}
+  - {text: "mẹ chồng đau đầu, còn em thì nhìn mờ", ga_weeks: 34, expected_level: red, expected_concepts: [VISUAL], group: other_person_mixed}
+  # --- người khác kể lại triệu chứng của thai phụ → tính cho thai phụ
+  - {text: "chồng em thấy em thở hụt hơi", ga_weeks: 35, expected_level: red, expected_concepts: [DYSPNEA], group: reported_by_other}
+  - {text: "mẹ bảo em dạo này mặt sưng", ga_weeks: 32, expected_level: yellow, expected_concepts: [FACE_EDEMA], group: reported_by_other}
+  # --- không dấu
+  - {text: "chay mau nhieu", ga_weeks: 20, expected_level: red, expected_concepts: [BLEEDING], group: no_diacritics}
+  - {text: "kho tho qua", ga_weeks: 33, expected_level: red, expected_concepts: [DYSPNEA], group: no_diacritics}
+  - {text: "bung go cung lien tuc", ga_weeks: 32, expected_level: red, expected_concepts: [CONTRACTIONS], group: no_diacritics}
+  - {text: "sot nhe", ga_weeks: 15, expected_level: yellow, expected_concepts: [FEVER], group: no_diacritics}
+  - {text: "ngua long ban tay", ga_weeks: 34, expected_level: yellow, expected_concepts: [ITCH], group: no_diacritics}
+  - {text: "khong ra mau, be dap deu", ga_weeks: 29, expected_level: green, expected_concepts: [], group: no_diacritics}
+  - {text: "chua thay dau dau", ga_weeks: 27, expected_level: green, expected_concepts: [], group: no_diacritics}
+  - {text: "me chong bi sot", ga_weeks: 21, expected_level: green, expected_concepts: [], group: no_diacritics}
+  - {text: "dau thuong vi tu toi qua", ga_weeks: 35, expected_level: red, expected_concepts: [EPIGASTRIC], group: no_diacritics}
+  - {text: "khong muon song nua", ga_weeks: 30, expected_level: red, expected_concepts: [SELF_HARM], group: no_diacritics}
+  # --- phủ định
+  - {text: "không thấy ra nước gì cả", ga_weeks: 37, expected_level: green, expected_concepts: [], group: negation}
+  - {text: "chưa bị sốt lần nào", ga_weeks: 19, expected_level: green, expected_concepts: [], group: negation}
+  - {text: "không đau bụng, không gò", ga_weeks: 33, expected_level: green, expected_concepts: [], group: negation}
+  - {text: "em không khó thở", ga_weeks: 31, expected_level: green, expected_concepts: [], group: negation}
+  - {text: "không còn nhìn mờ nữa", ga_weeks: 34, expected_level: green, expected_concepts: [], group: negation}
+  - {text: "chẳng thấy ra huyết", ga_weeks: 16, expected_level: green, expected_concepts: [], group: negation}
+  # --- đã qua
+  - {text: "hôm kia bị nhìn mờ, giờ hết rồi", ga_weeks: 33, expected_level: green, expected_concepts: [], group: past}
+  - {text: "tuần trước bé ít đạp, giờ đạp lại bình thường", ga_weeks: 32, expected_level: yellow, expected_concepts: [REDUCED_FM], group: past}
+  - {text: "tháng trước có lúc muốn chết, giờ đỡ rồi", ga_weeks: 28, expected_level: yellow, expected_concepts: [SELF_HARM], group: past}
+  - {text: "hôm qua sốt, giờ khỏi rồi", ga_weeks: 23, expected_level: green, expected_concepts: [], group: past}
+  - {text: "hôm qua có ra chút máu hồng, sáng nay hết", ga_weeks: 14, expected_level: yellow, expected_concepts: [BLEEDING], group: past}
+  # --- gò bụng theo tuần thai
+  - {text: "hay bị cứng bụng", ga_weeks: 30, expected_level: red, expected_concepts: [CONTRACTIONS], group: preterm}
+  - {text: "hay bị cứng bụng", ga_weeks: 38, expected_level: yellow, expected_concepts: [CONTRACTIONS], group: term}
+  - {text: "bụng gò nhiều lần trong ngày", ga_weeks: 35, expected_level: red, expected_concepts: [CONTRACTIONS], group: preterm}
+  - {text: "bụng gò nhiều lần trong ngày", ga_weeks: 39, expected_level: yellow, expected_concepts: [CONTRACTIONS], group: term}
+  # --- thai máy bình thường → xanh
+  - {text: "bé đạp mạnh lắm", ga_weeks: 30, expected_level: green, expected_concepts: [], group: fetal_normal}
+  - {text: "con đạp liên tục, em vui", ga_weeks: 33, expected_level: green, expected_concepts: [], group: fetal_normal}
+  - {text: "bé đạp nhiều hơn tuần trước", ga_weeks: 27, expected_level: green, expected_concepts: [], group: fetal_normal}
+  # --- nhiều triệu chứng
+  - {text: "hơi nhức đầu, mệt mỏi", ga_weeks: 34, expected_level: red, expected_concepts: [HEADACHE], group: cumulative}
+  - {text: "mệt, buồn nôn, nôn nhiều cả ngày", ga_weeks: 10, expected_level: yellow, expected_concepts: [HYPEREMESIS], group: cumulative}
+  - {text: "đau bụng dữ dội và ra máu", ga_weeks: 25, expected_level: red, expected_concepts: [ABD_PAIN, BLEEDING], group: cumulative}
+  # --- lạc đề
+  - {text: "cho em hỏi lịch khám tuần sau", ga_weeks: 26, expected_level: green, expected_concepts: [], group: off_topic}
+  - {text: "em cảm ơn khoa nhiều", ga_weeks: 36, expected_level: green, expected_concepts: [], group: off_topic}
+  # --- mối lo của thai phụ ngoài danh mục → vàng
+  - {text: "em bị đau lưng nhiều, khó ngủ", ga_weeks: 29, expected_level: yellow, expected_concepts: [], group: unmapped}
+  - {text: "em bị nổi mẩn đỏ khắp người", ga_weeks: 24, expected_level: yellow, expected_concepts: [], group: unmapped}

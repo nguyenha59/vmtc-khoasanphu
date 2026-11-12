@@ -1,0 +1,22 @@
+# Ánh xạ tên cột trong file xuất từ HIS → trường chuẩn.
+# [CẦN XÁC NHẬN] Thay vế trái bằng tên cột thật khi có file mẫu đã che.
+columns:
+  "Mã BN": pid
+  "Họ tên": full_name
+  "Điện thoại": phone
+  "Quốc tịch": nationality
+  "Ngày hẹn": appt_date
+  "Giờ bắt đầu": start_time
+  "Giờ kết thúc": end_time
+  "Dịch vụ": service
+  "Khoa/Phòng": department
+  "Bác sĩ": doctor
+  "Ghi chú": note
+  "Nguồn đặt": booking_source
+  "Thời điểm đặt": booked_at
+required: [pid, full_name, phone, appt_date, start_time, end_time, service, department]
+date_format: "%d/%m/%Y"
+time_format: "%H:%M"
+# Khách tự đặt lịch → ghi chú bắt đầu bằng tiền tố này (khoa xác nhận 10/11/2026).
+# Tiền tố được tách khỏi ghi chú khi đọc file; "nguồn đặt" = Autobooking nếu cột nguồn đặt trống.
+self_booking_prefixes: ["Autobooking"]

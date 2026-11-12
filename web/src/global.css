@@ -1,0 +1,10 @@
+body {
+  background: var(--mantine-color-ink-0);
+  color: var(--mantine-color-ink-9);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--mantine-color-brand-1);
+}

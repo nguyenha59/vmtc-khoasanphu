@@ -1,0 +1,95 @@
+.listPaper {
+  overflow: hidden;
+}
+
+.listHead {
+  border-bottom: 1px solid var(--mantine-color-ink-2);
+  background: #fff;
+}
+
+.row {
+  display: block;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--mantine-color-ink-1);
+  border-left: 3px solid transparent;
+  transition: background 100ms ease;
+
+  &:hover {
+    background: var(--mantine-color-ink-0);
+  }
+
+  &[data-level="red"] {
+    border-left-color: var(--mantine-color-danger-7);
+  }
+
+  &[data-level="yellow"] {
+    border-left-color: var(--mantine-color-warn-5);
+  }
+}
+
+.headline {
+  line-height: 1.25;
+
+  &[data-level="red"] {
+    color: var(--mantine-color-danger-8);
+  }
+}
+
+.reviews {
+  border-color: var(--mantine-color-grape-3);
+  background: linear-gradient(180deg, var(--mantine-color-grape-0), #fff 50%);
+}
+
+.siblings {
+  padding: 10px 12px;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-brand-0);
+}
+
+.why {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--mantine-color-ink-1);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.head {
+  border-top: 4px solid var(--mantine-color-ink-3);
+
+  &[data-level="red"] {
+    border-top-color: var(--mantine-color-danger-7);
+  }
+
+  &[data-level="yellow"] {
+    border-top-color: var(--mantine-color-warn-5);
+  }
+
+  &[data-level="green"] {
+    border-top-color: var(--mantine-color-ok-7);
+  }
+}
+
+.layer {
+  &[data-level="red"] {
+    background: linear-gradient(180deg, var(--mantine-color-danger-0), #fff 60%);
+    border-color: var(--mantine-color-danger-2);
+  }
+
+  &[data-level="yellow"] {
+    background: linear-gradient(180deg, var(--mantine-color-warn-0), #fff 60%);
+    border-color: var(--mantine-color-warn-2);
+  }
+}
+
+.accordion :global(.mantine-Accordion-item) {
+  background: #fff;
+  border-color: var(--mantine-color-ink-2);
+}
+
+.actions {
+  box-shadow: var(--mantine-shadow-md);
+  border-color: var(--mantine-color-brand-2);
+  background: linear-gradient(180deg, var(--mantine-color-brand-0), #fff 40%);
+}

@@ -1,0 +1,95 @@
+# Ví dụ few-shot cố định cho prompt note_extractor (đóng băng 2026-11-10 từ tests/golden/notes_fewshot.yaml).
+# Đổi file này = đổi prompt → tăng prompt_version trong note_extractor.md và chạy lại đánh giá.
+examples:
+- note: đến 7:15, mang theo sổ khám
+  output:
+    explicit_arrival_time: 07:15
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: đến 7:15, mang theo sổ khám
+- note: Thai 38w
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: 38
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: Thai 38w
+- note: liên hệ người nhà 0997206227
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: liên hệ người nhà 0997206227
+- note: BS hẹn đến 9h lấy máu
+  output:
+    explicit_arrival_time: 09:00
+    minutes_early: null
+    needs_fasting: true
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: BS hẹn đến 9h lấy máu
+- note: Chị Thơ xin đến sớm 30p
+  output:
+    explicit_arrival_time: null
+    minutes_early: 30
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: false
+    evidence: Chị Thơ xin đến sớm 30p
+- note: VMC cũ 1 lần
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: null
+    ga_days: null
+    risk_flags:
+    - PREV_CSECTION
+    asks_confirmation: false
+    evidence: VMC cũ 1 lần
+- note: HA cao, thai 33w
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: 33
+    ga_days: null
+    risk_flags:
+    - HTN
+    asks_confirmation: false
+    evidence: HA cao, thai 33w
+- note: tt 32 tuan 4 ngay, lam NPDN nhịn ăn
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: true
+    ga_weeks: 32
+    ga_days: 4
+    risk_flags: []
+    asks_confirmation: false
+    evidence: tt 32 tuan 4 ngay, lam NPDN nhịn ăn
+- note: Thai 9w, chưa rõ có làm 4D không
+  output:
+    explicit_arrival_time: null
+    minutes_early: null
+    needs_fasting: false
+    ga_weeks: 9
+    ga_days: null
+    risk_flags: []
+    asks_confirmation: true
+    evidence: Thai 9w, chưa rõ có làm 4D không
