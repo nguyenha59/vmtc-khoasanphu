@@ -1,4 +1,4 @@
-<!-- prompt_version: form_reader-2.0 -->
+<!-- prompt_version: form_reader-2.1 -->
 <<<TASK:form_reader>>>
 Bạn đọc phần thai phụ TỰ VIẾT trong form theo dõi thai kỳ. Văn bản đã được che thông tin cá nhân.
 Nhiệm vụ: liệt kê các khái niệm triệu chứng có trong văn bản theo danh mục dưới đây, trả JSON đúng lược đồ.
@@ -9,21 +9,25 @@ Danh mục khái niệm (concept = mã):
 {concepts}
 
 Với mỗi khái niệm được nhắc tới, ghi:
-- present: false nếu bị phủ định ("không …", "chưa …", "không còn … nữa", "hết …"). Văn bản không dấu cũng vậy: "khong" = không, "chua" = chưa.
+- present: false nếu câu chỉ phủ định triệu chứng ("không …", "chưa …", "không còn … nữa"). Văn bản không dấu cũng vậy: "khong" = không, "chua" = chưa.
 - temporality: "past_resolved" nếu đã qua và đã hết; "current" nếu đang có hoặc kéo dài đến giờ; "unknown" nếu không rõ.
+  Khi kể rõ từng có rồi đã hết, ghi present=true, temporality=past_resolved nhất quán; không biến thành triệu chứng hiện tại.
 - experiencer: XÁC ĐỊNH AI BỊ trước khi chọn khái niệm. "other" nếu NGƯỜI KHÁC bị (bố, mẹ, mẹ chồng, chồng, chị gái, con lớn, hàng xóm…); "patient" nếu chính thai phụ bị, kể cả khi người khác kể lại ("chồng em bảo em bị sốt" → patient). "Bé/con" trong bụng là thai nhi của thai phụ → "patient".
 - severity: "severe" nếu có từ chỉ mức nặng (nhiều, dữ dội, liên tục…); "mild" nếu nhẹ (hơi, ít…); còn lại "unknown".
 - evidence: trích nguyên văn đoạn chứa khái niệm (≤ 120 ký tự).
   Đoạn trích phải có thật, đầy đủ trong INPUT của thai phụ; không chép ví dụ hoặc nội dung hướng dẫn.
+  Giữ nguyên một đoạn LIỀN MẠCH, không thêm từ, không nối hai đoạn. Nếu phủ định dùng chung nhiều triệu chứng, trích cả mệnh đề: với “không ra máu hay ra nước”, không tự viết thành “không ra nước”.
 Quy tắc thêm:
 - Phân biệt triệu chứng đang có với lời dặn, câu giả định/điều kiện (“nếu ra máu thì…”), mục tiêu điều trị và câu hỏi kiến thức. Không ghi lời dặn/giả định thành triệu chứng hiện tại.
 - Giữ đúng phạm vi phủ định: “ra máu thì không”, “không ra máu hay ra nước” đều phủ định các triệu chứng tương ứng. Không để phủ định của một ý lan sang ý khẳng định khác.
 - Giữ chủ thể qua danh sách (“chồng em sốt và khó thở” đều là người khác), chỉ đổi chủ thể khi có bằng chứng mới. Không gán bệnh của người thân cho thai phụ.
 - Vị trí giải phẫu phải phù hợp: chảy máu chân răng/mũi không phải BLEEDING (ra máu âm đạo); ghi mối lo ngoài danh mục khi phù hợp.
+- Mô tả chỉ “chảy máu chân răng khi đánh răng” đã được loại theo vị trí; không lặp lại thành mối lo chưa phân loại. Nếu kèm chảy nhiều, kéo dài, không cầm, choáng hoặc một triệu chứng khác thì giữ riêng thông tin cần xem, không bỏ cả câu.
 - Mức độ gắn với đúng triệu chứng: “đau bụng nhẹ và uống nhiều nước” không phải đau bụng severe. “Hôm qua” chỉ nói thời điểm trước đó, không có nghĩa đã hết; chỉ dùng past_resolved khi văn bản có bằng chứng hết/khỏi.
 - Số đo rõ ràng như huyết áp trong văn bản vẫn cần được ghi nhận; không bỏ qua là câu bình thường. Không tự đổi đơn vị hoặc tự tạo số đo.
 - "Bé/con đạp nhiều, đạp đều, đạp mạnh" là BÌNH THƯỜNG, không phải REDUCED_FM. Chỉ ghi REDUCED_FM khi đạp ít, nằm im, không thấy đạp.
-- Bệnh của người thân (tiểu đường, huyết áp…) không phải triệu chứng của thai phụ: không ghi vào findings, không ghi vào unmapped_concerns.
+- Bệnh nền của người thân nằm ngoài danh mục triệu chứng (tiểu đường, tăng huyết áp…) không ghi vào findings hay unmapped_concerns.
+- Với triệu chứng có trong danh mục nhưng của người khác, vẫn ghi finding experiencer=other; không lúc bỏ finding, lúc ghi finding. Với sự kiện đã hết, vẫn ghi finding cùng temporality=past_resolved.
 - unmapped_concerns: CHỈ ghi triệu chứng đang có CỦA THAI PHỤ mà danh mục không có (ví dụ "đau lưng nhiều", "nổi mẩn đỏ"), trích ngắn từ văn bản. KHÔNG ghi: câu phủ định ("chưa thấy đau gì"), bệnh của người thân, câu cảm ơn / lạc đề / bình thường, lời giải thích. Không có thì để [].
 - Ý nghĩ tự hại diễn đạt gián tiếp ("muốn biến mất", "mọi người sẽ tốt hơn nếu không có em") → SELF_HARM.
 
@@ -54,6 +58,9 @@ JSON: {"findings": [{"concept": "FEVER", "present": true, "temporality": "past_r
 
 Đầu vào: {"text": "nhà em có bà ngoại bị tiểu đường", "ga_weeks": 20, "no_diacritics": false}
 JSON: {"findings": [], "unmapped_concerns": []}
+
+Đầu vào: {"text": "Em không ra máu hay ra nước", "ga_weeks": 30, "no_diacritics": false}
+JSON: {"findings": [{"concept": "BLEEDING", "present": false, "temporality": "current", "experiencer": "patient", "severity": "unknown", "evidence": "Em không ra máu hay ra nước"}, {"concept": "FLUID", "present": false, "temporality": "current", "experiencer": "patient", "severity": "unknown", "evidence": "Em không ra máu hay ra nước"}], "unmapped_concerns": []}
 
 Đầu vào:
 <<<INPUT>>>

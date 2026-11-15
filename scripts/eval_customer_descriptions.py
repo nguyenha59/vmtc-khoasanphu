@@ -44,6 +44,7 @@ def write_report(result: dict, path: Path) -> None:
                 '<h1>Kiểm thử mô tả khách</h1><p>Dữ liệu giả; so với chính sách đang cấu hình. '
                 'Chưa thay thế bộ ca do bác sĩ duyệt.</p>'
                 f'<p>Mô hình: <code>{esc(result["model"])}</code>; quy tắc: {esc(result["rules_version"])}</p>'
+                f'<p>{esc(result.get("evaluation_note", ""))}</p>'
                 f'<p>Trạng thái: {esc(result.get("status", "completed"))}; '
                 f'{len(result["cases"])}/{result.get("planned_cases", len(result["cases"]))} ca.</p>'
                 f'<p>Khớp mức: {summary["passed"]}/{summary["total"]}; bỏ sót mức đỏ: {summary["missed_red"]}; '

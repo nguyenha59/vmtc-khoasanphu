@@ -1,6 +1,7 @@
 """Lớp 3 – AI đọc phần tự viết của form (docs/05 mục 3).
 
 LLM (self-consistency 3 lần) + luật khẳng định (phủ định / thời gian / người trải qua) chạy trên câu gốc.
+Độ nhất quán chuẩn hóa các khác biệt biểu diễn không có hiệu lực chỉ khi câu gốc xác nhận.
 Mâu thuẫn giữa LLM và luật → lấy hướng an toàn hơn và hạ độ tin cậy. Danh mục khái niệm cũng được
 dò trực tiếp trên văn bản để không bỏ sót khi LLM bỏ qua (nâng mức). Ngoại lệ duy nhất: `form_cap`
 (phương án A) – danh mục chắc chắn người khác / đã hết / bé đạp bình thường → finding đỏ của LLM tối đa vàng.
@@ -348,6 +349,8 @@ def _valid_concern(concern: str, text: str, rules: Rules | None = None) -> bool:
     cap = (rules or load_rules()).get("form_cap", {}) or {}
     if _benign_concern(concern, text, cap):
         return False
+    if _covered_brushing_concern(concern, text, rules or load_rules()):
+        return False
     # Mệnh đề gốc nói về người khác ("chị dâu em bị tiền sản giật" → mối lo "tiền sản giật").
     clause = _source_clause(concern, text)
     return not (cap.get("enabled") and clause and _other_experiencer(clause))
@@ -441,9 +444,68 @@ def _evidence_in(evidence: str, text: str) -> bool:
     return bool(words) and re.search(r"\s+".join(re.escape(w) for w in words), text, re.IGNORECASE) is not None
 
 
-def _vote_signature(findings: list[dict], concerns: list[str]) -> tuple:
+def _covered_brushing_concern(concern: str, text: str, rules: Rules) -> bool:
+    """Chỉ bỏ phần lặp lại một mô tả chân răng khi đánh răng đã được loại theo vị trí.
+
+    Không dùng phủ định từ khóa toàn câu; từ chỉ nặng, kéo dài, vị trí khác hoặc triệu chứng
+    mới đều nằm ngoài tập từ cho phép và vẫn được giữ để người xem.
+    """
+    if not rules.get("form_cap.enabled", False):
+        return False
+    plain = deaccent(concern).lower()
+    if (not _evidence_in(concern, text) or not re.search(r"\b(?:danh|chai) rang\b", plain)
+            or not re.search(r"\b(?:chan rang|nuou|loi rang)\b", plain)):
+        return False
+    allowed = {"em", "toi", "minh", "bi", "co", "chi", "hoi", "it", "mot", "chut", "ti", "khi", "luc",
+               "chay", "ri", "dinh", "thay", "mau", "chan", "rang", "nuou", "loi", "danh", "chai"}
+    if not set(_tokens_plain(concern)) <= allowed:
+        return False
+    facts = lexicon_findings(concern, rules=rules)
+    return bool(facts) and all(f["concept"] == "BLEEDING" and f.get("assertion_status") == "other_site"
+                              and f.get("anatomy") == "non_genital" for f in facts)
+
+
+def _repair_shared_negation(f: dict, text: str, lex: dict | None, rules: Rules) -> dict | None:
+    """Khôi phục nguyên mệnh đề nguồn, chỉ khi AI lặp từ phủ định dùng chung.
+
+    Không sửa một khẳng định dương tính, không suy diễn trên các câu khác nhau và không
+    chấp nhận bằng chứng bịa. Mọi phiếu gốc vẫn được lưu nguyên vẹn trong raw.outputs.
+    """
+    if (lex is None or f["present"] or lex.get("assertion_status") != "negated"
+            or rules["symptom_concepts"][f["concept"]].get("locked")):
+        return None
+    start, end = lex.get("evidence_start"), lex.get("evidence_end")
+    if start is None or end is None:
+        return None
+    mention = text[start:end]
+    quoted = " ".join(nfc(f.get("evidence", "")).lower().split())
+    mention_words = " ".join(mention.lower().split())
+    if not quoted.endswith(" " + mention_words):
+        return None
+    prefix = quoted[: -len(mention_words)].split()
+    if (not prefix or prefix[0] not in {"không", "khong", "ko", "k", "chưa", "chua"}
+            or len(prefix) > 3 or any(word not in NEG_BRIDGE for word in prefix[1:])):
+        return None
+    for offset, clause in _clauses(text):
+        if offset <= start and end <= offset + len(clause):
+            before = deaccent(clause[: start - offset]).lower()
+            if len(clause.strip()) <= 120 and re.search(r"\b(?:va|hay|hoac)\b", before):
+                return {**f, "evidence": clause.strip()}
+    return None
+
+
+def _confirmed_inactive(f: dict, lex: dict | None, text: str, ga_weeks: int | None, rules: Rules) -> bool:
+    """Khác cách ghi một sự kiện không có hiệu lực chỉ tương đương khi nguồn xác nhận."""
+    return bool(lex is not None and not rules["symptom_concepts"][f["concept"]].get("locked")
+                and not _effective(f) and not _effective(lex)
+                and finding_level(lex, ga_weeks, rules) == Level.GREEN
+                and _evidence_in(f.get("evidence", ""), text) and _same_mention(f, lex, text))
+
+
+def _vote_signature(findings: list[dict], concerns: list[str], *, lex: dict[str, dict], text: str,
+                    ga_weeks: int | None, rules: Rules) -> tuple:
     facts = tuple(sorted((f["concept"], f["present"], f["temporality"], f["experiencer"], f["severity"])
-                         for f in findings))
+                         for f in findings if not _confirmed_inactive(f, lex.get(f["concept"]), text, ga_weeks, rules)))
     concerns_key = tuple(sorted({" ".join(_tokens_plain(c)) for c in concerns}))
     return facts, concerns_key
 
@@ -466,6 +528,7 @@ def read_free_text(
     lex = lexicon_findings(text, rules=rules)
     for f in lex:
         f["source"] = "lexicon"
+    lex_by_concept = {f["concept"]: f for f in lex}
 
     mask = mask_text(text, full_name=patient_name, pid=pid, ner=ner)
     reading = FormReading(level=Level.GREEN, ok=False, confidence=0.0, no_diacritics=no_dia,
@@ -481,25 +544,45 @@ def read_free_text(
         votes = run_votes(client, prompt, FORM_SCHEMA, int(rules["llm"]["consistency_runs_form"]),
                           float(rules["llm"]["temperature"]))
         reading.raw = {"outputs": votes.outputs, "errors": votes.errors, "models": votes.models}
+        masked_lex = {item["concept"]: item for item in lexicon_findings(mask.text, rules=rules)}
         # Lưu model THẬT đã trả kết quả (hybrid: openai hoặc ollama), không lưu tên cấu hình "hybrid:…|…".
         if votes.models:
             reading.model = "+".join(dict.fromkeys(votes.models))[:64]
         valid_concerns = []
-        for output in votes.outputs:
+        repairs = []
+        covered_concerns = []
+        for run_index, output in enumerate(votes.outputs, 1):
             grounded = []
             for f in output["findings"]:
-                if (f["concept"] not in rules["symptom_concepts"]
-                        or not _evidence_in(f.get("evidence", ""), mask.text)):
+                if f["concept"] not in rules["symptom_concepts"]:
                     rejected += 1
                     continue
+                if not _evidence_in(f.get("evidence", ""), mask.text):
+                    repaired = _repair_shared_negation(f, mask.text, masked_lex.get(f["concept"]), rules)
+                    if repaired is None:
+                        rejected += 1
+                        continue
+                    repairs.append({"run": run_index, "concept": f["concept"],
+                                    "original": f["evidence"], "replacement": repaired["evidence"]})
+                    f = repaired
                 grounded.append(f)
             llm_runs.append(grounded)
             valid_concerns.append([u for u in output.get("unmapped_concerns", []) if _valid_concern(u, text, rules)])
+            covered_concerns += [{"run": run_index, "text": u, "reason": "covered_brushing_bleeding"}
+                                 for u in output.get("unmapped_concerns", [])
+                                 if _covered_brushing_concern(u, text, rules)]
+        if repairs:
+            reading.raw["evidence_repairs"] = repairs
+        if covered_concerns:
+            reading.raw["covered_concerns"] = covered_concerns
         unmapped = _vote_unmapped(valid_concerns, text, rules)
         if votes.outputs:
             reading.ok = True
-            sets = Counter(_vote_signature(run, concerns) for run, concerns in zip(llm_runs, valid_concerns, strict=True))
+            sets = Counter(_vote_signature(run, concerns, lex=masked_lex, text=mask.text,
+                                           ga_weeks=ga_weeks, rules=rules)
+                           for run, concerns in zip(llm_runs, valid_concerns, strict=True))
             reading.confidence = sets.most_common(1)[0][1] / votes.n_total
+            reading.raw["confidence_basis"] = "source_supported_clinical_facts"
         if rejected:
             reading.raw["rejected_findings"] = rejected
             reading.conflicts.append("LLM: mã khái niệm hoặc bằng chứng không hợp lệ – chuyển người xem")
@@ -546,7 +629,6 @@ def read_free_text(
         # agreement. Do not let a fixed subtraction accidentally certify it.
         reading.confidence = min(reading.confidence, max(0.0, float(rules["arrival"]["ai_confidence_min"]) - 0.01))
 
-    lex_by_concept = {f["concept"]: f for f in lex}
     findings = []
     for f in merged.values():
         if f["concept"] == "HEADACHE" and lex_by_concept.get("HEADACHE", {}).get("severity") == "mild":

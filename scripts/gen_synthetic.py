@@ -707,12 +707,13 @@ FREE_TEXTS: list[TextCase] = [
     TextCase("hôm qua ra máu ít giờ hết rồi", "yellow", ["BLEEDING"], "past"),
     TextCase("nhan chat, tay hoi sung", "yellow", ["FACE_EDEMA"], "no_diacritics"),
     TextCase("tieu rat", "yellow", ["DYSURIA"], "no_diacritics"),
+    # Thời điểm quá khứ không chứng minh đã hết: giữ mối lo chưa rõ hiện trạng (khớp tests/redteam/form_cases.yaml).
+    TextCase("tuần trước có sốt", "yellow", ["FEVER"], "past"),
     # xanh
     TextCase("không ra máu, bé đạp đều", "green", [], "negation"),
     TextCase("chưa thấy đau gì", "green", [], "negation"),
     TextCase("không còn ra huyết nữa", "green", [], "negation"),
     TextCase("hôm qua đau đầu giờ hết", "green", [], "past"),
-    TextCase("tuần trước có sốt", "green", [], "past"),
     TextCase("mẹ chồng bị cao huyết áp", "green", [], "other_person"),
     TextCase("con lớn bị sốt", "green", [], "other_person"),
     TextCase("chồng em bị sốt mấy hôm", "green", [], "other_person"),
@@ -1086,8 +1087,10 @@ def main() -> None:
     fr.to_csv(out / "form_responses.csv", index=False, encoding="utf-8")
     fl.to_csv(golden / "form_expected.csv", index=False, encoding="utf-8")
     fl.to_csv(out / "form_expected.csv", index=False, encoding="utf-8")  # seed_demo đọc cùng bộ với form_responses.csv
-    with open(ROOT / "tests" / "redteam" / "form_cases.yaml", "w", encoding="utf-8") as f:
-        yaml.safe_dump({"cases": make_redteam()}, f, allow_unicode=True, sort_keys=False)
+    redteam = ROOT / "tests" / "redteam" / "form_cases.yaml"
+    if not redteam.exists():  # bộ red-team đã có thì đã được chỉnh tay (thêm ca, ghi chú) – không ghi đè
+        with open(redteam, "w", encoding="utf-8") as f:
+            yaml.safe_dump({"cases": make_redteam()}, f, allow_unicode=True, sort_keys=False)
 
     make_vitals(rng, pats, anchor).to_csv(out / "vitals.csv", index=False, encoding="utf-8")
     (out / "anchor.txt").write_text(anchor.isoformat(), encoding="utf-8")

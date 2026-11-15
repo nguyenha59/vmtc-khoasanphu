@@ -1,0 +1,184 @@
+{
+  "synthetic": true,
+  "source_model": "gpt-4.1-mini-2025-04-14",
+  "cases": [
+    {
+      "id": "normal_04",
+      "text": "Em chảy máu chân răng khi đánh răng",
+      "expected": "green",
+      "outputs": [
+        {
+          "findings": [],
+          "unmapped_concerns": [
+            "chảy máu chân răng khi đánh răng"
+          ]
+        },
+        {
+          "findings": [],
+          "unmapped_concerns": [
+            "chảy máu chân răng khi đánh răng"
+          ]
+        },
+        {
+          "findings": [],
+          "unmapped_concerns": [
+            "chảy máu chân răng khi đánh răng"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "negation_02",
+      "text": "Em không ra máu hay ra nước",
+      "expected": "green",
+      "outputs": [
+        {
+          "findings": [
+            {
+              "concept": "BLEEDING",
+              "present": false,
+              "temporality": "current",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "Em không ra máu"
+            },
+            {
+              "concept": "FLUID",
+              "present": false,
+              "temporality": "current",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "không ra nước"
+            }
+          ],
+          "unmapped_concerns": []
+        },
+        {
+          "findings": [
+            {
+              "concept": "BLEEDING",
+              "present": false,
+              "temporality": "current",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "Em không ra máu"
+            },
+            {
+              "concept": "FLUID",
+              "present": false,
+              "temporality": "current",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "không ra máu hay ra nước"
+            }
+          ],
+          "unmapped_concerns": []
+        },
+        {
+          "findings": [
+            {
+              "concept": "BLEEDING",
+              "present": false,
+              "temporality": "current",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "Em không ra máu"
+            },
+            {
+              "concept": "FLUID",
+              "present": false,
+              "temporality": "current",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "không ra nước"
+            }
+          ],
+          "unmapped_concerns": []
+        }
+      ]
+    },
+    {
+      "id": "family_02",
+      "text": "Mẹ em bị đau đầu",
+      "expected": "green",
+      "outputs": [
+        {
+          "findings": [],
+          "unmapped_concerns": []
+        },
+        {
+          "findings": [
+            {
+              "concept": "HEADACHE",
+              "present": true,
+              "temporality": "unknown",
+              "experiencer": "other",
+              "severity": "unknown",
+              "evidence": "Mẹ em bị đau đầu"
+            }
+          ],
+          "unmapped_concerns": []
+        },
+        {
+          "findings": [
+            {
+              "concept": "HEADACHE",
+              "present": true,
+              "temporality": "unknown",
+              "experiencer": "other",
+              "severity": "unknown",
+              "evidence": "Mẹ em bị đau đầu"
+            }
+          ],
+          "unmapped_concerns": []
+        }
+      ]
+    },
+    {
+      "id": "resolved_01",
+      "text": "Hôm qua em nhìn mờ, giờ hết rồi",
+      "expected": "green",
+      "outputs": [
+        {
+          "findings": [
+            {
+              "concept": "VISUAL",
+              "present": false,
+              "temporality": "past_resolved",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "Hôm qua em nhìn mờ, giờ hết rồi"
+            }
+          ],
+          "unmapped_concerns": []
+        },
+        {
+          "findings": [
+            {
+              "concept": "VISUAL",
+              "present": true,
+              "temporality": "past_resolved",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "Hôm qua em nhìn mờ, giờ hết rồi"
+            }
+          ],
+          "unmapped_concerns": []
+        },
+        {
+          "findings": [
+            {
+              "concept": "VISUAL",
+              "present": true,
+              "temporality": "past_resolved",
+              "experiencer": "patient",
+              "severity": "unknown",
+              "evidence": "Hôm qua em nhìn mờ, giờ hết rồi"
+            }
+          ],
+          "unmapped_concerns": []
+        }
+      ]
+    }
+  ]
+}
