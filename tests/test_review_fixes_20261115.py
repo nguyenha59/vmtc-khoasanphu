@@ -320,3 +320,47 @@ def test_fresh_clone_without_users_file_gets_setup_message_not_500(db, tmp_path,
         r = c.post("/api/auth/login", json={"username": "nurse", "password": "nurse123"})
     assert r.status_code == 503
     assert "make_key.py" in r.json()["detail"]
+
+
+@pytest.mark.parametrize("text,level", [
+    ("Nếu đứng lâu là em bị ra máu", "yellow"),          # kể việc lặp lại, không phải giả định → xác minh
+    ("Khi nào đi tiểu em cũng thấy ra máu", "yellow"),
+    ("nếu đi lại nhiều em lại bị gò bụng", "yellow"),
+    ("nếu ra máu thì em phải làm sao", "green"),          # câu hỏi giả định thật
+    ("Nếu bé đạp ít thì em phải làm gì", "green"),
+    ("Em không chắc có ra máu không nhưng quần lót có vết đỏ", "red"),
+    ("Em đi vệ sinh thấy giấy có vết máu", "red"),
+    ("chảy máu chân răng có vết máu trên bàn chải", "green"),
+])
+def test_habitual_conditional_and_stain_phrases(rules, text, level):
+    r = read_free_text(text, 32, MockClient(), rules)
+    assert r.level.name.lower() == level, (text, r.level)
+    if level == "yellow":
+        assert r.conflicts  # phải kèm "cần gọi xác minh"
+
+
+@pytest.mark.parametrize("text,level", [
+    ("e đau bụng quá trời", "red"), ("bé ko đạp từ sáng tới giờ", "red"), ("e bị ra nc âm đạo", "red"),
+    ("đau đầu kinh khủng", "red"), ("chan bi sung mot ben va dau", "red"), ("không phải là không ra máu", "red"),
+    ("em không thể thở được", "red"), ("em không đi lại được vì đau bụng", "red"),
+    ("em chẳng thấy bé đạp gì cả", "red"), ("không thấy bé đạp", "red"), ("không còn đạp nhiều như trước", "red"),
+    ("tay chân em co quắp giật", "red"), ("sau sinh em ra sản dịch nhiều, thấm đẫm băng mỗi giờ", "red"),
+    ("chưa bao giờ ra máu", "green"), ("con gái lớn của em bị sốt cao", "green"),
+    ("Em bị ra máu tuần trước, đã đi khám rồi, giờ hết hẳn.", "yellow"),
+    ("Em bị ra máu tuần trước, đã đi khám rồi. Giờ vẫn còn ra", "red"),
+])
+def test_more_customer_phrasings_20261115(rules, text, level):
+    """Cách nói thường gặp mà OpenAI/Ollama hiểu đúng nhưng từ điển chưa có → Đỏ bị hạ Vàng (ai_only_red_cap)."""
+    assert read_free_text(text, 32, MockClient(), rules).level.name.lower() == level, text
+
+
+@pytest.mark.parametrize("text,level", [
+    ("Em chóng mặt muốn xỉu", "yellow"),                 # gần ngất: Vàng (người dùng xác nhận 15/11/2026)
+    ("tuần trước em co giật một lần", "red"),            # quá khứ chưa chứng minh đã hết: giữ Đỏ
+    ("ra máu báo thai có nguy hiểm không ạ", "yellow"),  # câu hỏi kiến thức: Vàng + gọi xác minh
+])
+def test_confirmed_levels_20261115(rules, text, level):
+    r = read_free_text(text, 32, MockClient(), rules)
+    assert r.level.name.lower() == level, text
+    if "nguy hiểm" in text:
+        assert r.conflicts  # câu hỏi: kèm "cần gọi xác minh"

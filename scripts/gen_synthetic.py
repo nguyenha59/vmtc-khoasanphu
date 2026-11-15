@@ -6,10 +6,14 @@ Ví dụ: python scripts/gen_synthetic.py --seed 42   (mặc định gọn: 60 n
   data/synthetic/  patients.csv, appointments_all.csv, arrivals_all.csv, arrivals_<ngày>.xlsx,
                    his_export_<ngày>.xlsx (3 ngày tới), his_error_*.xlsx (3 file lỗi cố ý),
                    form_responses.csv (định dạng Microsoft Forms), vitals.csv
-  tests/golden/    his_day_<ngày>.xlsx, expected_arrivals_<ngày>.csv,
+  data/synthetic/golden/  his_day_<ngày>.xlsx, expected_arrivals_<ngày>.csv,
                    worldsms_expected_{VN,NN}_<ngày>.xlsx, notes_answers.csv, notes_eval.csv,
-                   notes_fewshot.yaml, form_expected.csv
-  tests/redteam/   form_cases.yaml
+                   notes_fewshot.yaml, form_expected.csv  (đáp án đi cùng lần sinh này – run_acceptance đọc)
+  tests/redteam/   form_cases.yaml (chỉ tạo khi chưa có)
+
+tests/golden/ là bộ cố định đã commit cho pytest – mặc định KHÔNG ghi vào (người clone chạy cài đặt không làm
+bẩn Git, không bị chặn khi git pull). Người bảo trì muốn sinh lại bộ cố định:
+  python scripts/gen_synthetic.py --seed 42 --golden tests/golden
 """
 
 from __future__ import annotations
@@ -911,14 +915,16 @@ def main() -> None:
     ap.add_argument("--note-rate", type=float, default=0.45,
                     help="tỉ lệ lịch có ghi chú; 1.0 = như file HIS thật (mọi lịch đều có ghi chú)")
     ap.add_argument("--out", type=Path, default=ROOT / "data" / "synthetic")
-    ap.add_argument("--golden", type=Path, default=ROOT / "tests" / "golden")
+    ap.add_argument("--golden", type=Path, default=None,
+                    help="thư mục đáp án (mặc định <out>/golden; tests/golden chỉ khi sinh lại bộ cố định cho test)")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
     anchor = date.fromisoformat(args.anchor) if args.anchor else datetime.now(TZ).date()
     start = anchor - timedelta(days=args.days)
     end = anchor + timedelta(days=args.future_days)
-    out, golden = args.out, args.golden
+    out = args.out
+    golden = args.golden or out / "golden"
     out.mkdir(parents=True, exist_ok=True)
     golden.mkdir(parents=True, exist_ok=True)
     (ROOT / "tests" / "redteam").mkdir(parents=True, exist_ok=True)

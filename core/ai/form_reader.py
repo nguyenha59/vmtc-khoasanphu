@@ -14,7 +14,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.ai.clinical_facts import assertion_context, make_fact
+from core.ai.clinical_facts import assertion_content_start, assertion_context, make_fact
 from core.ai.consistency import run_votes
 from core.ai.llm_client import LlmClient, render_prompt
 from core.ai.masking import NerFn, mask_fragment, mask_text
@@ -211,9 +211,16 @@ def lexicon_findings(text: str, apply_assertions: bool = True, rules: Rules | No
     previous_clause_fact = None
     previous_clause_end = 0
     for idx, (cstart, clause) in enumerate(clauses):
-        nxt = clauses[idx + 1][1] if idx + 1 < len(clauses) else ""
-        if nxt and _match_all(nxt, concepts):
-            nxt = ""
+        # Tối đa 2 mệnh đề kế tiếp trong CÙNG câu, không chứa khái niệm khác:
+        # "ra máu tuần trước, đã đi khám rồi, giờ hết hẳn" – "giờ hết" nằm ở mệnh đề thứ hai.
+        following = []
+        prev_end = cstart + len(clause)
+        for nstart, nclause in clauses[idx + 1: idx + 3]:
+            if _match_all(nclause, concepts) or re.search(r"[.;!?\n]", text[prev_end:nstart]):
+                break
+            following.append(nclause)
+            prev_end = nstart + len(nclause)
+        nxt = " ".join(following)
         mentions = []
         for code, s, e in sorted(set(_match_all(clause, concepts)), key=lambda m: (m[1], -(m[2] - m[1]))):
             if mentions and s < mentions[-1][2]:
@@ -332,8 +339,29 @@ def _benign_concern(concern: str, text: str, cap: dict[str, Any]) -> bool:
         covered = {t for p in phrases for t in _tokens_plain(p)}
         if sum(1 for t in tokens if t not in covered) <= int(cap.get("max_leftover_tokens", 1)):
             return True
-    clause = _source_clause(concern, text)
-    return bool(clause) and _has_plain(clause, cap.get("info_context_phrases", []))
+    fragment = set(_tokens_plain(concern))
+    clauses = [(len(fragment & set(_tokens_plain(clause))), clause) for _offset, clause in _clauses(text)]
+    best = max((score for score, _clause in clauses), default=0)
+    matches = [clause for score, clause in clauses if score == best and score > 0]
+    return bool(matches) and all(_has_plain(clause, cap.get("info_context_phrases", [])) for clause in matches)
+
+
+def _concern_source_facts(concern: str, text: str, rules: Rules) -> list:
+    """Xét mọi lần nhắc nguyên văn, không để lời của người thân che lời của khách."""
+    words = nfc(concern).split()
+    if not words:
+        return []
+    pattern = re.compile(r"\s+".join(re.escape(word) for word in words), re.IGNORECASE)
+    clauses = _clauses(text)
+    facts = []
+    for index, (_offset, clause) in enumerate(clauses):
+        nxt = clauses[index + 1][1] if index + 1 < len(clauses) else ""
+        if nxt and _match_all(nxt, _concepts(rules)):
+            nxt = ""
+        for match in pattern.finditer(clause):
+            content_start = match.start() + assertion_content_start(match.group())
+            facts.append(make_fact("UNMAPPED", clause, content_start, match.end(), next_clause=nxt))
+    return facts
 
 
 def _valid_concern(concern: str, text: str, rules: Rules | None = None) -> bool:
@@ -341,19 +369,20 @@ def _valid_concern(concern: str, text: str, rules: Rules | None = None) -> bool:
     concern = nfc(concern or "").strip()
     if not concern or not _grounded(concern, text):
         return False
-    head = re.findall(r"\w+", concern.lower())[:3]
-    if any(tok in NEGATORS for tok in head):
-        return False
-    if _other_experiencer(concern):
+    # Không thực hiện được một chức năng là một mối lo, khác với phủ định có triệu chứng.
+    if re.search(r"\b(?:khong|ko|chua)(?:\s+\w+){0,5}\s+(?:duoc|noi)\b", deaccent(concern).lower()):
+        return True
+    facts = _concern_source_facts(concern, text, rules or load_rules())
+    if facts and all(not fact.present or fact.experiencer == "other" or fact.temporality == "past_resolved"
+                     for fact in facts):
         return False
     cap = (rules or load_rules()).get("form_cap", {}) or {}
     if _benign_concern(concern, text, cap):
         return False
     if _covered_brushing_concern(concern, text, rules or load_rules()):
         return False
-    # Mệnh đề gốc nói về người khác ("chị dâu em bị tiền sản giật" → mối lo "tiền sản giật").
-    clause = _source_clause(concern, text)
-    return not (cap.get("enabled") and clause and _other_experiencer(clause))
+    # Khi không có trích dẫn nguyên văn để xác minh phạm vi, giữ mối lo thay vì suy đoán phủ định/người khác.
+    return True
 
 
 def _vote_unmapped(runs: list[list[str]], text: str, rules: Rules | None = None) -> list[str]:
@@ -502,6 +531,42 @@ def _confirmed_inactive(f: dict, lex: dict | None, text: str, ga_weeks: int | No
                 and _evidence_in(f.get("evidence", ""), text) and _same_mention(f, lex, text))
 
 
+def _explicit_mild(lex: dict | None, text: str, rules: Rules) -> bool:
+    """Từ mức nhẹ phải gắn với đúng lần nhắc, không lấy từ hoạt động / triệu chứng khác."""
+    if lex is None or lex.get("severity") != "mild":
+        return False
+    start, end = lex.get("evidence_start"), lex.get("evidence_end")
+    if start is None or end is None:
+        return False
+    for offset, clause in _clauses(text):
+        if offset <= start and end <= offset + len(clause):
+            local_start, local_end = start - offset, end - offset
+            before = re.split(r"\b(?:va|roi|nhung|vi|nen|kem)\b", deaccent(clause[:local_start]).lower())[-1]
+            next_start = min((s for _concept, s, _e in _match_all(clause, _concepts(rules)) if s >= local_end), default=len(clause))
+            after = re.split(r"\b(?:va|roi|nhung|vi|nen|kem)\b", deaccent(clause[local_end:next_start]).lower())[0]
+            return bool(re.search(r"\b(?:hoi|nhe|thoang qua)\b", " ".join(before.split()[-2:]) + " " + after))
+    return False
+
+
+def _unresolved_text_concerns(text: str, rules: Rules) -> list[str]:
+    """Một dấu hiệu tự kể chưa đủ vị trí/ý nghĩa không được xác nhận Xanh chỉ vì LLM trả rỗng."""
+    cues = re.compile(r"(?<!\w)(?:mệt|khó chịu|bất thường|không ổn|lạ trong người|tê bì|đau)(?!\w)", re.IGNORECASE)
+    plain_cues = re.compile(r"(?<!\w)(?:met|kho chiu|bat thuong|khong on|la trong nguoi|te bi|dau)(?!\w)")
+    out = []
+    for _offset, clause in _clauses(text):
+        known = _match_all(clause, _concepts(rules))
+        # Bản bỏ dấu 1-1 sau NFC; không ghép vị trí từ chuỗi có độ dài khác.
+        hay = deaccent(clause).lower()
+        matches = list(plain_cues.finditer(hay)) if len(hay) == len(clause) else list(cues.finditer(clause))
+        for match in matches:
+            if any(start <= match.start() and match.end() <= end for _code, start, end in known):
+                continue
+            fact = make_fact("UNRESOLVED", clause, match.start(), match.end())
+            if fact.present and fact.experiencer == "patient" and fact.temporality != "past_resolved":
+                out.append(clause.strip()[:120])
+    return list(dict.fromkeys(out))
+
+
 def _vote_signature(findings: list[dict], concerns: list[str], *, lex: dict[str, dict], text: str,
                     ga_weeks: int | None, rules: Rules) -> tuple:
     facts = tuple(sorted((f["concept"], f["present"], f["temporality"], f["experiencer"], f["severity"])
@@ -631,7 +696,14 @@ def read_free_text(
 
     findings = []
     for f in merged.values():
-        if f["concept"] == "HEADACHE" and lex_by_concept.get("HEADACHE", {}).get("severity") == "mild":
+        source_f = lex_by_concept.get(f["concept"])
+        source_mild = (f["concept"] == "HEADACHE" and (source_f or {}).get("severity") == "mild"
+                       and _same_mention(f, source_f, text))
+        source_mild = source_mild or (_explicit_mild(source_f, text, rules) and _same_mention(f, source_f, text))
+        if source_mild:
+            if f.get("severity") == "severe":
+                reading.raw.setdefault("severity_adjudications", []).append(
+                    {"concept": f["concept"], "model": "severe", "source": "mild"})
             f = {**f, "severity": "mild"}
         lvl = finding_level(f, ga_weeks, rules)
         if f["concept"] == "HEADACHE" and f.get("severity") == "mild" and lvl == Level.RED:
@@ -655,10 +727,25 @@ def read_free_text(
                                     anatomy=f.get("anatomy"), evidence_start=f.get("evidence_start"),
                                     evidence_end=f.get("evidence_end")))
     level = max_level(*(f.level for f in findings)) if findings else Level.GREEN
+    if any(f.assertion_status == "uncertain" and f.experiencer == "patient" for f in findings):
+        reading.conflicts.append("Chưa xác nhận là triệu chứng hiện tại – cần gọi xác minh")
+    if any(not f["present"] and f["temporality"] == "past_resolved" and f["experiencer"] == "patient"
+           and rules["symptom_concepts"][f["concept"]].get("past_counts_yellow") for f in lex):
+        reading.conflicts.append("Chưa rõ tiền sử của dấu hiệu đã hết – cần gọi xác minh")
+    if level == Level.GREEN and not unmapped:
+        unresolved = _unresolved_text_concerns(text, rules)
+        if unresolved:
+            reading.raw["unresolved_text_concerns"] = [
+                mask_fragment(item, full_name=patient_name, pid=pid, persons=mask.persons) for item in unresolved
+            ] if mask.ok else []
+            reading.conflicts.append("Mô tả có dấu hiệu chưa phân loại rõ – cần hỏi lại")
     if reading.conflicts and reading.ok:
         reading.confidence = min(reading.confidence, max(0.0, float(rules["arrival"]["ai_confidence_min"]) - 0.01))
     if unmapped:
         level = max_level(level, Level.YELLOW)
+        reading.conflicts.append("Mối lo chưa có phân loại xác nhận – cần người xem")
+        if reading.ok:
+            reading.confidence = min(reading.confidence, max(0.0, float(rules["arrival"]["ai_confidence_min"]) - 0.01))
     # Bằng chứng của lớp danh mục lấy từ câu GỐC → che trước khi lưu (Assessment.findings không mã hóa).
     for f in findings:
         f.evidence = (mask_fragment(f.evidence, full_name=patient_name, pid=pid, persons=mask.persons)

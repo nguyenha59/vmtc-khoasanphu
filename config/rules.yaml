@@ -1,5 +1,5 @@
 # Cấu hình mặc định – MVP. Ngưỡng y khoa phải được bác sĩ duyệt trước khi dùng thật.
-rules_version: "0.17.0"
+rules_version: "0.17.2"
 
 departments_included: ["Phòng khám Sản phụ khoa"]   # [CẦN XÁC NHẬN tên khoa trong file HIS]
 
@@ -293,9 +293,12 @@ alert_review:
 symptom_concepts:
   BLEEDING: {name: "Ra máu âm đạo", meaning: "máu hoặc dịch lẫn máu (đỏ, hồng, nâu) ra từ âm đạo – thấy trên quần lót, băng vệ sinh, giấy lau (S1, S2)", level: red, past_counts_yellow: true,
              synonyms: ["ra máu", "ra huyết", "thấy hồng", "chảy máu", "ra mau", "ra huyet", "thay hong", "chay mau", "máu cục", "mau cuc", "ra cục máu", "ra cuc mau", "rỉ máu", "ri mau", "thấm ướt băng", "tham uot bang", "ướt đẫm băng", "uot dam bang",
-                       "dính máu", "dinh mau", "thấy máu", "thay mau", "máu hồng", "mau hong", "dịch hồng", "dich hong", "ra dịch lẫn máu", "ra dich lan mau"]}
+                       "dính máu", "dinh mau", "thấy máu", "thay mau", "máu hồng", "mau hong", "dịch hồng", "dich hong", "ra dịch lẫn máu", "ra dich lan mau",
+                       "vết máu", "vet mau", "quần lót có vết đỏ", "quan lot co vet do", "quần lót có vết hồng",
+                       "quan lot co vet hong", "quần lót có vết nâu", "quan lot co vet nau", "băng vệ sinh có vết đỏ",
+                       "bang ve sinh co vet do", "băng vệ sinh có vết hồng", "bang ve sinh co vet hong", "thấm đẫm băng", "tham dam bang", "ướt sũng băng", "uot sung bang"]}
   REDUCED_FM: {name: "Giảm cử động thai", meaning: "thai cử động (đạp, cựa, máy, quẫy) ít hơn bình thường, yếu đi hoặc không thấy cử động (S2)", level: red, past_counts_yellow: true,
-               synonyms: ["ít đạp", "con nằm im", "bé nằm im", "không thấy đạp", "thai máy giảm", "thai máy ít", "đạp ít", "nằm im", "it dap", "nam im", "khong thay dap", "thai may it", "con không đạp", "con khong dap", "bé không đạp", "be khong dap", "thai không máy", "thai khong may", "đạp yếu", "dap yeu"]}
+               synonyms: ["ít đạp", "con nằm im", "bé nằm im", "không thấy đạp", "thai máy giảm", "thai máy ít", "đạp ít", "nằm im", "it dap", "nam im", "khong thay dap", "thai may it", "con không đạp", "con khong dap", "bé không đạp", "be khong dap", "thai không máy", "thai khong may", "đạp yếu", "dap yeu", "bé ko đạp", "be ko dap", "con ko đạp", "con ko dap", "không thấy bé đạp", "khong thay be dap", "không thấy con đạp", "khong thay con dap", "chẳng thấy bé đạp", "chang thay be dap", "không còn đạp nhiều", "khong con dap nhieu", "không thấy thai máy", "khong thay thai may"]}
   VISUAL: {name: "Rối loạn thị giác", meaning: "thay đổi thị lực: nhìn mờ, nhòe, lóa, thấy chấm sáng / đốm, nhìn một thành hai (S1, S2, S4)", level: red,
            synonyms: ["hoa mắt", "đom đóm mắt", "nhìn mờ", "mờ mắt", "hoa mat", "dom dom mat", "nhin mo", "mo mat", "nhìn nhòe", "nhin nhoe", "mắt nhòe", "mat nhoe", "lóa mắt", "loa mat", "nhìn đôi", "nhin doi", "nhìn không rõ", "nhin khong ro"]}
   EPIGASTRIC: {name: "Đau thượng vị", meaning: "đau vùng bụng trên giữa – dưới xương ức, trên rốn, vùng dạ dày – hoặc ngay dưới sườn phải (S2, S4)", level: red,
@@ -307,18 +310,18 @@ symptom_concepts:
              severe_words: ["dữ dội", "nhiều", "không đỡ", "chưa đỡ", "chưa hết", "không hết", "không giảm", "không chịu nổi", "nặng dần",
                             "ngày càng", "kéo dài", "liên tục", "suốt", "như búa bổ", "muốn nổ",
                             "du doi", "nhieu", "khong do", "chua do", "chua het", "khong het", "khong giam", "khong chiu noi", "nang dan",
-                            "ngay cang", "keo dai", "lien tuc", "suot", "nhu bua bo", "muon no"]}
+                            "ngay cang", "keo dai", "lien tuc", "suot", "nhu bua bo", "muon no", "quá trời", "kinh khủng", "khủng khiếp", "quằn quại", "không đi lại được", "không đi được", "qua troi", "kinh khung", "khung khiep", "quan quai", "khong di lai duoc", "khong di duoc"]}
   FLUID: {name: "Ra nước âm đạo", meaning: "nước hoặc dịch (trong, đục) chảy / rỉ ra từ âm đạo, làm ướt quần – không phải nước tiểu (S1)", level: red,
-          synonyms: ["ra nước", "ướt quần", "rỉ ối", "vỡ ối", "ra nuoc", "uot quan", "ri oi", "vo oi", "rỉ nước", "ri nuoc", "vỡ nước ối", "vo nuoc oi", "nước chảy ra âm đạo", "nuoc chay ra am dao"]}
+          synonyms: ["ra nước", "ướt quần", "rỉ ối", "vỡ ối", "ra nuoc", "uot quan", "ri oi", "vo oi", "rỉ nước", "ri nuoc", "vỡ nước ối", "vo nuoc oi", "nước chảy ra âm đạo", "nuoc chay ra am dao", "ra nc", "rỉ nc", "ri nc"]}
   CONTRACTIONS: {name: "Gò bụng", meaning: "bụng (tử cung) căng cứng, co thắt, siết lại thành từng cơn, lặp lại (S3)", level: red, red_only_before_term: true,
                  synonyms: ["gò bụng", "cứng bụng", "bụng cứng", "bụng căng cứng", "bụng thắt", "bụng gò", "gò cứng", "go bung", "cung bung", "bung that", "bung go", "go cung"]}
   ABD_PAIN: {name: "Đau bụng", meaning: "đau, tức, quặn, âm ỉ, nhói ở bụng – ngoài vùng bụng trên giữa (S1)", level: yellow, level_if_severe: red,
              synonyms: ["đau bụng", "dau bung", "đau quặn", "dau quan"],
-             severe_words: ["nhiều", "dữ dội", "quặn", "không chịu nổi", "nhieu", "du doi", "khong chiu noi"]}
+             severe_words: ["nhiều", "dữ dội", "quặn", "không chịu nổi", "nhieu", "du doi", "khong chiu noi", "quá trời", "kinh khủng", "khủng khiếp", "quằn quại", "không đi lại được", "không đi được", "qua troi", "kinh khung", "khung khiep", "quan quai", "khong di lai duoc", "khong di duoc"]}
   DYSPNEA: {name: "Khó thở", meaning: "khó thở, thở nhanh, thở dốc, hụt hơi, không đủ hơi, nặng hoặc đau ngực khi thở (S1, S2)", level: red,
-            synonyms: ["khó thở", "thở không nổi", "hụt hơi", "kho tho", "tho khong noi", "hut hoi", "thở nhanh", "tho nhanh", "thở dốc", "tho doc", "thở gấp", "tho gap"]}
+            synonyms: ["khó thở", "thở không nổi", "hụt hơi", "kho tho", "tho khong noi", "hut hoi", "thở nhanh", "tho nhanh", "thở dốc", "tho doc", "thở gấp", "tho gap", "không thể thở", "khong the tho", "thở không được", "tho khong duoc", "không thở được", "khong tho duoc", "ko thở được", "ko tho duoc"]}
   CALF: {name: "Đau sưng một bên bắp chân", meaning: "MỘT bên chân (bắp chân, cẳng chân, đùi) sưng, đau, đỏ hoặc nóng hơn bên kia (S1, S2)", level: red,
-         synonyms: ["bắp chân", "sưng một bên chân", "bap chan", "sung mot ben chan", "chân sưng đỏ", "chan sung do", "sưng đỏ một bên chân", "sung do mot ben chan"]}
+         synonyms: ["bắp chân", "sưng một bên chân", "bap chan", "sung mot ben chan", "chân sưng đỏ", "chan sung do", "sưng đỏ một bên chân", "sung do mot ben chan", "chân bị sưng một bên", "chan bi sung mot ben", "chân sưng một bên", "chan sung mot ben", "cẳng chân sưng", "cang chan sung"]}
   FACE_EDEMA: {name: "Phù mặt / tay", meaning: "phù / sưng mặt, mí mắt, bàn tay, ngón tay (S1, S2, S4)", level: yellow,
                synonyms: ["mặt sưng", "sưng mặt", "nhẫn chật", "phù mặt", "phù tay", "sưng tay", "mat sung", "sung mat", "nhan chat", "phu mat", "phu tay", "sưng mí mắt", "sung mi mat", "mí mắt sưng", "mi mat sung"]}
   FEVER: {name: "Sốt", meaning: "sốt: người nóng, hâm hấp, ớn lạnh / run, nhiệt độ từ 38°C (S1, S2)", level: yellow,
@@ -333,7 +336,7 @@ symptom_concepts:
   # chóng mặt = Vàng. Không dùng từ đơn dễ nhầm ("xỉu" ≈ "xíu" khi không dấu, "hồi hộp" = lo lắng, "căng tức ngực" = vú).
   CONVULSION: {name: "Co giật", meaning: "co giật, lên cơn giật tay chân, sùi bọt mép, mất ý thức kèm giật (S1)", level: red, past_counts_yellow: true,
                synonyms: ["co giật", "lên cơn giật", "giật tay chân", "sùi bọt mép", "lên cơn động kinh",
-                          "co giat", "len con giat", "giat tay chan", "sui bot mep", "len con dong kinh"]}
+                          "co giat", "len con giat", "giat tay chan", "sui bot mep", "len con dong kinh", "co quắp", "co quap"]}
   SYNCOPE: {name: "Ngất / xỉu", meaning: "ngất, xỉu, bất tỉnh, mất ý thức trong chốc lát (S2, S3)", level: red, past_counts_yellow: true,
             synonyms: ["ngất", "ngất xỉu", "bị xỉu", "xỉu đi", "xỉu xuống", "bất tỉnh", "lịm đi",
                        "ngat xiu", "bi xiu", "xiu di", "xiu xuong", "bat tinh", "lim di"]}

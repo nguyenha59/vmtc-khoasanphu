@@ -66,3 +66,9 @@ cases:
   - {id: structured_03, group: structured, text: "Em thấy khỏe", answers: {C1: "Có"}, expected: red}
   - {id: structured_04, group: structured, text: "Em ra máu âm đạo", answers: {C1: "Không"}, expected: red}
   - {id: structured_05, group: structured, text: "", answers: {C1: "Không chắc"}, expected: yellow}
+  - {id: edge_persistent, group: expanded, text: "Em vẫn chưa hết ra máu âm đạo", expected: red}
+  - {id: edge_subject_time, group: expanded, text: "Mẹ em hôm nay bị khó thở", expected: green}
+  - {id: edge_long_negation, group: expanded, text: "Em không hề thấy bị ra máu âm đạo hay ra nước", expected: green}
+  - {id: edge_condition_list, group: expanded, text: "Nếu em ra máu hoặc em khó thở thì đi khám", expected: green}
+  - {id: edge_severity_activity, group: expanded, text: "Em đau bụng nhẹ và em uống nhiều nước", expected: yellow}
+  - {id: edge_unclear, group: expanded, text: "Em thấy khó chịu mà không rõ ở đâu", expected: yellow, needs_human: true}

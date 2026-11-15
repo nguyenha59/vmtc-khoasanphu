@@ -24,6 +24,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 DEMO_DB = ROOT / "data" / "app.db"
 SYNTH = ROOT / "data" / "synthetic"
+WEB_BUILT = (ROOT / "web" / "dist" / "index.html").exists()  # bước 7 README (npm run build); clone mới chưa có
 
 pytestmark = pytest.mark.skipif(not DEMO_DB.exists() or not (ROOT / ".env").exists(),
                                 reason="Chưa chạy scripts/make_key.py + scripts/seed_demo.py")
@@ -189,7 +190,8 @@ def test_3_form_to_red_alert_to_closed(env):
     # Thai phụ mở đường dẫn: không đăng nhập; trang SPA /form trả index.html
     c.cookies.clear()
     page = c.get(path)
-    assert page.status_code == 200 and "<div id=\"root\">" in page.text
+    if WEB_BUILT:
+        assert page.status_code == 200 and "<div id=\"root\">" in page.text
     f = c.get(f"/api/public/form/{token}")
     assert f.status_code == 200, f.text
     form = f.json()
@@ -338,7 +340,7 @@ def test_7_quality_spa_logout(env):
     fb = q.json()["feedback"]  # vòng học từ kết quả gọi (ca demo ở bước 3 không được tính – xem test_security_fixes)
     assert {"overall", "reasons", "by_rules_version", "review"} <= set(fb)
     assert c.post("/api/quality/run/forms").status_code == 403  # chạy đánh giá: chỉ admin
-    for path in ("/", "/alerts", "/appointments", "/profile", "/config"):
+    for path in ("/", "/alerts", "/appointments", "/profile", "/config") if WEB_BUILT else ():
         r = c.get(path)
         assert r.status_code == 200 and "<div id=\"root\">" in r.text, path
     # header bảo mật: chống nhúng iframe, không rò token form qua Referer, không lưu bộ nhớ đệm dữ liệu API

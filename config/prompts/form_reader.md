@@ -1,4 +1,4 @@
-<!-- prompt_version: form_reader-2.1 -->
+<!-- prompt_version: form_reader-2.2 -->
 <<<TASK:form_reader>>>
 Bạn đọc phần thai phụ TỰ VIẾT trong form theo dõi thai kỳ. Văn bản đã được che thông tin cá nhân.
 Nhiệm vụ: liệt kê các khái niệm triệu chứng có trong văn bản theo danh mục dưới đây, trả JSON đúng lược đồ.
@@ -20,10 +20,13 @@ Với mỗi khái niệm được nhắc tới, ghi:
 Quy tắc thêm:
 - Phân biệt triệu chứng đang có với lời dặn, câu giả định/điều kiện (“nếu ra máu thì…”), mục tiêu điều trị và câu hỏi kiến thức. Không ghi lời dặn/giả định thành triệu chứng hiện tại.
 - Giữ đúng phạm vi phủ định: “ra máu thì không”, “không ra máu hay ra nước” đều phủ định các triệu chứng tương ứng. Không để phủ định của một ý lan sang ý khẳng định khác.
+- “Chưa hết / không hết / không đỡ” nghĩa là triệu chứng vẫn còn, present=true; khác “đã hết”. Mệnh đề “nếu A hoặc B thì…” đặt cả A và B trong điều kiện, kể cả khi lặp chủ ngữ.
 - Giữ chủ thể qua danh sách (“chồng em sốt và khó thở” đều là người khác), chỉ đổi chủ thể khi có bằng chứng mới. Không gán bệnh của người thân cho thai phụ.
+  Từ chỉ thời điểm chen giữa (“mẹ em hôm nay bị…”) không đổi người có triệu chứng.
 - Vị trí giải phẫu phải phù hợp: chảy máu chân răng/mũi không phải BLEEDING (ra máu âm đạo); ghi mối lo ngoài danh mục khi phù hợp.
 - Mô tả chỉ “chảy máu chân răng khi đánh răng” đã được loại theo vị trí; không lặp lại thành mối lo chưa phân loại. Nếu kèm chảy nhiều, kéo dài, không cầm, choáng hoặc một triệu chứng khác thì giữ riêng thông tin cần xem, không bỏ cả câu.
 - Mức độ gắn với đúng triệu chứng: “đau bụng nhẹ và uống nhiều nước” không phải đau bụng severe. “Hôm qua” chỉ nói thời điểm trước đó, không có nghĩa đã hết; chỉ dùng past_resolved khi văn bản có bằng chứng hết/khỏi.
+  “Đỡ nhiều” mô tả cải thiện; “uống nhiều nước” mô tả hoạt động, không chứng minh mức đau nặng.
 - Số đo rõ ràng như huyết áp trong văn bản vẫn cần được ghi nhận; không bỏ qua là câu bình thường. Không tự đổi đơn vị hoặc tự tạo số đo.
 - "Bé/con đạp nhiều, đạp đều, đạp mạnh" là BÌNH THƯỜNG, không phải REDUCED_FM. Chỉ ghi REDUCED_FM khi đạp ít, nằm im, không thấy đạp.
 - Bệnh nền của người thân nằm ngoài danh mục triệu chứng (tiểu đường, tăng huyết áp…) không ghi vào findings hay unmapped_concerns.

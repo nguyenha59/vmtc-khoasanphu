@@ -24,7 +24,11 @@ _OTHER = re.compile(
 )
 _SELF = re.compile(r"\b(?:em|toi|minh)\b")
 _BRIDGES = {"bi", "cung", "co", "dang", "hay", "thi", "lai", "van", "hoi", "rat"}
+_SUBJECT_TIME = re.compile(r"\b(?:hom nay|hom qua|hom kia|hom truoc|tuan truoc|thang truoc|luc truoc|"
+                           r"sang nay|chieu nay|toi nay|toi qua|bay gio|hien tai|luc nay)\b")
 _NEG_BRIDGES = {"bi", "co", "thay", "con", "he", "phai"}
+_NEG_GROUPS = {("dau", "hieu"), ("trieu", "chung"), ("bieu", "hien"), ("tinh", "trang"),
+               ("hien", "tuong"), ("ghi", "nhan"), ("bao", "gio")}  # "chưa bao giờ ra máu" = phủ định
 _NEGATORS = {"khong", "chua", "ko", "k", "het", "chang", "cha"}
 _COORD = re.compile(r"^\s*(?:(?:va|hay|hoac|cung|dong thoi|kem)\s*)+$")
 _CURRENT = re.compile(r"\b(?:hom nay|sang nay|chieu nay|toi nay|bay gio|hien tai|van|den gio|toi gio|den nay)\b")
@@ -34,6 +38,7 @@ _RESOLVED = re.compile(
     r"\b(?:sang|chieu|toi|hom) nay (?:da )?(?:het|khoi)(?=\s*(?:roi|han)?\s*$)"
 )
 _CONDITIONAL = re.compile(r"\b(?:neu|gia su|gia nhu|phong khi|lo ma|khi nao)\b")
+_DOUBT = re.compile(r"\b(?:khong chac|khong ro|chua ro|khong biet|co le|hinh nhu|nghi la)\b")
 _NON_GENITAL = re.compile(
     r"\b(?:chan rang|nuou|loi rang|mui|vet thuong|ngoai da|ngon tay|dau goi|"
     r"hau mon|truc trang|di ngoai|non ra mau|ho ra mau)\b"
@@ -83,7 +88,10 @@ def subject_before(before: str) -> Subject:
     if not matches:
         return "patient"
     last = matches[-1]
-    tail = re.findall(r"\w+", plain[last.end():])
+    tail_text = _SUBJECT_TIME.sub(" ", plain[last.end():])
+    # "con gái lớn CỦA EM bị sốt": "của em" là sở hữu, không phải chủ ngữ mới là thai phụ.
+    tail_text = re.sub(r"^\s*(?:(?:lon|nho|ca|ut|be)\s+)?cua\s+(?:em|toi|minh)\b", " ", tail_text)
+    tail = re.findall(r"\w+", tail_text)
     # "chồng em thấy EM khó thở" establishes a new patient subject.
     if any(t in {"em", "toi", "minh"} for t in tail):
         return "patient"
@@ -93,6 +101,27 @@ def subject_before(before: str) -> Subject:
 def has_explicit_subject(text: str) -> bool:
     plain = _plain(text)
     return bool(_OTHER.search(plain) or _SELF.search(plain))
+
+
+def assertion_content_start(text: str) -> int:
+    """Bỏ phần chủ ngữ / trạng thái đầu một đoạn trích để ràng buộc sự kiện chưa có mã."""
+    plain = _plain(text)
+    position = 0
+    time = _SUBJECT_TIME.match(plain)
+    if time:
+        position = time.end()
+    whitespace = re.match(r"\s*", plain[position:])
+    position += whitespace.end()
+    subject = _OTHER.match(plain, position) or _SELF.match(plain, position)
+    if subject:
+        position = subject.end()
+    modifiers = _BRIDGES | _NEG_BRIDGES | _NEGATORS | {"da"}
+    while True:
+        word = re.match(r"\s*(\w+)\s*", plain[position:])
+        if word is None or word.group(1) not in modifiers:
+            break
+        position += word.end()
+    return min(position, max(0, len(text) - 1))
 
 
 def _resolved(text: str) -> bool:
@@ -114,39 +143,94 @@ def assertion_context(
     scope_before = clause[previous_end:start] if previous is not None else before
     tokens = re.findall(r"\w+", _plain(before))
     idx, skipped = len(tokens) - 1, 0
-    while idx >= 0 and tokens[idx] in _NEG_BRIDGES and skipped < 2:
-        idx -= 1
-        skipped += 1
-    negated = negation_allowed and idx >= 0 and tokens[idx] in _NEGATORS
-    if negation_allowed and previous is not None and not previous.present and _COORD.fullmatch(_plain(scope_before)):
+    while idx >= 0 and skipped < 8:
+        if tokens[idx] in _NEG_BRIDGES:
+            idx -= 1
+            skipped += 1
+        elif idx >= 1 and tuple(tokens[idx - 1:idx + 1]) in _NEG_GROUPS:
+            idx -= 2
+            skipped += 2
+        else:
+            break
+    denied = idx >= 1 and tokens[idx - 1:idx + 1] == ["phu", "nhan"]
+    negated = negation_allowed and idx >= 0 and (tokens[idx] in _NEGATORS or denied)
+    # Phủ định kép "không phải là không ra máu" / "không phải không có" = khẳng định.
+    if negated and re.search(r"\b(?:khong|ko|chang)\s+phai\s+(?:la\s+)?$", " ".join(tokens[:idx]) + " "):
+        negated = False
+    # "chưa/không hết X" là X vẫn tiếp diễn, không phải phủ định X.
+    not_resolved = bool(idx > 0 and tokens[idx] == "het" and tokens[idx - 1] in {"khong", "chua", "ko", "k"})
+    if not_resolved:
+        negated = False
+    coordinated = _plain(scope_before)
+    if previous is not None and previous.anatomy == "genital":
+        coordinated = re.sub(r"^\s*(?:am dao|vung kin|cua minh|quan lot|bang ve sinh)\b", " ", coordinated)
+    if negation_allowed and previous is not None and not previous.present and _COORD.fullmatch(coordinated):
         negated = previous.assertion_status == "negated"
     # Postposed negation requires an explicit grammatical cue. Bare "... không?"
     # is a question, not proof that the symptom is absent.
-    if negation_allowed and re.match(r"^\s*(?:thi|cung|deu)\s+(?:khong|ko|chua)(?:\s+co)?\s*$", _plain(after)):
+    assertion_tail = re.sub(r"^\s*(?:am dao|vung kin|cua minh|quan lot|bang ve sinh)\b", " ", _plain(after))
+    if negation_allowed and re.match(r"^\s*(?:thi|cung|deu)\s+(?:khong|ko|chua)(?:\s+co)?\s*$", assertion_tail):
+        negated = True
+    if negation_allowed and re.match(r"^\s*[:=\-]\s*(?:khong|ko|chua)(?:\s+co)?\s*$", assertion_tail):
         negated = True
 
     subject = subject_before(before)
+    subject_suffix = assertion_tail
+    postposed_subject = re.match(r"^\s*(?:la|cua)\s+", subject_suffix)
+    if postposed_subject and _OTHER.match(subject_suffix, postposed_subject.end()) and not _SELF.search(_plain(before)):
+        subject = "other"
     if not has_explicit_subject(scope_before):
-        if previous is not None and _COORD.fullmatch(_plain(scope_before)):
+        if previous is not None and _COORD.fullmatch(coordinated):
             subject = previous.experiencer
         elif previous is None and inherited_subject is not None and (
                 not scope_before.strip() or _COORD.fullmatch(_plain(scope_before))):
             subject = inherited_subject
 
     status: Status = "negated" if negated else "affirmed"
-    if _CONDITIONAL.search(_plain(scope_before)):
+    conditionals = list(_CONDITIONAL.finditer(_plain(before)))
+    in_condition = bool(conditionals and not re.search(r"\bthi\b", _plain(before)[conditionals[-1].end():]))
+    if _CONDITIONAL.search(_plain(scope_before)) or in_condition:
         status = "conditional"
+        # "Nếu đứng lâu LÀ EM bị ra máu", "khi nào đi tiểu EM CŨNG thấy ra máu": khách kể việc lặp lại đã xảy ra,
+        # không phải câu giả định → chưa chắc, cần gọi xác minh (không cho Xanh). Câu hỏi giả định thật
+        # ("nếu ra máu thì em phải làm sao") vẫn là điều kiện.
+        cond_tail = _plain(before)[conditionals[-1].end():] if conditionals else _plain(scope_before)
+        habitual = re.search(r"\b(?:la|thi)\s+(?:em|toi|minh)\b|\b(?:em|toi|minh)\s+(?:cung|lai|hay|deu|toan|luc nao)\b",
+                             cond_tail)
+        asking = re.search(r"\b(?:lam sao|lam gi|the nao|co sao|co nguy hiem|co sao khong|co can|nen lam|phai di)\b",
+                           _plain(clause))
+        if habitual and not asking:
+            status = "uncertain"
     if (status == "affirmed" and previous is not None and previous.assertion_status == "uncertain"
-            and _COORD.fullmatch(_plain(scope_before))):
+            and _COORD.fullmatch(coordinated)):
         # "đọc trên mạng về ra máu VÀ khó thở": cả hai vẫn là thông tin đọc được.
         # Chủ ngữ / diễn biến mới ("và em đang khó thở") chấm dứt phạm vi này.
         status = "uncertain"
+    if status == "affirmed":
+        doubts = list(_DOUBT.finditer(_plain(scope_before)))
+        if doubts:
+            tail = re.findall(r"\w+", _plain(scope_before)[doubts[-1].end():])
+            if len(tail) <= 4 and all(word in {"co", "bi", "thay", "la", "phai", "em", "toi", "minh"} for word in tail):
+                status = "uncertain"
+        question = bool(re.search(r"\b(?:co nguy hiem|co sao|la gi|nghia la gi|co can di kham)\b", _plain(after)))
+        generic_question = (not _SELF.search(_plain(before))
+                            or re.search(r"\b(?:cho em hoi|em muon hoi|xin hoi)\b", _plain(before)))
+        leads = list(re.finditer(r"\b(?:cho em hoi|em muon hoi|xin hoi)\b", _plain(before)))
+        if leads and _SELF.search(_plain(before)[leads[-1].end():]):
+            generic_question = False
+        if question and generic_question and not re.search(r"\b(?:dang|vua|van)\b", _plain(before)):
+            status = "uncertain"
 
     # A time in the past does not establish that an event has resolved.
     resolution_tail = after
     if next_clause and not has_explicit_subject(next_clause):
         resolution_tail += " " + next_clause
-    resolved = _resolved(resolution_tail)
+    pre_resolved = bool(idx >= 0 and tokens[idx] == "het" and not not_resolved)
+    explicit_history = pre_resolved and (idx > 0 and tokens[idx - 1] == "da" or bool(_PAST.search(_plain(before))))
+    if explicit_history and status != "conditional":
+        # "đã hết X": xác nhận một sự kiện trước đó; "không X" chỉ phủ định.
+        negated, status = False, "affirmed"
+    resolved = _resolved(resolution_tail) or pre_resolved
     temporality = "past_resolved" if resolved else (
         "current" if _CURRENT.search(_plain(clause)) or not _PAST.search(_plain(clause)) else "unknown"
     )
@@ -210,10 +294,12 @@ def make_fact(
 
     severity = "unknown"
     if severe_words:
-        scoped_after = re.split(r"\b(?:va|roi|nhung|vi|nen)\s+(?:uong|an|di|ngu|doc|xem)\b", local_after)[0]
-        severity_scope = " ".join(local_before.split()[-4:]) + " " + _plain(clause[start:end]) + " " + scoped_after
+        scoped_after = re.split(r"\b(?:va|roi|nhung|vi|nen)\s+(?:(?:em|toi|minh)\s+)?(?:uong|an|di|ngu|doc|xem)\b", local_after)[0]
+        # 6 từ trước: "không đi lại được vì đau bụng" (từ chỉ nặng đứng trước triệu chứng).
+        severity_scope = " ".join(local_before.split()[-6:]) + " " + _plain(clause[start:end]) + " " + scoped_after
         if next_clause and not has_explicit_subject(next_clause):  # "đau đầu, uống thuốc không đỡ"
             severity_scope += " " + _plain(next_clause)
+        severity_scope = re.sub(r"\b(?:da\s+)?(?:do|giam)\s+(?:nhieu|han|dang ke)\b", " ", severity_scope)
         severity = "severe" if any(re.search(rf"(?<!\w){re.escape(_plain(w))}(?!\w)", severity_scope)
                                     for w in severe_words) else "mild"
     elif concept == "HEADACHE":

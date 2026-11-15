@@ -23,7 +23,7 @@ import yaml  # noqa: E402
 
 from core.ai.llm_client import MockClient, OllamaClient, make_client_for, openai_spent  # noqa: E402
 from core.assess import assess_answers  # noqa: E402
-from core.config import TZ, load_env, load_forms, load_rules, ollama_model  # noqa: E402
+from core.config import TZ, load_env, load_forms, load_rules, ollama_model, prompt_text  # noqa: E402
 
 
 def write_report(result: dict, path: Path) -> None:
@@ -85,7 +85,8 @@ def main() -> None:
     spent_before = openai_spent() if args.provider == "openai" else None
     result = {"at": datetime.now(TZ).isoformat(), "synthetic": True, "provider": args.provider,
               "model": client.name, "fallback_enabled": False,
-              "rules_version": rules.rules_version, "planned_cases": len(cases), "status": "running",
+              "rules_version": rules.rules_version, "prompt_version": prompt_text("form_reader")[1],
+              "planned_cases": len(cases), "status": "running",
               "cases": [], "summary": {}}
     for case in cases:
         assessed = assess_answers("F5", case.get("answers", {}), case["text"], case.get("ga_weeks", 30),

@@ -35,12 +35,15 @@ client = make_client(rules)
 print("rules_version", rules.rules_version, "| client", type(client).__name__, getattr(client, "model", ""))
 
 # ---------- Bước 1
-day = sorted((ROOT / "tests" / "golden").glob("expected_arrivals_*.csv"))[0].stem.split("_")[-1]  # ngày mai
+# Đáp án đi cùng lần sinh dữ liệu (data/synthetic/golden); bản cũ sinh thẳng vào tests/golden.
+GOLD = next((g for g in (ROOT / "data" / "synthetic" / "golden", ROOT / "tests" / "golden")
+             if any(g.glob("expected_arrivals_*.csv"))), ROOT / "tests" / "golden")
+day = sorted(GOLD.glob("expected_arrivals_*.csv"))[0].stem.split("_")[-1]  # ngày mai
 raw = read_raw(ROOT / "data" / "synthetic" / f"his_export_{day}.xlsx")
 t0 = time.time()
 res = process_his(raw, load_his_columns(), rules, date.fromisoformat(day), client=client)
 dt = time.time() - t0
-exp = pd.read_csv(ROOT / "tests" / "golden" / f"expected_arrivals_{day}.csv", dtype=str,
+exp = pd.read_csv(GOLD / f"expected_arrivals_{day}.csv", dtype=str,
                   keep_default_na=False).set_index("pid")
 n = len(res.planned)
 with_note = sum(1 for p in res.planned if p.merged.note)

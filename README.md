@@ -55,6 +55,7 @@ ollama pull qwen2.5:7b-instruct
 
 # 4. Dữ liệu giả + nạp CSDL demo + huấn luyện mô hình bỏ hẹn
 python scripts/gen_synthetic.py --seed 42          # dữ liệu giả gọn: ~450 khách, 60 ngày
+#    (ghi vào data/synthetic/, không sửa tests/golden – bộ cố định cho pytest; git pull không bị chặn)
 python scripts/seed_demo.py --reset
 python scripts/train_noshow.py   # chỉ để minh họa; mô hình thật phải huấn luyện lại khi có dữ liệu lịch hẹn thật
 
