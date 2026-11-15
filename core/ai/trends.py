@@ -58,8 +58,13 @@ def weight_trend(readings: list[tuple[datetime, float]], rules: Rules) -> TrendR
     pts = sorted(readings, key=lambda r: r[0])
     if limit is None or len(pts) < 2:
         return TrendResult("weight", Level.GREEN, "")
-    (t0, w0), (t1, w1) = pts[-2], pts[-1]
-    weeks = max((t1 - t0).days / 7, 1 / 7)
+    # So với lần cân cách ít nhất 1 ngày (cân sáng / tối cùng ngày lệch vài trăm gam là bình thường).
+    t1, w1 = pts[-1]
+    earlier = [(t, w) for t, w in pts[:-1] if (t1 - t).total_seconds() >= 86400]
+    if not earlier:
+        return TrendResult("weight", Level.GREEN, "")
+    t0, w0 = earlier[-1]
+    weeks = (t1 - t0).total_seconds() / (7 * 86400)
     rate = (w1 - w0) / weeks
     if rate > float(limit):
         return TrendResult("weight", Level.YELLOW, f"Tăng cân {rate:.1f} kg/tuần > {limit}")

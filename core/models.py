@@ -334,6 +334,20 @@ class QuestionSelection(Base):
     error: Mapped[str | None] = mapped_column(Text)
 
 
+class FormPlanDecline(Base):
+    """Điều dưỡng đã GỠ một bộ câu theo tình trạng → không tự áp dụng lại (docs/13 mục 4).
+
+    Xóa dòng khi điều dưỡng thêm lại mã đó. Bảng mới, không đổi bảng patient đã có dữ liệu.
+    """
+
+    __tablename__ = "form_plan_decline"
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), primary_key=True)
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    edd: Mapped[date | None] = mapped_column(Date)  # lần mang thai lúc gỡ – thai sau không bị chặn
+    declined_by: Mapped[int | None] = mapped_column(Integer)
+    declined_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 class PatientHistory(Base):
     """Thông tin sản khoa của hồ sơ (tuổi, PARA, kỳ kinh cuối, nhóm máu, dị ứng, tiền sử, cuộc sinh).
 

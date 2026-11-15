@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 
 from sqlalchemy.orm import Session
@@ -16,6 +17,8 @@ from core.config import Rules
 from core.db import now
 from core.models import MessageLog
 
+log = logging.getLogger(__name__)
+
 SMS_CHANNELS = {"excel": ExcelSmsChannel, "mock": MockSmsChannel, "test_api": TestApiSmsChannel}
 
 
@@ -26,10 +29,29 @@ def get_sms_channel(rules: Rules) -> SmsChannel:
     return SMS_CHANNELS[name]()
 
 
+class AlertChannelMisconfigured(RuntimeError):
+    """Cấu hình kênh cảnh báo thật nhưng thiếu thông tin → KHÔNG được coi cảnh báo là đã gửi."""
+
+
 def get_alert_channel(rules: Rules) -> AlertChannel:
-    if rules["channels"]["alert"] == "teams_webhook" and os.environ.get("TEAMS_WEBHOOK_URL"):
-        return TeamsAlertChannel()
+    """mock → ghi outbox. teams_webhook mà thiếu TEAMS_WEBHOOK_URL → ném lỗi khi gửi (cảnh báo giữ 'chưa gửi',
+    tác vụ gửi lại đỏ thử lại, nhật ký có cảnh báo) – không lặng lẽ lùi về mock."""
+    if rules["channels"]["alert"] == "teams_webhook":
+        if os.environ.get("TEAMS_WEBHOOK_URL"):
+            return TeamsAlertChannel()
+        return _MisconfiguredAlertChannel()
     return MockAlertChannel()
+
+
+class _MisconfiguredAlertChannel:
+    name = "teams_webhook (thiếu TEAMS_WEBHOOK_URL)"
+
+    def send(self, *args: object, **kwargs: object) -> None:
+        log.error("channels.alert = teams_webhook nhưng thiếu TEAMS_WEBHOOK_URL – cảnh báo CHƯA được gửi")
+        raise AlertChannelMisconfigured("Thiếu TEAMS_WEBHOOK_URL – cảnh báo chưa được gửi")
+
+    def send_digest(self, *args: object, **kwargs: object) -> None:
+        self.send()
 
 
 def record_send(s: Session, result: SendResult) -> None:

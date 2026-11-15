@@ -100,6 +100,27 @@ def test_corrupt_spend_fails_closed(monkeypatch, tmp_path):
         client.generate_json("x", {"type": "object"}, 0, 1)
 
 
+def test_openai_response_snapshot_is_preserved_through_hybrid(monkeypatch, tmp_path):
+    from core.ai.consistency import run_votes
+    from core.ai.llm_client import HybridClient
+
+    monkeypatch.setattr(llm_client, "SPEND_FILE", tmp_path / "ledger.json")
+    monkeypatch.setenv("SYNTHETIC_DATA_ONLY", "1")
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    primary = OpenAIClient(model="gpt-4.1-mini", api_key="synthetic-only")
+    monkeypatch.setattr(primary, "_post", lambda _body: SimpleNamespace(status_code=200,
+                        json=lambda: {"model": "gpt-4.1-mini-2025-04-14",
+                                      "usage": {"prompt_tokens": 10, "completion_tokens": 1},
+                                      "choices": [{"message": {"content": '{"x": 1}'}}]}))
+    local = MockClient(lambda *_: pytest.fail("Successful OpenAI must not call Ollama"), model="ollama:test")
+    client = HybridClient(local=local, primary=primary)
+    votes = run_votes(client, "synthetic", {"type": "object"}, 3, 0)
+    assert votes.outputs == [{"x": 1}] * 3
+    assert votes.models == ["openai:gpt-4.1-mini-2025-04-14"] * 3
+    assert local.calls == 0 and not votes.errors
+
+
 @pytest.mark.parametrize("choice", [
     {"finish_reason": "length", "message": {"content": '{"x":1}'}},
     {"message": {"content": None, "refusal": "synthetic refusal"}},

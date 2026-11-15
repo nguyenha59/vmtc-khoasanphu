@@ -16,24 +16,22 @@ from api.deps import CurrentUser, require
 from core import audit
 from core.ai.llm_client import make_client_safe
 from core.ai.question_selector import selector_client
-from core.alerts import FormAlreadySubmitted, submit_response
+from core.alerts import FormAlreadySubmitted, structured_red, submit_response
 from core.channels import get_alert_channel
 from core.config import FormsConfig, is_production, load_forms, load_rules
 from core.db import now, session_scope
 from core.forms import (
     check_token,
+    compute_selection,
     create_token,
     is_demo_token,
     selection_for,
     snapshot_selection,
     token_form_codes,
 )
-from core.levels import Level
 from core.models import FormToken, Patient
-from core.repo import ga_on
 from core.rules.form_scheduler import ga_at
 from core.rules.personalize import compose_merged
-from core.rules.triage_rules import triage
 
 router = APIRouter(prefix="/api", tags=["form-demo"])  # cần đăng nhập – chỉ ở máy chủ nội bộ
 public_router = APIRouter(prefix="/api", tags=["public-form"])  # không đăng nhập – tiến trình công khai dùng riêng
@@ -69,9 +67,11 @@ def demo_token(body: DemoIn, user: CurrentUser = Depends(require("demo_form"))) 
             raise HTTPException(404, "Không tìm thấy mã thai phụ.")
         if p.consent_status != "granted":
             raise HTTPException(409, "Thai phụ chưa đồng thuận – không gửi form được. Ghi nhận đồng thuận trong Hồ sơ theo dõi.")
+        # Chọn câu (có thể gọi AI) TRƯỚC khi ghi token – không giữ khóa ghi trong lúc chờ AI.
+        computed = compute_selection(s, p, [body.form], rules, forms_cfg, selector_client(rules))
         t = create_token(s, p.id, body.form, rules["forms"]["token_ttl_days"], demo=True)
         s.flush()
-        snapshot_selection(s, p, t, [body.form], rules, forms_cfg, selector_client(rules))
+        snapshot_selection(s, p, t, [body.form], rules, forms_cfg, computed=computed)
         audit.log("create_demo_token", "patient", body.code.strip(), {"form": body.form}, user_id=user.user_id, session=s)
     return {"token": t, "path": f"/form?token={t}"}
 
@@ -135,7 +135,7 @@ async def submit(token: str, body: SubmitIn) -> dict:
     epds_keys = set(forms_cfg.epds["items"]) if fdef.get("epds") else set()
     answers: dict[str, object] = {}
     for k, v in body.answers.items():  # chỉ nhận câu thuộc form, đúng kiểu
-        if k in allowed:
+        if k in allowed and k in forms_cfg.questions:  # câu đã bỏ khỏi forms.yaml sau khi gửi link → bỏ qua
             qd = forms_cfg.questions[k]
             if qd["type"] == "yesno" and v in YESNO:
                 answers[k] = v
@@ -153,10 +153,8 @@ async def submit(token: str, body: SubmitIn) -> dict:
             if err2 or t2 is None:
                 raise HTTPException(409, {"message": err2 or "Đường dẫn không hợp lệ.", "clinic": _clinic()})
             p = s.get(Patient, t2.patient_id)
-            ga = ga_on(p, now().date())
-            structured_red = triage(answers, ga[0] if ga else None, bool(p.on_insulin), rules).level == Level.RED
             # Không kiểm tra mạng/Ollama khi quy tắc đã đủ để cảnh báo đỏ.
-            client, _why = (None, None) if structured_red else make_client_safe(rules)
+            client, _why = (None, None) if structured_red(p, answers, now(), rules) else make_client_safe(rules)
             _r, asm, _a, _res = submit_response(s, p, form_code, answers, body.free_text, rules=rules, forms_cfg=forms_cfg,
                                                 client=client, alert_channel=get_alert_channel(rules), token=token,
                                                 source="demo" if is_demo_token(token) else "app")

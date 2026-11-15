@@ -48,6 +48,7 @@ def recent(user: CurrentUser = Depends(require("view_profile"))) -> dict:
     with session_scope() as s:
         rows = s.execute(select(Patient.code).join(FormResponse, FormResponse.patient_id == Patient.id)
                          .group_by(Patient.code).order_by(func.max(FormResponse.submitted_at).desc()).limit(8)).all()
+        audit.log("view_recent_profiles", "patient", None, {"n": len(rows)}, user_id=user.user_id, session=s)
     return {"codes": [c for (c,) in rows]}
 
 
@@ -110,11 +111,23 @@ def _visits(s: Any, p: Patient, today: date) -> list[dict[str, Any]]:
     return out
 
 
+def _bp_max(hist: dict[str, list[tuple[datetime, float]]], since: datetime) -> str | None:
+    """Lần đo có tâm thu cao nhất, ghép với tâm trương CÙNG thời điểm – không ghép hai lần đo khác nhau thành
+    một số đo chưa từng có (150/80 thứ Hai + 120/105 thứ Năm ≠ 150/105)."""
+    sys_r = [(t, v) for t, v in hist.get("bp_sys", []) if t >= since]
+    if not sys_r:
+        return None
+    dia_at = {t: v for t, v in hist.get("bp_dia", [])}
+    t, v = max(sys_r, key=lambda x: (x[1], dia_at.get(x[0], 0)))
+    return f"{v:.0f}/{dia_at[t]:.0f}" if t in dia_at else f"{v:.0f}"
+
+
 def _bp_over(v: dict[str, Any], lim: dict[str, int] | None) -> bool:
     return bool(lim) and (v["bp_sys"] >= lim["sys"] or v["bp_dia"] >= lim["dia"])
 
 
 def _build(s: Any, p: Patient) -> dict[str, Any]:
+    rules = load_rules()
     today = datetime.now(TZ).date()
     pid_ = p.id
     ga = ga_on(p, today)
@@ -141,7 +154,6 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
     hist = history_for(s, pid_, days=90)
 
     period_bp = [v for t, v in hist.get("bp_sys", []) if t >= since]
-    period_dia = [v for t, v in hist.get("bp_dia", []) if t >= since]
     weights = hist.get("weight", [])
     period_resp = [r for r in resp_rows if r["at"] >= since]
     n_red = sum(r["level"] == "red" for r in period_resp)
@@ -163,7 +175,7 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
         "last_visit": last_visit.isoformat() if last_visit else None, "next_appt": next_appt.isoformat() if next_appt else None,
         "delivery_date": p.delivery_date.isoformat() if p.delivery_date else None,
         "metrics": {"bp_mean": round(statistics.fmean(period_bp)) if period_bp else None, "bp_n": len(period_bp),
-                    "bp_max": f"{max(period_bp):.0f}/{max(period_dia):.0f}" if period_bp and period_dia else None,
+                    "bp_max": _bp_max(hist, since),
                     "weight": round(weights[-1][1], 1) if weights else None,
                     "reply_rate": answered / sent if sent else None, "answered": answered, "sent": sent},
         "summary_lines": lines,
@@ -174,7 +186,7 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
         "visits": _visits(s, p, today),
         "program": program_of(s, pid_),
         "history": history_of(s, pid_),
-        "charts": series_for(hist, load_rules()),
+        "charts": series_for(hist, rules),
     }
 
 

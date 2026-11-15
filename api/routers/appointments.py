@@ -35,7 +35,7 @@ from core.rules.export_worldsms import (
     invalid_phone_rows,
     write_exports,
 )
-from core.rules.review import REASON_LABELS
+from core.rules.review import reason_label
 from core.security import mask_phone
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
@@ -70,7 +70,7 @@ def _row(p: PlanView, waiting: str) -> dict:
         "arrival_label": p.arrival_time.strftime("%H:%M") if p.arrival_time else (waiting if p.method == "waiting" else "—"),
         "method": p.method, "method_label": METHOD_VI.get(p.method, p.method),
         "status": p.status, "status_label": STATUS_VI.get(p.status, p.status),
-        "reasons": [{"code": r, "label": REASON_LABELS.get(r, r)} for r in p.reasons],
+        "reasons": [{"code": r, "label": reason_label(r, load_rules())} for r in p.reasons],
         "merged": len(p.merged_from) > 1,
     }
 
@@ -115,7 +115,7 @@ def list_plans(d: date | None = None, user: CurrentUser = Depends(require("uploa
 def plan_detail(plan_id: int, d: date, user: CurrentUser = Depends(require("upload_his"))) -> dict:
     waiting = _waiting()
     with session_scope() as s:
-        p = next((x for x in plans_for_date(s, d) if x.plan_id == plan_id), None)
+        p = next(iter(plans_for_date(s, d, plan_id)), None)
         if p is None:
             raise HTTPException(404, "Không tìm thấy lịch hẹn.")
         audit.log("view_appointment", "arrival_plan", plan_id, user_id=user.user_id, session=s)
@@ -191,7 +191,7 @@ class ConfirmIn(BaseModel):
 @router.post("/plan/{plan_id}/confirm")
 def confirm(plan_id: int, body: ConfirmIn, user: CurrentUser = Depends(require("confirm_arrival"))) -> dict:
     with session_scope() as s:
-        p = next((x for x in plans_for_date(s, body.d) if x.plan_id == plan_id), None)
+        p = next(iter(plans_for_date(s, body.d, plan_id)), None)
         if p is None:
             raise HTTPException(404, "Không tìm thấy lịch hẹn.")
         t = None
@@ -212,7 +212,7 @@ def confirm(plan_id: int, body: ConfirmIn, user: CurrentUser = Depends(require("
 @router.post("/plan/{plan_id}/called-doctor")
 def called_doctor(plan_id: int, d: date, user: CurrentUser = Depends(require("confirm_arrival"))) -> dict:
     with session_scope() as s:
-        p = next((x for x in plans_for_date(s, d) if x.plan_id == plan_id), None)
+        p = next(iter(plans_for_date(s, d, plan_id)), None)
         if p is None:
             raise HTTPException(404, "Không tìm thấy lịch hẹn.")
         audit.log("called_doctor", "arrival_plan", plan_id, {"reasons": p.reasons}, user_id=user.user_id, session=s)

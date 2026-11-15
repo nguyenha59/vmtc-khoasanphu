@@ -11,19 +11,27 @@ from core.ai.llm_client import LlmClient, LlmError
 from core.ai.masking import NerFn, mask_text
 from core.config import Rules, prompt_text
 
-RISK_VI = {"M-THA": "Tăng huyết áp", "M-DTD": "Đái tháo đường thai kỳ", "HTN": "Tăng huyết áp",
-           "GDM": "Đái tháo đường thai kỳ", "PREECLAMPSIA": "Tiền sản giật", "TWINS": "Song thai",
-           "PRETERM_RISK": "Dọa sinh non", "PREV_CSECTION": "Vết mổ cũ"}
 LEVEL_VI = {"red": "ĐỎ", "yellow": "VÀNG", "green": "XANH"}
 TEMP_VI = {"current": "hiện tại", "past_resolved": "đã qua", "unknown": "không rõ"}
 
 
 def _risk_name(code: str) -> str:
-    """Mã nhóm nguy cơ / module / bộ câu theo tình trạng → tên tiếng Việt (không hiện mã thô như P-SINHNON)."""
-    if code in RISK_VI:
-        return RISK_VI[code]
-    from core.config import load_forms
+    """Mã nhóm nguy cơ / module / bộ câu theo tình trạng → tên tiếng Việt (không hiện mã thô như P-SINHNON).
 
+    Một nguồn duy nhất: rules.yaml personalization (flag_names, risk_codes, flag_targets); module đo (M-THA) lấy tên
+    tình trạng có đúng một module đó (HTN → "Tăng huyết áp"); còn lại lấy tên form trong forms.yaml.
+    """
+    from core.config import load_forms, load_rules
+
+    pers = load_rules().get("personalization") or {}
+    names = pers.get("flag_names") or {}
+    flag = (pers.get("risk_codes") or {}).get(code, code)
+    if flag in names:
+        return str(names[flag])
+    if code.startswith("M-"):  # module đo: tên tình trạng có đúng module này (bộ P- dùng chung → lấy tên form)
+        for f, targets in (pers.get("flag_targets") or {}).items():
+            if list(targets or []) == [code] and f in names:
+                return str(names[f])
     return str(load_forms().forms.get(code, {}).get("name", code))
 
 
@@ -75,7 +83,7 @@ def summarize(
 ) -> tuple[str, str]:
     """Trả (tóm tắt, cách tạo: template | llm).
 
-    Luật 4 (CLAUDE.md): dữ liệu gửi mô hình phải qua masking.py; che không sạch → không gửi, dùng bản mẫu.
+    Luật 4 của dự án: dữ liệu gửi mô hình phải qua masking.py; che không sạch → không gửi, dùng bản mẫu.
     """
     base = template_summary(data)
     if not rules["llm"].get("summary_llm_rewrite") or client is None:

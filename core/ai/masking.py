@@ -21,7 +21,8 @@ BHYT_RE = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]{2}\d{13}(?!\d)")
 # Hộ chiếu: 1–2 chữ + 7–8 số (C1234567, B9876543).
 PASSPORT_RE = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]{1,2}\d{7,8}(?![A-Za-z0-9])")
 # Mã số 7–8 chữ số đứng riêng (PID / mã BN của người khác).
-CODE_RE = re.compile(r"(?<![\d/.:,])\d{7,8}(?![\d/.:,])")
+# Không đứng giữa số khác / ngày (14/11/2026, 1.234.567). Sau "BN:" hay trước dấu phẩy vẫn phải che.
+CODE_RE = re.compile(r"(?<![\d/.])\d{7,8}(?![\d/]|[.,]\d)")
 # Đường dẫn / mạng xã hội.
 URL_RE = re.compile(r"(?:https?://|www\.|(?:fb|facebook|zalo|instagram|tiktok)\.(?:com|me|vn)/)\S+", re.IGNORECASE)
 # Ngày sinh: "sinh ngày 12/03/1995", "ns 1995", "DOB 12-03-1995"; ngày có năm 4 số trước 2020.
@@ -37,17 +38,17 @@ _CAP_WORD = rf"[{_UP}][\w.]*"
 # → không che nhầm "đường huyết", "tiểu đường", "dương tính", "quan trọng". Lấy tới dấu phẩy / chấm phẩy,
 # nối tiếp đoạn sau dấu phẩy nếu đoạn đó cũng là địa chỉ hoặc chỉ gồm ≤ 4 từ viết hoa (tên phường / quận).
 _ADDR_WORD = (
-    r"(?:số\s*nhà|nhà\s*số|so\s*nha|nha\s*so|ngõ|ngách|hẻm|kiệt|đường|phố|phường|quận|huyện|thị\s*xã|thôn|xóm|"
+    r"(?i:số\s*nhà|nhà\s*số|so\s*nha|nha\s*so|ngõ|ngách|hẻm|kiệt|đường|phố|phường|quận|huyện|thị\s*xã|thôn|xóm|"
     r"tổ\s*dân\s*phố|khu\s*phố|chung\s*cư|tòa|toà|ngo|ngach|hem|duong|pho|phuong|quan|huyen|thon|xom|"
     r"P\.|Q\.|TP\.?|ở|o)"
 )
-_ADDR_KEY = rf"(?:(?:địa\s*chỉ|dia\s*chi|\bđc|\bdc)\s*:?|\b{_ADDR_WORD}(?=\s*(?:\d|[{_UP}])))"
+_ADDR_KEY = rf"(?:(?i:địa\s*chỉ|dia\s*chi|\bđc|\bdc)\s*:?|\b{_ADDR_WORD}(?=\s*(?:\d|[{_UP}])))"
 _CAPS_SEG = rf"{_CAP_WORD}(?:\s+{_CAP_WORD}){{0,3}}(?=\s*(?:[,;\n]|$))"
 ADDRESS_RE = re.compile(
     rf"{_ADDR_KEY}[^,;\n]{{0,60}}(?:,\s*(?:{_ADDR_KEY}[^,;\n]{{0,40}}|{_CAPS_SEG}))*"
 )
 # "tên Hùng", "ten hung", "tên là Trần Tuấn": viết hoa → tới 3 từ; viết thường → 1 từ.
-NAMED_RE = re.compile(rf"\b(?:tên|ten)(?:\s+(?:là|la))?\s+(?:{_CAP_WORD}(?:\s+{_CAP_WORD}){{0,2}}|[a-zđ]\w+)")
+NAMED_RE = re.compile(rf"\b(?:[Tt]ên|[Tt]en|TÊN|TEN)(?:\s+(?:là|la))?\s+(?:{_CAP_WORD}(?:\s+{_CAP_WORD}){{0,2}}|[a-zđ]\w+)")
 # CCCD 12 số, kể cả viết tách nhóm "0123 4567 8901".
 CCCD_RE = re.compile(r"(?<!\d)\d(?:[\s.\-]?\d){11}(?!\d)")
 # CMND cũ 9 số.

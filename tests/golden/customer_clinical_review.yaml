@@ -1,0 +1,9 @@
+# Ca giả đối chiếu nguồn, CHƯA bác sĩ duyệt quy tắc phân mức nội bộ.
+source: https://www.cdc.gov/hearher/maternal-warning-signs/index.html
+cases:
+  - {text: "Em đang sốt 38,5 độ C", source_sign: "Nhiệt độ từ 38°C trở lên", policy_review: true}
+  - {text: "Em nôn liên tục cả ngày, không giữ được nước uống", source_sign: "Nôn nhiều và không thể giữ nước uống", policy_review: true}
+  - {text: "Mặt em sưng đến không mở nổi mắt", source_sign: "Phù mặt ảnh hưởng việc mở mắt", policy_review: true}
+  - {text: "Em vừa ngất xỉu", source_sign: "Mất ý thức hoặc chóng mặt", policy_review: false}
+  - {text: "Em đau thắt ngực", source_sign: "Đau vùng ngực", policy_review: false}
+  - {text: "Em chóng mặt liên tục nhiều ngày", source_sign: "Chóng mặt dai dẳng hoặc tái diễn", policy_review: true}

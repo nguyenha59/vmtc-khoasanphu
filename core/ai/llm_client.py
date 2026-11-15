@@ -221,6 +221,7 @@ class OpenAIClient:
             raise LlmError("Thiếu OPENAI_API_KEY trong .env.")
         self.model = os.environ.get("OPENAI_MODEL") or model or DEFAULT_OPENAI_MODEL
         self.name = f"openai:{self.model}"
+        self.last_provider: str | None = None
         self.timeout = timeout
         self._no_temperature = False  # một số mô hình chỉ nhận temperature mặc định
         self.budget = _env_float("OPENAI_BUDGET_USD", 1.0)
@@ -236,6 +237,7 @@ class OpenAIClient:
     def generate_json(
         self, prompt: str, schema: dict[str, Any], temperature: float, seed: int | None
     ) -> dict[str, Any]:
+        self.last_provider = None
         system = (
             "Bạn là trợ lý đọc văn bản y khoa tiếng Việt cho phòng khám sản. Chỉ trả về MỘT đối tượng JSON "
             "đúng lược đồ sau, không thêm chữ nào khác:\n" + json.dumps(schema, ensure_ascii=False)
@@ -294,7 +296,10 @@ class OpenAIClient:
                 spend_store.settle(SPEND_FILE, reservation, usage=usage_cost, charged=charged)
             except (OSError, ValueError, TypeError, TimeoutError) as e:
                 raise LlmError("Không đối soát được chi phí OpenAI – giữ chỗ ngân sách còn hiệu lực") from e
-        return validate(out, schema)
+        result = validate(out, schema)
+        response_model = data.get("model")
+        self.last_provider = f"openai:{response_model}" if isinstance(response_model, str) and response_model else self.name
+        return result
 
     def available(self) -> bool:
         return bool(self.api_key)
@@ -336,10 +341,10 @@ class HybridClient:
                 # Không ghi prompt, API key hoặc nội dung lỗi từ máy chủ vào log.
                 log.warning("OpenAI không dùng được; chuyển sang Ollama cho client này.")
             else:
-                self.last_provider = self.primary.name
+                self.last_provider = result_provider(self.primary)
                 return result
         result = self.local.generate_json(prompt, schema, temperature, seed)
-        self.last_provider = self.local.name
+        self.last_provider = result_provider(self.local)
         return result
 
     def available(self) -> bool:

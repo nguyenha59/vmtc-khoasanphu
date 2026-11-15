@@ -18,7 +18,7 @@ REASON_LABELS = {
     "AI_FAILED": "AI không chạy được (lỗi kết nối / hết ngân sách) – kiểm tra theo ghi chú",
     "LOW_CONF": "AI không chắc chắn",
     "CALL_NOTE": "Ghi chú yêu cầu gọi / xác nhận",
-    "LATE_GA": "Tuần thai ≥ 37",
+    "LATE_GA": "Tuần thai ≥ {late_ga_weeks}",  # ngưỡng lấy từ arrival.late_ga_weeks (reason_label)
     "CONFLICT": "Hai lịch trong ngày xung đột",
     "AI_RULE_DIFF": "AI và quy tắc lệch nhau",
     "WAITING_NOTE_TIME": "Khám chờ nhưng ghi chú có giờ đến",
@@ -27,6 +27,12 @@ REASON_LABELS = {
     "PII_LEFT": "Che dữ liệu chưa sạch – không gửi AI",
     "NO_RULE": "Không quy tắc nào áp dụng được",
 }
+
+
+def reason_label(code: str, rules: Rules) -> str:
+    """Nhãn lý do cần xác nhận; số ngưỡng đọc từ rules.yaml (không viết cứng)."""
+    label = REASON_LABELS.get(code, code)
+    return label.format(late_ga_weeks=rules["arrival"]["late_ga_weeks"]) if "{" in label else label
 
 
 @dataclass

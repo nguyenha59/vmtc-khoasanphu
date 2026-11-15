@@ -175,7 +175,11 @@ def _plan_for_patient(st: PatientState, today: date, rules: Rules) -> list[FormD
             if today.weekday() not in days or _last_sent(st, module) == today:
                 continue
         else:
-            every = mcfg.get("every_days_if_insulin", mcfg["every_days"]) if st.on_insulin else mcfg["every_days"]
+            every = mcfg.get("every_days_if_insulin", mcfg.get("every_days")) if st.on_insulin else mcfg.get("every_days")
+            if every is None:  # không có lịch gửi riêng (vd bộ P- chỉ có cửa sổ tuần thai) → ghép vào form mốc
+                if module.startswith("P-"):
+                    active_packs.append(module)
+                continue
             last = _last_sent(st, module)
             if module.startswith("P-"):
                 routine = [d for c, d in st.sent if c in cfg["windows"]]

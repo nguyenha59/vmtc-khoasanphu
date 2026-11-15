@@ -10,6 +10,7 @@ Giao diện phát triển:   cd web && npm run dev   (Vite proxy /api → cổng
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Iterable
 from contextlib import asynccontextmanager
@@ -34,7 +35,7 @@ from api.routers import (
 )
 from core.config import ROOT, is_production, load_env, load_rules
 from core.db import init_db
-from core.security import MissingSecretKey, load_users
+from core.security import MissingSecretKey, MissingUsersFile, load_users, users_file
 
 WEB_DIST = ROOT / "web" / "dist"
 DEMO_PASSWORDS = ("nurse123", "doctor123", "admin123")  # mật khẩu mẫu trong config/users.yaml
@@ -58,6 +59,9 @@ def production_problems() -> list[str]:
 
 def bootstrap() -> None:
     load_env()
+    if not users_file().exists():
+        logging.getLogger(__name__).error(
+            "Chưa có %s – đăng nhập sẽ không dùng được. Chạy: python scripts/make_key.py", users_file())
     if is_production() and (problems := production_problems()):
         raise RuntimeError("Không khởi động chế độ production: " + "; ".join(problems))
     init_db()
@@ -134,8 +138,10 @@ def build_app(title: str, routers: Iterable[APIRouter], *, docs: bool, spa_paths
     app.middleware("http")(security_headers)
 
     @app.exception_handler(MissingSecretKey)
-    async def _missing_key(_req: Request, exc: MissingSecretKey) -> JSONResponse:
-        return JSONResponse({"detail": str(exc)}, status_code=500)
+    @app.exception_handler(MissingUsersFile)
+    async def _not_set_up(_req: Request, exc: RuntimeError) -> JSONResponse:
+        # Máy chưa cài đặt xong (clone mới chưa chạy make_key.py): 503 kèm cách sửa, không phải lỗi code (500).
+        return JSONResponse({"detail": str(exc)}, status_code=503)
 
     for r in routers:
         app.include_router(r)

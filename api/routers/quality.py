@@ -36,7 +36,7 @@ def quality(user: CurrentUser = Depends(require("view_quality"))) -> dict:
                     "dataset": DS_VI[ds], "label": c["label"], "value": fmt(c["value"]), "target": f"{c['op']} {fmt(c['target'])}",
                     "passed": c["passed"], "blocking": bool(c["blocking"]),
                     "run": (f"{r.ts:%d/%m %H:%M} · {r.model} · {r.prompt_version or ''} · quy tắc {r.rules_version}"
-                            + (f" · {r.metrics.get('limit')} mẫu" if r.metrics.get("limit") else ""))
+                            + (f" · {(r.metrics or {}).get('limit')} mẫu" if (r.metrics or {}).get("limit") else ""))
                            if r else "Chưa có lần chạy đánh giá",
                 })
         human = human_agreement(s)

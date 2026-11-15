@@ -67,6 +67,9 @@ def do_propose(body: ProposeIn, user: CurrentUser = Depends(current_user)) -> di
     rules = load_rules()
     try:
         value = body.value if body.key in CHANNEL_CHOICES else yaml.safe_load(body.value)
+        if body.key in CHANNEL_CHOICES and value not in CHANNEL_CHOICES[body.key]:
+            # Khóa kênh không cần bác sĩ duyệt → ghi ngay; giá trị sai sẽ làm hỏng xuất SMS / gửi cảnh báo.
+            raise RuleChangeError(f"Kênh không hợp lệ: {value!r}. Chọn một trong: {', '.join(CHANNEL_CHOICES[body.key])}.")
         with session_scope() as s:
             ch = propose(s, body.key, value, body.reason, role=user.role, user_id=user.user_id, rules=rules)
             status = ch.status
@@ -91,6 +94,11 @@ def do_approve(change_id: int, user: CurrentUser = Depends(require("approve_rule
 
 @router.post("/changes/{change_id}/reject")
 def do_reject(change_id: int, user: CurrentUser = Depends(require("approve_rule"))) -> dict:
-    with session_scope() as s:
-        reject(s, change_id, role=user.role, user_id=user.user_id)
+    try:
+        with session_scope() as s:
+            reject(s, change_id, role=user.role, user_id=user.user_id)
+    except PermissionDenied as e:
+        raise HTTPException(403, str(e)) from e
+    except RuleChangeError as e:  # vd yêu cầu đã được người khác duyệt / từ chối
+        raise HTTPException(422, str(e)) from e
     return {"ok": True}

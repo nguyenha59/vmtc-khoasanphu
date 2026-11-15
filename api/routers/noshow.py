@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 
 from api.deps import CurrentUser, require
 from api.util import file_response, safe_name
@@ -69,8 +69,12 @@ def _compute(target: date) -> dict:
             return {**base, "bundle": None, "model_warning": str(e)}
         ids = [int(x) for x in preds["appointment_id"]]
         if ids:
-            s.execute(delete(NoshowPrediction).where(NoshowPrediction.appointment_id.in_(ids)))
+            # Chỉ lưu dự đoán lần đầu cho mỗi (lịch hẹn, phiên bản mô hình) – xem lại không ghi đè lịch sử dự đoán.
+            have = set(s.scalars(select(NoshowPrediction.appointment_id).where(
+                NoshowPrediction.appointment_id.in_(ids), NoshowPrediction.model_version == bundle["version"])))
             for _, r in preds.iterrows():
+                if int(r["appointment_id"]) in have:
+                    continue
                 s.add(NoshowPrediction(appointment_id=int(r["appointment_id"]), prob=float(r["prob"]),
                                        top_factors=r["top_factors"], model_version=bundle["version"], created_at=now()))
         info = visits.set_index("appointment_id")
@@ -96,6 +100,8 @@ def overview(d: date | None = None, user: CurrentUser = Depends(require("view_no
     r = _compute(target)
     b = r["bundle"]
     rows = [{k: v for k, v in x.items() if k != "phone"} for x in r["rows"]]
+    audit.log("view_noshow", "date", target.isoformat(), {"rows": len(rows), "reinvite": len(r["reinvite"])},
+              user_id=user.user_id)  # luật 7: mọi thao tác xem ghi audit_log (không ghi tên / SĐT)
     reinv = [{k: v for k, v in x.items() if k not in ("phone", "pid", "patient_id")} for x in r["reinvite"]]
     return {
         "date": target.isoformat(), "yesterday": r["yesterday"].isoformat(), "has_model": b is not None,

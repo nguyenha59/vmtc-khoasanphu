@@ -110,8 +110,8 @@ def _edit_line(text: str, line_no: int, value: Any) -> str | None:
         return None
     head, old_val = m.group("head"), m.group("val")
     comment, nl = m.group("comment") or "", m.group("nl") or ""
-    if old_val.strip().startswith(("|", ">")):
-        return None  # khối nhiều dòng
+    if old_val.strip().startswith(("|", ">")) or not old_val.strip():
+        return None  # khối nhiều dòng / giá trị nằm ở các dòng thụt lề bên dưới (dict, list nhiều dòng)
     new_val = _yaml_scalar(value)
     if not head.endswith((" ", "\t")):
         head += " "
@@ -161,11 +161,15 @@ def _write_rule_locked(path: Path, key: str, value: Any) -> str:
     if edited is not None:
         edited = _edit_line(edited, data.lc.key("rules_version")[0], new_version)
     if edited is not None:
-        check = safe_yaml.safe_load(edited)
-        cur = check
-        for p in parts:
-            cur = cur[p]
-        if cur == value and str(check["rules_version"]) == new_version:
+        try:
+            check = safe_yaml.safe_load(edited)
+            cur = check
+            for p in parts:
+                cur = cur[p]
+            ok = cur == value and str(check["rules_version"]) == new_version
+        except (safe_yaml.YAMLError, KeyError, TypeError):
+            ok = False  # sửa một dòng làm hỏng YAML → không ghi, dùng phương án dự phòng bên dưới
+        if ok:
             _atomic_write(path, edited)
             return new_version
     # Dự phòng: ghi lại toàn bộ bằng ruamel (có thể đổi cách xuống dòng)

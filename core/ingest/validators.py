@@ -11,6 +11,14 @@ from core.config import HisColumns, Rules, parse_hhmm
 from core.ingest.his_reader import HisRow, missing_columns
 from core.security import is_valid_phone
 
+
+def _mask_raw_phone(raw: str | None) -> str:
+    """SĐT sai định dạng vẫn có thể là số thật → chỉ hiện 3 số cuối (báo cáo lưu không mã hóa, hiện giao diện, audit)."""
+    digits = "".join(ch for ch in str(raw or "") if ch.isdigit())
+    if not digits:
+        return str(raw or "")[:20]  # chữ ("không có", "xem ghi chú") – không phải số điện thoại
+    return "•" * max(0, len(digits) - 3) + digits[-3:]
+
 MESSAGES = {
     "E01": "Thiếu cột bắt buộc: {cols}. Kiểm tra lại file xuất từ HIS hoặc ánh xạ trong config/his_columns.yaml.",
     "E02": "Giờ bắt đầu trùng giờ kết thúc ở {pct:.0%} số dòng – nghi nhầm cột. Xuất lại file từ HIS, kiểm tra cột 'Giờ bắt đầu'.",
@@ -87,7 +95,8 @@ def validate_rows(rows: list[HisRow], rules: Rules, selected_date: date | None) 
                 Issue("E05", MESSAGES["E05"].format(row=r.row_no, value=r.appt_date, selected=selected_date), r.row_no)
             )
         if not is_valid_phone(r.phone):
-            rep.row_issues.append(Issue("E06", MESSAGES["E06"].format(row=r.row_no, value=r.phone_raw), r.row_no))
+            rep.row_issues.append(Issue("E06", MESSAGES["E06"].format(row=r.row_no, value=_mask_raw_phone(r.phone_raw)),
+                                  r.row_no))
     for r in rows:
         r.warnings = [i.code for i in rep.issues_for(r.row_no)]
     return rep

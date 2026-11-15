@@ -64,6 +64,12 @@ python scripts/run_eval.py --dataset notes  --provider ollama --bench quick
 python scripts/run_eval.py --dataset forms  --provider ollama --bench quick
 python scripts/run_eval.py --dataset noshow
 
+# Kiểm tra mô tả khách: bộ ca giả có kỳ vọng xanh/vàng/đỏ; xuất JSON + HTML, không ghi CSDL
+python scripts/eval_customer_descriptions.py
+python scripts/eval_customer_descriptions.py --provider ollama --model qwen2.5:7b-instruct --out reports/customer-descriptions/ollama-7b.json
+# OpenAI trực tiếp: dùng key riêng trong .env, chỉ dữ liệu giả, không dự phòng Ollama
+python scripts/eval_customer_descriptions.py --provider openai --out reports/customer-descriptions/openai.json
+
 # 6. Kiểm thử chấp nhận (file lịch ngày mai, form mẫu)
 python scripts/run_acceptance.py
 

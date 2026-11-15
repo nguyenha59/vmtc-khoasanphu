@@ -10,8 +10,9 @@ from sqlalchemy import func, select
 
 from api.deps import CurrentUser, current_user
 from api.routers.alerts import _reasons
+from core import audit
 from core.alerts import STATUS_VI
-from core.config import TZ, llm_provider, load_rules
+from core.config import TZ, llm_provider, load_rules, ollama_model
 from core.db import now, session_scope
 from core.models import (
     Alert,
@@ -39,8 +40,10 @@ def _llm_info() -> dict[str, str]:
         provider = llm_provider(rules)
     except ValueError:
         return {"provider": "blocked", "model": ""}
-    model = {"ollama": rules["llm"]["model"],
-             "openai": os.environ.get("OPENAI_MODEL") or rules["llm"].get("openai_model", "")}.get(provider, "mock")
+    local = ollama_model(rules)  # biến môi trường OLLAMA_MODEL ưu tiên hơn rules.yaml
+    remote = os.environ.get("OPENAI_MODEL") or rules["llm"].get("openai_model", "")
+    model = {"ollama": local, "openai": remote, "hybrid": f"{remote} → dự phòng {local}",
+             "mock": "mock"}.get(provider, provider)
     return {"provider": provider, "model": model}
 
 
@@ -74,6 +77,9 @@ def overview(user: CurrentUser = Depends(current_user)) -> dict:
                         "code": p.code, "summary": (asm.summary or "")[:160], "reasons": _reasons(asm),
                         "created_at": a.created_at.isoformat() if a.created_at else None}
                        for a, asm, _r, p in latest]
+        if latest_rows:  # luật 7: xem cảnh báo ghi audit_log (chỉ mã cảnh báo, không tên / SĐT)
+            audit.log("view_latest_alerts", "alert", None, {"ids": [r["id"] for r in latest_rows]},
+                      user_id=user.user_id, session=s)
 
     steps = [
         {"key": "his", "label": "Tải file lịch hẹn HIS ngày mai", "done": n_appt > 0, "to": "/lich-hen"},

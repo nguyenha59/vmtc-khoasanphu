@@ -66,7 +66,8 @@ def plan_appointment(
     if m.note:
         mask = mask_text(m.note, full_name=m.full_name, pid=m.pid, doctor_names=doctors, ner=ner)
         skip_ai = read_fully_by_rules(m.note, rules["arrival"].get("ai_skip_vocabulary", []))
-        sensitive = find_sensitive(m.note, (rules.get("privacy") or {}).get("sensitive_topics", []))
+        sensitive = find_sensitive("\n".join([m.note, *m.services]),
+                                   (rules.get("privacy") or {}).get("sensitive_topics", []))
         # Ghi chú nhạy cảm không gửi ra API bên ngoài, kể cả khi đã che (chỉ mô hình cục bộ / mock).
         external = can_send_external(client)
         task_client = local_only_client(client) if sensitive else client
@@ -79,8 +80,17 @@ def plan_appointment(
         elif task_client is None:
             ai_status = "sensitive"
         else:
-            extraction = extract(mask.text, m.services, m.start_time, task_client, rules)
-            ai_status = "ok" if extraction.ai is not None else "failed"
+            # Dịch vụ HIS cũng là văn bản tự do và có thể chứa định danh.
+            service_masks = [mask_text(service, full_name=m.full_name, pid=m.pid,
+                                       doctor_names=doctors, ner=ner) for service in m.services]
+            if not all(service.ok for service in service_masks):
+                mask.ok = False
+                mask.leftovers.append("SERVICE_PII")
+                ai_status = "mask_failed"
+            else:
+                extraction = extract(mask.text, [service.text for service in service_masks],
+                                     m.start_time, task_client, rules)
+                ai_status = "ok" if extraction.ai is not None else "failed"
     ai = extraction.ai if extraction else None
     arrival = compute_arrival(m.start_time, m.services, m.note, ai, rules, slots=m.slots)
     if m.note and sensitive:

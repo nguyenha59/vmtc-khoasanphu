@@ -125,7 +125,7 @@ def triage(answers: dict[str, Any], ga_weeks: int | None, on_insulin: bool, rule
             out.readings.append(("bp_sys", sys_v, slot))
         if dia_v is not None:
             out.readings.append(("bp_dia", dia_v, slot))
-        def crossed(lim: dict[str, int]) -> str:
+        def crossed(lim: dict[str, int], s_v: float = s_v, d_v: float = d_v) -> str:
             # Nêu đúng chỉ số vượt ngưỡng: "138/90" vượt vì tâm trương, không ghi "≥ 140/90" gây hiểu lầm.
             s_hit, d_hit = s_v >= lim["sys"], d_v >= lim["dia"]
             if s_hit and d_hit:

@@ -24,6 +24,8 @@ type PreviewQ = {
 export type FormPlanData = {
   flags: { flag: string; name: string; evidence: Evidence[] }[];
   items: Item[]; pending_flags: string[]; stale_confirmed: string[]; confirmed: string[]; insulin: boolean;
+  /** Có căn cứ bác sĩ ghi, sẽ tự áp dụng – hiện sẵn đã tick; điều dưỡng bỏ tick = gỡ. */
+  auto_pending?: string[];
   question_text: Record<string, string>; can_confirm: boolean; rules_version: string;
   preview: { form: string; name: string; questions: PreviewQ[] } | null;
   ai_input: { mask_ok: boolean; n_questions: number; fields: Record<string, unknown> } | null;
@@ -45,6 +47,9 @@ const DOCTOR_SOURCES = new Set(["icd10", "risk"]);
 
 type Status = { label: string; color: string; icon: ReactNode };
 
+/** Lựa chọn ban đầu = đang áp dụng + bộ câu có căn cứ bác sĩ sắp tự áp dụng. */
+const baseOf = (d: FormPlanData): string[] => [...new Set([...d.confirmed, ...(d.auto_pending ?? [])])];
+
 /** Bộ câu hỏi cá nhân hóa: hệ thống nhận tình trạng từ hồ sơ + AI, câu qua cổng chất lượng, điều dưỡng xác nhận. */
 export function FormPlanPanel({ patientId }: { patientId: number }) {
   const qc = useQueryClient();
@@ -55,10 +60,11 @@ export function FormPlanPanel({ patientId }: { patientId: number }) {
   const [sel, setSel] = useState<string[]>([]);
   const [insulin, setInsulin] = useState(false);
   useEffect(() => {
-    if (data) { setSel(data.confirmed); setInsulin(data.insulin); }
+    if (data) { setSel(baseOf(data)); setInsulin(data.insulin); }
   }, [data]);
   const save = useMutation({
-    mutationFn: () => api<FormPlanData>(`/api/patients/${patientId}/form-plan`, { method: "PUT", json: { codes: sel, insulin } }),
+    mutationFn: () => api<FormPlanData>(`/api/patients/${patientId}/form-plan`, { method: "PUT", json: { codes: sel, insulin,
+        declined: (data?.auto_pending ?? []).filter((c) => !sel.includes(c)) } }),
     onSuccess: (d) => {
       qc.setQueryData(["form-plan", patientId], d);
       qc.invalidateQueries({ queryKey: ["profile"] });
@@ -73,15 +79,19 @@ export function FormPlanPanel({ patientId }: { patientId: number }) {
   if (isLoading || !data) return <Skeleton h={320} radius="md" />;
 
   const flagName = Object.fromEntries(data.flags.map((f) => [f.flag, f.name]));
-  const added = sel.filter((c) => !data.confirmed.includes(c));
-  const removed = data.confirmed.filter((c) => !sel.includes(c));
+  const base = baseOf(data);
+  const autoPending = new Set(data.auto_pending ?? []);
+  const added = sel.filter((c) => !base.includes(c));
+  const removed = base.filter((c) => !sel.includes(c));
   const insulinChanged = sel.includes("M-DTD") && insulin !== data.insulin;
   const dirty = added.length + removed.length > 0 || insulinChanged;
-  const pending = data.items.filter((i) => !i.confirmed && i.questions.length > 0).length;
+  const pending = data.items.filter((i) => !i.confirmed && !autoPending.has(i.code) && i.questions.length > 0).length;
 
   const statusOf = (it: Item): Status => {
     if (it.confirmed && it.kind === "pack" && it.flags.some((f) => doctorFlags.has(f)))
       return { label: "Tự áp dụng", color: "brand", icon: <IconShieldCheck size={12} /> };
+    if (autoPending.has(it.code))
+      return { label: "Tự áp dụng (bác sĩ ghi)", color: "brand", icon: <IconShieldCheck size={12} /> };
     if (it.confirmed) return { label: "Đã xác nhận", color: "ok", icon: <IconCircleCheck size={12} /> };
     return { label: "Chờ xác nhận", color: "warn", icon: <IconAlertTriangle size={12} /> };
   };
@@ -189,11 +199,12 @@ export function FormPlanPanel({ patientId }: { patientId: number }) {
           <Group justify="space-between" wrap="wrap" gap="sm">
             <Text size="sm">
               <b>Chưa lưu:</b>{" "}
-              {[added.length ? `bật ${added.join(", ")}` : null, removed.length ? `tắt ${removed.join(", ")}` : null,
+              {[added.length ? `bật ${added.join(", ")}` : null,
+                removed.length ? `tắt ${removed.join(", ")}${removed.some((c) => autoPending.has(c)) ? " (không tự áp dụng lại)" : ""}` : null,
                 insulinChanged ? "đổi insulin" : null].filter(Boolean).join(" · ")}
             </Text>
             <Group gap="xs">
-              <Button variant="default" onClick={() => { setSel(data.confirmed); setInsulin(data.insulin); }}>Hoàn tác</Button>
+              <Button variant="default" onClick={() => { setSel(base); setInsulin(data.insulin); }}>Hoàn tác</Button>
               <Button loading={save.isPending} onClick={() => save.mutate()}>Xác nhận bộ câu hỏi</Button>
             </Group>
           </Group>

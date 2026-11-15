@@ -17,16 +17,17 @@ from api.deps import CurrentUser, require
 from core import audit
 from core.ai.question_selector import ai_input_preview
 from core.config import TZ, load_forms, load_rules
-from core.db import session_scope
+from core.db import now, session_scope
 from core.forms import selection_context
 from core.models import Appointment, Patient, PatientProgram
 from core.patients import (
     NewPatient,
     PatientError,
-    auto_apply_for,
+    auto_applicable_codes,
     create_patient,
     form_plan_for,
     program_of,
+    record_plan_declines,
     set_form_plan,
     set_program,
 )
@@ -128,6 +129,8 @@ def update_program(patient_id: int, body: ProgramIn, user: CurrentUser = Depends
 class FormPlanIn(BaseModel):
     codes: list[str] = Field(default_factory=list, max_length=20)
     insulin: bool = False
+    # Bộ câu có căn cứ bác sĩ (hiện sẵn ĐÃ TICK) mà điều dưỡng chủ động BỎ TICK → không tự áp dụng lại.
+    declined: list[str] = Field(default_factory=list, max_length=20)
 
 
 def _form_plan_payload(s, p: Patient, rules, forms_cfg) -> dict:  # type: ignore[no-untyped-def]
@@ -146,6 +149,8 @@ def _form_plan_payload(s, p: Patient, rules, forms_cfg) -> dict:  # type: ignore
         preview = {"form": window, "name": forms_cfg.forms[window]["name"], "method": "rules",
                    "questions": [{**q, "added": q["code"] not in base} for q in as_dicts(chosen, forms_cfg)]}
     return {**plan_as_dict(plan), "confirmed": list(p.risk_groups or []), "insulin": bool(p.on_insulin),
+            # Có căn cứ bác sĩ ghi, sẽ tự áp dụng ở tác vụ hằng ngày – giao diện hiện sẵn đã tick.
+            "auto_pending": auto_applicable_codes(s, p, today, rules, forms_cfg),
             "question_text": {c: q["text"] for c, q in forms_cfg.questions.items()},
             "preview": preview, "ai_input": ai_input, "rules_version": rules.rules_version}
 
@@ -158,7 +163,7 @@ def get_form_plan(patient_id: int, user: CurrentUser = Depends(require("view_pro
         p = s.get(Patient, patient_id)
         if p is None:
             raise HTTPException(404, "Không tìm thấy thai phụ.")
-        auto_apply_for(s, p, _today(), rules, forms_cfg)  # căn cứ bác sĩ ghi → áp dụng ngay, màn hình khớp quy tắc
+        # Chỉ xem: KHÔNG ghi. Bộ câu tự áp dụng chạy ở tác vụ hằng ngày (auto_apply_form_plans).
         out = _form_plan_payload(s, p, rules, forms_cfg)
         audit.log("view_form_plan", "patient", p.code, {"rules_version": rules.rules_version},
                   user_id=user.user_id, session=s)
@@ -174,11 +179,17 @@ def confirm_form_plan(patient_id: int, body: FormPlanIn, user: CurrentUser = Dep
         if p is None:
             raise HTTPException(404, "Không tìm thấy thai phụ.")
         try:
+            # Chỉ ghi "gỡ" khi điều dưỡng CHỦ ĐỘNG bỏ: tắt bộ câu đang áp dụng, hoặc bỏ tick bộ câu có căn cứ bác sĩ
+            # (giao diện hiện sẵn đã tick). Không suy ra từ việc lưu thay đổi khác.
+            suggested = set(auto_applicable_codes(s, p, _today(), rules, forms_cfg))
+            explicit = (set(body.declined) & suggested) - set(body.codes)
             before, after = set_form_plan(p, body.codes, body.insulin, rules)
+            declined = record_plan_declines(s, p, sorted(set(before) | explicit), after, user.user_id, now())
         except PatientError as e:
             raise HTTPException(422, str(e)) from e
         audit.log("confirm_form_plan", "patient", p.code,
-                  {"before": before, "after": after, "insulin": bool(p.on_insulin), "rules_version": rules.rules_version},
+                  {"before": before, "after": after, "declined": declined, "insulin": bool(p.on_insulin),
+                   "rules_version": rules.rules_version},
                   user_id=user.user_id, session=s)
         s.flush()
         out = _form_plan_payload(s, p, rules, forms_cfg)

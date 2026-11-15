@@ -125,6 +125,9 @@ def _remove(s: Session, pids: list[str]) -> None:
     from scripts.gen_monitoring import remove_monitoring
 
     remove_monitoring(s, ids)
+    from core.models import FormPlanDecline
+
+    s.execute(delete(FormPlanDecline).where(FormPlanDecline.patient_id.in_(ids)))
 
     s.execute(delete(VisitResult).where(VisitResult.appointment_id.in_(appt_ids)))
     s.execute(delete(NoteExtraction).where(NoteExtraction.appointment_id.in_(appt_ids)))

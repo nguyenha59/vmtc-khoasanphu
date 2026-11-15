@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from sqlalchemy import delete, func, select
@@ -20,9 +20,10 @@ from core.models import (
     NoteExtraction,
     Patient,
     User,
+    VisitResult,
 )
 from core.pipeline import PlannedAppt, ProcessResult
-from core.security import AppUser, decrypt, encrypt
+from core.security import AppUser, decrypt, encrypt, normalize_phone
 
 
 def ensure_user(s: Session, u: AppUser) -> int:
@@ -62,7 +63,8 @@ def upsert_patient(s: Session, pid: str, full_name: str, phone: str, nationality
             from core import audit
 
             audit.log("patient_name_updated_from_his", "patient", p.code, {}, session=s)  # không ghi tên vào nhật ký
-        if phone:
+        # Chỉ thay khi SĐT mới hợp lệ, hoặc hồ sơ chưa có SĐT hợp lệ ("không có", "xem ghi chú" không đè số đúng).
+        if phone and (normalize_phone(phone) or not normalize_phone(decrypt(p.phone_enc) or "")):
             p.phone_enc = encrypt(phone) or p.phone_enc
         p.nationality = nationality or p.nationality
     return p
@@ -136,6 +138,40 @@ def _update_patient_from_note(p: Patient, plan: PlannedAppt) -> dict[str, Any]:
     return info
 
 
+def _carry_over(s: Session, old_ids: list[int], res: ProcessResult) -> tuple[
+        dict[tuple[int, date], tuple[str, str, str | None, datetime]],
+        dict[tuple[int, date, time], tuple[time | None, str, int | None, datetime | None]], set[int]]:
+    """Trước khi thay lịch của các ngày trong file: lấy ra những gì đã ghi trên lịch cũ để không mất.
+
+    - Kết quả khám (VisitResult, khóa ngoại tới lịch): chuyển sang lịch mới cùng thai phụ + ngày; file mới không còn
+      lịch đó (hoặc có nhiều kết quả cùng ngày) → GIỮ lịch cũ, không xóa dữ liệu khám.
+    - Giờ đến điều dưỡng đã xác nhận: giữ nếu lịch mới cùng thai phụ + ngày + giờ hẹn.
+    Trả (kết quả cần chuyển, xác nhận cần giữ, id lịch cũ phải giữ).
+    """
+    if not old_ids:
+        return {}, {}, set()
+    pids = {plan.merged.pid for plan in res.planned}
+    id_by_pid = {pid: pk for pid, pk in s.execute(select(Patient.pid, Patient.id).where(Patient.pid.in_(pids)))} if pids else {}
+    new_keys = {(id_by_pid[pl.merged.pid], pl.merged.appt_date) for pl in res.planned if pl.merged.pid in id_by_pid}
+    moving: dict[tuple[int, date], tuple[str, str, str | None, datetime]] = {}
+    keep_ids: set[int] = set()
+    for vr, a in s.execute(select(VisitResult, Appointment).join(Appointment, VisitResult.appointment_id == Appointment.id)
+                           .where(Appointment.id.in_(old_ids)).order_by(Appointment.start_time)):
+        key = (a.patient_id, a.appt_date)
+        if key in new_keys and key not in moving:
+            moving[key] = (vr.data_enc, vr.source, vr.reference_version, vr.created_at)
+            s.delete(vr)
+        else:
+            keep_ids.add(a.id)
+    confirmed = {}
+    for pl, a in s.execute(select(ArrivalPlan, Appointment).join(Appointment, ArrivalPlan.appointment_id == Appointment.id)
+                           .where(Appointment.id.in_(old_ids), ArrivalPlan.status == "confirmed")):
+        confirmed[(a.patient_id, a.appt_date, a.start_time)] = (pl.arrival_time, pl.method, pl.confirmed_by,
+                                                                 pl.confirmed_at)
+    s.flush()
+    return moving, confirmed, keep_ids
+
+
 def save_his_result(
     s: Session, res: ProcessResult, file_name: str, target_date: date, user_id: int | None
 ) -> int:
@@ -147,7 +183,9 @@ def save_his_result(
     # Thay lịch của đúng những ngày có trong file (không theo ngày đang chọn trên màn hình): chọn nhầm ngày
     # thì không xóa lịch của ngày khác, tải lại cùng file thì không bị trùng hai bộ.
     days = {plan.merged.appt_date for plan in res.planned} or {target_date}
-    old_ids = s.scalars(select(Appointment.id).where(Appointment.appt_date.in_(days))).all()
+    old_ids = list(s.scalars(select(Appointment.id).where(Appointment.appt_date.in_(days))))
+    moving, old_confirmed, keep_ids = _carry_over(s, old_ids, res)
+    old_ids = [i for i in old_ids if i not in keep_ids]
     if old_ids:
         s.execute(delete(ArrivalPlan).where(ArrivalPlan.appointment_id.in_(old_ids)))
         s.execute(delete(NoteExtraction).where(NoteExtraction.appointment_id.in_(old_ids)))
@@ -164,6 +202,11 @@ def save_his_result(
                         row_warnings=m.warnings)
         s.add(a)
         s.flush()
+        moved = moving.pop((p.id, m.appt_date), None)
+        if moved is not None:  # kết quả khám của lịch cũ cùng thai phụ + ngày → gắn sang lịch mới
+            data_enc, source, ref_v, created = moved
+            s.add(VisitResult(appointment_id=a.id, data_enc=data_enc, source=source, reference_version=ref_v,
+                              created_at=created))
         ex = plan.extraction
         if m.note:
             ai = ex.ai if ex else None
@@ -181,7 +224,7 @@ def save_his_result(
                      "mask_leftovers_count": len(plan.mask.leftovers) if plan.mask else 0,
                      "ai": _ai_dict(ai)},
             ))
-        s.add(ArrivalPlan(
+        ap = ArrivalPlan(
             appointment_id=a.id, arrival_time=plan.arrival.arrival_time, proposed_time=plan.arrival.arrival_time,
             method="waiting" if plan.arrival.waiting else plan.arrival.method,
             confidence=ex.confidence if ex else None,
@@ -197,7 +240,13 @@ def save_his_result(
                 "conflict_detail": m.conflict_detail,
                 "merged_from": m.merged_from,
             },
-        ))
+        )
+        kept = old_confirmed.get((p.id, m.appt_date, m.start_time))
+        if kept is not None:  # điều dưỡng đã xác nhận giờ đến cho đúng lịch này → giữ, ghi rõ trong chi tiết
+            ap.arrival_time, ap.method, ap.confirmed_by, ap.confirmed_at = kept
+            ap.status = "confirmed"
+            ap.details = {**(ap.details or {}), "kept_confirmation": True}
+        s.add(ap)
     audit.log("upload_his", "import_batch", batch.id,
               {"file": file_name, "rows": len(res.rows), "planned": len(res.planned),
                "auto_rate": round(res.auto_rate, 3), "rules_version": res.rules_version},
@@ -247,7 +296,8 @@ class PlanView:
     warnings: list[str]
 
 
-def plans_for_date(s: Session, d: date) -> list[PlanView]:
+def plans_for_date(s: Session, d: date, plan_id: int | None = None) -> list[PlanView]:
+    """Kế hoạch giờ đến của một ngày. plan_id → chỉ một dòng (không giải mã cả ngày khi bấm xác nhận một lịch)."""
     q = (
         select(ArrivalPlan, Appointment, Patient)
         .join(Appointment, ArrivalPlan.appointment_id == Appointment.id)
@@ -255,6 +305,8 @@ def plans_for_date(s: Session, d: date) -> list[PlanView]:
         .where(Appointment.appt_date == d)
         .order_by(Appointment.start_time, Patient.pid)
     )
+    if plan_id is not None:
+        q = q.where(ArrivalPlan.id == plan_id)
     out = []
     for plan, a, p in s.execute(q).all():
         ne = s.scalar(select(NoteExtraction).where(NoteExtraction.appointment_id == a.id))

@@ -30,13 +30,13 @@ def basis_codes(kind: str, code: str, rules: Rules) -> list[str]:
     for c in rules.get("text_combos") or []:
         if c.get("code") == code:
             return list(c.get("basis") or [])
-    if code.startswith("TXT_") and code.endswith("_BP"):  # đau đầu kèm HA cao (P01)
-        return ["S4"]
     bare = code
     for p in _PREFIXES:
         if bare.startswith(p):
             bare = bare[len(p):]
     rule_map = cfg.get("rules") or {}
+    if code.startswith("TXT_") and code.endswith("_BP"):  # triệu chứng tự viết kèm HA cao (red_with_bp)
+        return list(rule_map.get("TXT_BP") or [])
     if bare.endswith("_IMPLAUSIBLE"):
         return list(rule_map.get("IMPLAUSIBLE") or [])
     return list(rule_map.get(code) or rule_map.get(bare) or [])

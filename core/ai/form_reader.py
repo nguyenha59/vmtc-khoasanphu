@@ -242,10 +242,28 @@ def lexicon_findings(text: str, apply_assertions: bool = True, rules: Rules | No
     return list(best.values())
 
 
-def _safety_key(f: dict[str, Any]) -> tuple[int, int, int, int]:
-    """Thứ tự 'an toàn hơn': có mặt > không; hiện tại > đã qua; bản thân > người khác; nặng > nhẹ."""
+def _safety_key(f: dict[str, Any]) -> tuple[int, int, int, int, int]:
+    """Thứ tự 'an toàn hơn': có mặt > không; hiện tại > đã qua; bản thân > người khác; nặng > nhẹ;
+    khẳng định > chỉ là thông tin đọc/nghe được ("đọc trên mạng thấy ra máu…, giờ em đang ra máu" → lấy lần khẳng định)."""
     return (int(bool(f["present"])), int(f["experiencer"] == "patient"),
-            int(f["temporality"] != "past_resolved"), SEVERITY_ORDER.get(f["severity"], 1))
+            int(f["temporality"] != "past_resolved"), int(f.get("assertion_status", "affirmed") == "affirmed"),
+            SEVERITY_ORDER.get(f["severity"], 1))
+
+
+def _same_mention(llm_f: dict[str, Any], lex_f: dict[str, Any], text: str) -> bool:
+    """Bằng chứng của LLM nằm ĐÈ lên chỗ danh mục đã đọc trong câu gốc?
+
+    Không → LLM dựa vào một cụm KHÁC (vd "quần lót có vệt nâu") mà danh mục không có từ → phủ định / vị trí khác của
+    danh mục ("không ra máu") không được xóa phát hiện đó. Không xác định được vị trí → coi là cùng chỗ (như trước).
+    """
+    words = nfc(str(llm_f.get("evidence", ""))).split()
+    start, end = lex_f.get("evidence_start"), lex_f.get("evidence_end")
+    if not words or start is None or end is None:
+        return True
+    hits = list(re.finditer(r"\s+".join(map(re.escape, words)), text, re.IGNORECASE))
+    if not hits:
+        return True
+    return any(m.start() < end and start < m.end() for m in hits)
 
 
 def finding_level(f: dict[str, Any], ga_weeks: int | None, rules: Rules) -> Level:
@@ -463,6 +481,9 @@ def read_free_text(
         votes = run_votes(client, prompt, FORM_SCHEMA, int(rules["llm"]["consistency_runs_form"]),
                           float(rules["llm"]["temperature"]))
         reading.raw = {"outputs": votes.outputs, "errors": votes.errors, "models": votes.models}
+        # Lưu model THẬT đã trả kết quả (hybrid: openai hoặc ollama), không lưu tên cấu hình "hybrid:…|…".
+        if votes.models:
+            reading.model = "+".join(dict.fromkeys(votes.models))[:64]
         valid_concerns = []
         for output in votes.outputs:
             grounded = []
@@ -508,6 +529,10 @@ def read_free_text(
             merged[f["concept"]] = f
         elif (f.get("assertion_status") in {"negated", "conditional", "other_site", "anatomy_only", "uncertain"}
               and not rules["symptom_concepts"][f["concept"]].get("locked")):
+            if _effective(prev) and not _same_mention(prev, f, text):
+                # LLM dựa vào cụm khác mà danh mục không đọc được → giữ phát hiện của LLM (chỉ nâng, không hạ).
+                reading.conflicts.append(f"{f['concept']}: LLM thấy ở cụm khác cụm danh mục phủ định – giữ phát hiện")
+                continue
             if _effective(prev):
                 reading.conflicts.append(f"{f['concept']}: LLM và phạm vi khẳng định khác nhau")
             merged[f["concept"]] = {**f, "source": "llm+rule"}

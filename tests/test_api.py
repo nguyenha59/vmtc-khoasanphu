@@ -689,3 +689,28 @@ def test_make_client_safe_never_raises(monkeypatch, rules):
     monkeypatch.setenv("LLM_PROVIDER", "mock")
     client, why = make_client_safe(rules)
     assert client is not None and why is None
+
+
+def test_reupload_same_day_keeps_visit_results_and_confirmed_times(client):
+    """Tải lại file HIS cùng ngày: không lỗi khóa ngoại khi đã có kết quả khám, giữ giờ đến đã xác nhận (rà soát 15/11/2026)."""
+    from core.db import now, session_scope
+    from core.models import ArrivalPlan, VisitResult
+
+    _login(client, "nurse")
+    samples = client.get("/api/appointments").json()["samples"]
+    name = next(n for n in samples if n.startswith("his_export_"))
+    d = name.removeprefix("his_export_").removesuffix(".xlsx")
+    assert client.post("/api/appointments/upload", data={"d": d, "use_ai": "false", "sample": name}).json()["ok"]
+    items = client.get("/api/appointments", params={"d": d}).json()["items"]
+    it = next(x for x in items if x.get("arrival_time"))
+    r = client.post(f"/api/appointments/plan/{it['plan_id']}/confirm", json={"d": d, "arrival_time": it["arrival_time"]})
+    assert r.status_code == 200, r.text
+    with session_scope() as s:
+        pl = s.get(ArrivalPlan, it["plan_id"])
+        s.add(VisitResult(appointment_id=pl.appointment_id, data_enc="x", source="synthetic", created_at=now()))
+    r = client.post("/api/appointments/upload", data={"d": d, "use_ai": "false", "sample": name})
+    assert r.status_code == 200 and r.json()["ok"], r.text
+    with session_scope() as s:
+        assert s.query(VisitResult).filter(VisitResult.data_enc == "x").count() == 1
+    again = next(x for x in client.get("/api/appointments", params={"d": d}).json()["items"] if x["code"] == it["code"])
+    assert again["status"] == "confirmed" and again["arrival_time"] == it["arrival_time"]

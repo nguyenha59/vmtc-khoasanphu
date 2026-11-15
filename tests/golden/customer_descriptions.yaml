@@ -1,0 +1,68 @@
+# Dữ liệu hoàn toàn giả. Expected = chính sách phân mức hiện tại; chưa thay thế bác sĩ duyệt.
+version: 1
+cases:
+  - {id: normal_01, group: normal, text: "Em thấy khỏe, ăn ngủ bình thường", expected: green}
+  - {id: normal_02, group: normal, text: "Bé đạp đều như mọi ngày", expected: green}
+  - {id: normal_03, group: normal, text: "Em đi xét nghiệm máu theo lịch", expected: green}
+  - {id: normal_04, group: normal, text: "Em chảy máu chân răng khi đánh răng", expected: green}
+  - {id: normal_05, group: normal, text: "Em chỉ xoa bắp chân cho dễ chịu", expected: green}
+  - {id: mild_01, group: mild, text: "Em hơi đau đầu", expected: yellow}
+  - {id: mild_02, group: mild, text: "Em đau bụng nhẹ", expected: yellow}
+  - {id: mild_03, group: mild, text: "Em sốt", expected: yellow}
+  - {id: mild_04, group: mild, text: "Em tiểu buốt", expected: yellow}
+  - {id: mild_05, group: mild, text: "Em ngứa lòng bàn tay", expected: yellow}
+  - {id: mild_06, group: mild, text: "Mặt em hơi sưng", expected: yellow}
+  - {id: urgent_01, group: urgent, text: "Em ra máu âm đạo", expected: red}
+  - {id: urgent_02, group: urgent, text: "Quần lót em dính máu hồng", expected: red}
+  - {id: urgent_03, group: urgent, text: "Em bị rỉ nước âm đạo", expected: red}
+  - {id: urgent_04, group: urgent, text: "Em nhìn mờ", expected: red}
+  - {id: urgent_05, group: urgent, text: "Em khó thở", expected: red}
+  - {id: urgent_06, group: urgent, text: "Em đau sưng một bên bắp chân", expected: red}
+  - {id: urgent_07, group: urgent, text: "Em đau đầu dữ dội không đỡ", expected: red}
+  - {id: urgent_08, group: urgent, text: "Em đau bụng dữ dội", expected: red}
+  - {id: urgent_09, group: urgent, text: "Em thấy bé đạp ít hơn bình thường", expected: red}
+  - {id: urgent_10, group: urgent, text: "Em gò bụng từng cơn", ga_weeks: 30, expected: red}
+  - {id: urgent_11, group: urgent, text: "Em không muốn sống nữa", expected: red}
+  - {id: negation_01, group: negation, text: "Em không đau đầu", expected: green}
+  - {id: negation_02, group: negation, text: "Em không ra máu hay ra nước", expected: green}
+  - {id: negation_03, group: negation, text: "Em không đau bắp chân", expected: green}
+  - {id: negation_04, group: negation, text: "Bắp chân em không sưng", expected: green}
+  - {id: negation_05, group: negation, text: "Em không sốt, không khó thở", expected: green}
+  - {id: negation_06, group: negation, text: "Em không ra máu nhưng em có ra nước", expected: red}
+  - {id: negation_07, group: negation, text: "Em không đau đầu nhưng nhìn mờ", expected: red}
+  - {id: negation_08, group: negation, text: "Bắp chân không đau nhưng sưng đỏ một bên", expected: red}
+  - {id: family_01, group: family, text: "Chồng em đang sốt và khó thở", expected: green}
+  - {id: family_02, group: family, text: "Mẹ em bị đau đầu", expected: green}
+  - {id: family_03, group: family, text: "Mẹ em sốt và em khó thở", expected: red}
+  - {id: family_04, group: family, text: "Chồng đưa đi khám vì ra máu", expected: red}
+  - {id: resolved_01, group: resolved, text: "Hôm qua em nhìn mờ, giờ hết rồi", expected: green}
+  - {id: resolved_02, group: resolved, text: "Hôm qua em sốt, giờ hết rồi", expected: green}
+  - {id: resolved_03, group: resolved, text: "Hôm qua ra chút máu hồng, sáng nay hết", expected: yellow}
+  - {id: resolved_04, group: resolved, text: "Hôm qua em nhìn mờ, hôm nay nhìn mờ nhiều hơn", expected: red}
+  - {id: resolved_05, group: resolved, text: "Hôm qua em nhìn mờ, sáng nay hết thuốc", expected: red}
+  - {id: education_01, group: education, text: "Bác sĩ dặn nếu ra máu thì đi khám, hiện em không có triệu chứng", expected: green}
+  - {id: education_02, group: education, text: "Em đọc trên mạng nói về ra máu và khó thở", expected: yellow}
+  - {id: education_03, group: education, text: "Ngưỡng cảnh báo huyết áp là 160/110 mmHg", expected: green}
+  - {id: education_04, group: education, text: "Em đọc trên mạng về ra máu và em đang khó thở", expected: red}
+  - {id: education_05, group: education, text: "Em đọc trên mạng nói về ra máu, nhưng em đang khó thở", expected: red}
+  - {id: combo_01, group: combo, text: "Em sốt và đau bụng", expected: red}
+  - {id: combo_02, group: combo, text: "Em đau đầu và nhìn mờ", expected: red}
+  - {id: combo_03, group: combo, text: "Mặt em sưng và em đau đầu", expected: red}
+  - {id: combo_04, group: combo, text: "Em đau bụng nhẹ và uống nhiều nước", expected: yellow}
+  - {id: bp_01, group: measurements, text: "Huyết áp em đo là 170/115 mmHg", expected: red}
+  - {id: bp_02, group: measurements, text: "Em vừa đo HA 160/100", expected: red}
+  - {id: bp_03, group: measurements, text: "Huyết áp em đo là 140/90", expected: yellow}
+  - {id: bp_04, group: measurements, text: "Huyết áp em là 120/80", expected: green}
+  - {id: bp_05, group: measurements, text: "Mẹ em đo huyết áp 170/115 mmHg", expected: green}
+  - {id: bp_06, group: measurements, text: "Hôm qua huyết áp em là 170/115", expected: yellow, needs_human: true}
+  - {id: bp_07, group: measurements, text: "Huyết áp em đo là 17/11 kPa", expected: yellow, needs_human: true}
+  - {id: ascii_01, group: typing, text: "em hoi dau dau", expected: yellow}
+  - {id: ascii_02, group: typing, text: "em ra mau am dao", expected: red}
+  - {id: ascii_03, group: typing, text: "em khong ra mau", expected: green}
+  - {id: ascii_04, group: typing, text: "em nhin mo", expected: red}
+  - {id: term_01, group: context, text: "Em gò bụng từng cơn", ga_weeks: 38, expected: yellow}
+  - {id: structured_01, group: structured, text: "", answers: {C4: "Có"}, expected: yellow}
+  - {id: structured_02, group: structured, text: "", answers: {C1: "Có"}, expected: red}
+  - {id: structured_03, group: structured, text: "Em thấy khỏe", answers: {C1: "Có"}, expected: red}
+  - {id: structured_04, group: structured, text: "Em ra máu âm đạo", answers: {C1: "Không"}, expected: red}
+  - {id: structured_05, group: structured, text: "", answers: {C1: "Không chắc"}, expected: yellow}

@@ -25,7 +25,15 @@ sys.path.insert(0, str(ROOT))
 
 from core.config import TZ, load_env, load_forms, load_rules  # noqa: E402
 from core.models import (  # noqa: E402
-    Alert, AlertReview, Appointment, Assessment, FormResponse, FormToken, Patient, User, VitalReading,
+    Alert,
+    AlertReview,
+    Appointment,
+    Assessment,
+    FormResponse,
+    FormToken,
+    Patient,
+    User,
+    VitalReading,
 )
 
 

@@ -5,6 +5,7 @@ Code nghiệp vụ chỉ đọc giá trị từ đây; không viết cứng ngư
 
 from __future__ import annotations
 
+import copy
 import os
 from dataclasses import dataclass, field
 from datetime import time
@@ -47,9 +48,20 @@ def load_env(path: Path | None = None) -> None:
         os.environ.setdefault(key.strip(), value.strip())
 
 
+_YAML_CACHE: dict[str, tuple[int, int, dict[str, Any]]] = {}
+
+
 def _read_yaml(path: Path) -> dict[str, Any]:
-    with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    """Đọc YAML, đệm theo (thời điểm sửa, kích thước) file – sửa file (vd duyệt quy tắc) thì đọc lại ngay.
+    Trả bản sao sâu: nơi gọi sửa dict không làm bẩn bộ đệm."""
+    st = Path(path).stat()
+    key = str(Path(path).resolve())
+    hit = _YAML_CACHE.get(key)
+    if hit is None or hit[0] != st.st_mtime_ns or hit[1] != st.st_size:
+        with open(path, encoding="utf-8") as f:
+            hit = (st.st_mtime_ns, st.st_size, yaml.safe_load(f) or {})
+        _YAML_CACHE[key] = hit
+    return copy.deepcopy(hit[2])
 
 
 def parse_hhmm(value: str) -> time:

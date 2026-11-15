@@ -211,6 +211,57 @@ def set_form_plan(p: Patient, codes: list[str], insulin: bool, rules: Rules) -> 
     return before, list(p.risk_groups)
 
 
+def record_plan_declines(s: Session, p: Patient, before: list[str], after: list[str], user_id: int | None,
+                         at: datetime) -> list[str]:
+    """Ghi mã điều dưỡng vừa gỡ (để tự áp dụng không thêm lại); mã được thêm lại thì bỏ khỏi danh sách gỡ.
+    Trả danh sách mã đã ghi gỡ (để ghi audit – một chỗ tính duy nhất)."""
+    from core.models import FormPlanDecline
+
+    declined = sorted(set(before) - set(after))
+    for code in declined:
+        row = s.get(FormPlanDecline, (p.id, code))
+        if row is None:
+            s.add(FormPlanDecline(patient_id=p.id, code=code, edd=p.edd, declined_by=user_id, declined_at=at))
+        else:
+            row.edd, row.declined_by, row.declined_at = p.edd, user_id, at
+    for code in set(after):
+        row = s.get(FormPlanDecline, (p.id, code))
+        if row is not None:
+            s.delete(row)
+    return declined
+
+
+# Ngày dự sinh được chỉnh trong cùng thai kỳ (siêu âm) thường lệch vài tuần; thai kỳ sau lệch ≥ ~9 tháng.
+SAME_PREGNANCY_DAYS = 120
+
+
+def declined_codes(s: Session, patient_id: int, edd: date | None = None) -> set[str]:
+    """Mã điều dưỡng đã gỡ trong LẦN MANG THAI này (ngày dự sinh lệch ≤ SAME_PREGNANCY_DAYS – chỉnh EDD vẫn giữ)."""
+    from core.models import FormPlanDecline
+
+    rows = s.execute(select(FormPlanDecline.code, FormPlanDecline.edd)
+                     .where(FormPlanDecline.patient_id == patient_id)).all()
+    return {c for c, d in rows if (d is None and edd is None)
+            or (d is not None and edd is not None and abs((d - edd).days) <= SAME_PREGNANCY_DAYS)}
+
+
+def _auto_applicable(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: Any) -> tuple[list[str], set[str]]:
+    sources = set((rules.get("personalization") or {}).get("auto_apply_sources") or [])
+    if not sources or p.consent_status != "granted" or p.edd is None or p.delivery_date is not None:
+        return [], set()
+    plan = form_plan_for(s, p, today, rules, forms_cfg)
+    doc_flags = {f.flag for f in plan.flags if any(e.source in sources for e in f.evidence)}
+    declined = declined_codes(s, p.id, p.edd)
+    codes = [i.code for i in plan.items if i.kind == "pack" and not i.confirmed and i.questions
+             and doc_flags & set(i.flags) and i.code not in declined]
+    return codes, doc_flags
+
+
+def auto_applicable_codes(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: Any) -> list[str]:
+    """Bộ câu theo tình trạng có căn cứ BÁC SĨ ghi, chưa áp dụng, chưa bị điều dưỡng gỡ. CHỈ ĐỌC."""
+    return _auto_applicable(s, p, today, rules, forms_cfg)[0]
+
+
 def auto_apply_form_plans(s: Session, today: date, rules: Rules, forms_cfg: Any) -> list[tuple[str, list[str]]]:
     """Tự áp dụng bộ câu theo tình trạng khi căn cứ do BÁC SĨ ghi trong hồ sơ (ICD-10, nhóm nguy cơ) – docs/13 mục 4.
     Căn cứ chỉ từ AI / từ khóa tiền sử, và module đo (M-…), vẫn chờ điều dưỡng xác nhận. Ghi audit_log từng thai phụ."""
@@ -228,15 +279,13 @@ def auto_apply_form_plans(s: Session, today: date, rules: Rules, forms_cfg: Any)
 
 
 def auto_apply_for(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: Any) -> list[str]:
-    """Tự áp dụng cho MỘT thai phụ (dùng cả khi mở hồ sơ, để màn hình luôn khớp quy tắc). Trả mã đã thêm."""
+    """Tự áp dụng cho MỘT thai phụ (tác vụ hằng ngày). Không gọi từ API chỉ xem. Trả mã đã thêm."""
     from core import audit
 
     sources = set((rules.get("personalization") or {}).get("auto_apply_sources") or [])
     if not sources or p.consent_status != "granted" or p.edd is None or p.delivery_date is not None:
         return []
-    plan = form_plan_for(s, p, today, rules, forms_cfg)
-    doc_flags = {f.flag for f in plan.flags if any(e.source in sources for e in f.evidence)}
-    add = [i.code for i in plan.items if i.kind == "pack" and not i.confirmed and i.questions and doc_flags & set(i.flags)]
+    add, doc_flags = _auto_applicable(s, p, today, rules, forms_cfg)  # đã loại mã điều dưỡng gỡ
     if add:
         p.risk_groups = sorted(set(p.risk_groups or []) | set(add))
         audit.log("auto_apply_form_plan", "patient", p.code,

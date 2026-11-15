@@ -8,6 +8,7 @@ keyword alone cannot establish that a patient currently has a symptom.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Literal
 
@@ -135,6 +136,11 @@ def assertion_context(
     status: Status = "negated" if negated else "affirmed"
     if _CONDITIONAL.search(_plain(scope_before)):
         status = "conditional"
+    if (status == "affirmed" and previous is not None and previous.assertion_status == "uncertain"
+            and _COORD.fullmatch(_plain(scope_before))):
+        # "đọc trên mạng về ra máu VÀ khó thở": cả hai vẫn là thông tin đọc được.
+        # Chủ ngữ / diễn biến mới ("và em đang khó thở") chấm dứt phạm vi này.
+        status = "uncertain"
 
     # A time in the past does not establish that an event has resolved.
     resolution_tail = after
@@ -237,20 +243,52 @@ class MeasurementFact:
         return self.experiencer == "patient" and self.temporality == "current" and self.assertion_status == "affirmed"
 
 
-_BP = re.compile(
-    r"\b(?:huyet\s+ap|ha|blood\s+pressure|bp)\b[^\d\n.;!?]{0,45}"
-    r"(?P<sys>\d{2,4}(?:[.,]\d+)?)\s*/\s*(?P<dia>\d{2,3}(?:[.,]\d+)?)"
-    r"\s*(?P<unit>mm\s*hg|kpa|psi|bar|pa)?", re.IGNORECASE,
-)
+# Nhãn huyết áp. "ha" (không dấu) cũng là "hạ" → loại "hạ đường huyết / hạ sốt / hạ nhiệt / hạ áp".
+_BP_LABEL = re.compile(r"\b(?:huyet\s+ap|blood\s+pressure|bp|ha(?!\s+(?:duong|sot|nhiet|ap|huyet|than)))\b",
+                       re.IGNORECASE)
+_BP_PAIR = re.compile(r"(?<![/\d.,])(?P<sys>\d{2,4}(?:[.,]\d+)?)\s*/\s*(?P<dia>\d{2,3}(?:[.,]\d+)?)"
+                      r"\s*(?P<unit>mm\s*hg|kpa|psi|bar|pa)?(?![/\d])", re.IGNORECASE)
+def _is_date_pair(plain: str, m: re.Match[str]) -> bool:
+    """Ngày tháng ("14/11", "14/11/2026"), không phải số đo. Không dựa vào từ đứng trước ("tối" ≈ "tới" khi bỏ dấu)."""
+    if re.match(r"\s*/\s*\d", plain[m.end():]):  # 14/11/2026
+        return True
+    a = float(m.group("sys").replace(",", "."))
+    b = float(m.group("dia").replace(",", "."))
+    return a <= 31 and b <= 12 and not m.group("unit")
 
 
 def blood_pressure_facts(text: str) -> list[MeasurementFact]:
-    """Only clearly labelled pairs; unknown units and old/other-person readings are not current vitals."""
+    """Only clearly labelled pairs; unknown units and old/other-person readings are not current vitals.
+
+    Bỏ qua ngày tháng sau nhãn ("huyết áp hôm 14/11 là 160/110" → 160/110). Văn bản chuẩn hóa NFC trước khi so,
+    để vị trí trên bản bỏ dấu khớp vị trí trên văn bản gốc (chữ tổ hợp NFD từ iPhone / Mac).
+    """
+    text = unicodedata.normalize("NFC", text or "")
     plain = _plain(text)
+    if len(plain) != len(text):  # an toàn: vị trí phải khớp 1-1
+        text = plain
     out = []
-    for match in _BP.finditer(plain):
+    used_to = -1
+    for label in _BP_LABEL.finditer(plain):
+        if label.start() < used_to:
+            continue
+        # Hết mệnh đề = dấu câu theo sau là khoảng trắng / hết chuỗi (không cắt dấu thập phân "21.3", "14.11").
+        end_m = re.compile(r"[.;!?](?=\s|$)|\n").search(plain, label.end())
+        stop = min(end_m.start() if end_m else len(plain), label.end() + 60)  # 60 ký tự: giới hạn chỗ BẮT ĐẦU số đo
+        pairs = []
+        for m in _BP_PAIR.finditer(plain, label.end()):  # không dùng endpos (cắt cụt số); dừng khi qua giới hạn
+            if m.start() >= stop:
+                break
+            pairs.append(m)
+        match = next((m for m in pairs if not _is_date_pair(plain, m)), None)
+        date_only = match is None and bool(pairs)
+        if date_only:  # "HA 16/11": chỉ có cặp giống ngày tháng → không bỏ qua, chuyển người xem
+            match = pairs[0]
+        if match is None:
+            continue
+        used_to = match.end()
         # Clause boundaries preserve the subject appearing before the measurement label.
-        boundary = max((plain.rfind(c, 0, match.start()) for c in ".;!?\n"), default=-1) + 1
+        boundary = max((plain.rfind(c, 0, label.start()) for c in ".;!?\n"), default=-1) + 1
         clause = text[boundary:match.end()]
         attrs = assertion_context(clause, match.start("sys") - boundary, match.end() - boundary)
         subject_prefix = re.sub(r"\b(?:huyet ap|ha|blood pressure|bp|do|la|cua|duoc|vua)\b", " ",
@@ -264,6 +302,8 @@ def blood_pressure_facts(text: str) -> list[MeasurementFact]:
         if unit != "mmhg":
             attrs["assertion_status"] = "uncertain"
         if re.search(r"\b(?:khong toi|khong vuot|thap hon|duoi)\s*$", subject_prefix):
+            attrs["assertion_status"] = "uncertain"
+        if date_only:
             attrs["assertion_status"] = "uncertain"
         out.append(MeasurementFact(match.start(), match.end(),
                                    float(match.group("sys").replace(",", ".")),

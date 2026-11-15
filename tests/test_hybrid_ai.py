@@ -316,6 +316,37 @@ def test_factory_created_hybrid_rechecks_production_after_creation(monkeypatch, 
     assert result_provider(client).startswith("ollama:") and not can_send_external(client)
 
 
+def test_service_free_text_is_masked_before_hybrid_primary(monkeypatch, rules):
+    from core.pipeline import plan_appointment
+
+    allow_synthetic_primary(monkeypatch)
+    prompts = []
+
+    def observe(prompt, *_args):
+        prompts.append(prompt)
+        from core.ai.note_extractor import heuristic_extract
+
+        return heuristic_extract("song thai")
+
+    appt = appointment("song thai cần theo dõi")
+    appt.services = ["Khám thai Giả Lập, liên hệ 0900123456"]
+    primary = simple_client("openai:test", observe)
+    plan_appointment(appt, rules, HybridClient(local=MockClient(model="ollama:test"), primary=primary), [], ner=False)
+    assert primary.calls > 0 and prompts
+    assert all("0900123456" not in prompt and "Giả Lập" not in prompt for prompt in prompts)
+
+
+def test_sensitive_service_routes_hybrid_to_local(monkeypatch, rules):
+    from core.pipeline import plan_appointment
+
+    allow_synthetic_primary(monkeypatch)
+    appt = appointment("song thai cần theo dõi")
+    appt.services = ["Xét nghiệm HIV"]
+    primary, local = simple_client("openai:test"), MockClient(model="ollama:test")
+    plan_appointment(appt, rules, HybridClient(local=local, primary=primary), [], ner=False)
+    assert primary.calls == 0 and local.calls > 0
+
+
 @pytest.mark.parametrize("invalid_local", [
     {"OLLAMA_MODEL": "gpt-oss:120b-cloud"},
     {"OLLAMA_URL": "https://external.invalid"},

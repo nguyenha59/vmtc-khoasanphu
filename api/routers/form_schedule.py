@@ -11,6 +11,7 @@ from sqlalchemy import select
 from api.deps import CurrentUser, require
 from api.util import XLSX, file_response
 from core import audit
+from core.ai.question_selector import selector_client
 from core.channels import get_sms_channel
 from core.config import TZ, load_forms, load_rules, work_dir
 from core.db import now, session_scope
@@ -20,6 +21,7 @@ from core.forms import (
     export_form_sms,
     module_call_list,
     no_reply_call_list,
+    precompute_selections,
     save_plan,
     send_reminders,
 )
@@ -49,7 +51,9 @@ def overview(user: CurrentUser = Depends(require("form_schedule"))) -> dict:
     fc = rules["forms"]
     today = _today()
     with session_scope() as s:
-        auto = auto_apply_form_plans(s, today, rules, load_forms())  # bộ câu có căn cứ bác sĩ ghi → tự áp dụng
+        # Xem trước GIỐNG lúc xuất SMS (xuất áp dụng bộ câu có căn cứ bác sĩ trước rồi mới lập kế hoạch): áp dụng tạm
+        # trong giao dịch này rồi HOÀN TÁC ở cuối – màn xem không để lại thay đổi nào (không SMS, không gọi AI).
+        auto = auto_apply_form_plans(s, today, rules, load_forms())
         decisions = plan_forms(build_states(s, today, rules), today, rules)
         proposals = _proposals(s, rules, today)
         reminders = len(due_reminders(s, now(), fc["no_reply_reminder_hours"]))
@@ -57,6 +61,7 @@ def overview(user: CurrentUser = Depends(require("form_schedule"))) -> dict:
                      for p, codes in module_call_list(s, now(), fc["no_reply_reminder_hours"])]
         call_list += [{"code": p.code, "forms": codes, "why": "Không trả lời form mốc dù đã nhắc (có nguy cơ)"}
                       for p, codes in no_reply_call_list(s, now(), rules)]
+        s.rollback()  # hoàn tác phần áp dụng tạm ở trên – màn xem không ghi gì
     send = [d for d in decisions if d.send]
     skip = [d for d in decisions if not d.send and not d.merged_into]
     merged: dict[tuple[int, str | None], list[FormDecision]] = {}
@@ -85,7 +90,7 @@ def overview(user: CurrentUser = Depends(require("form_schedule"))) -> dict:
         "send": [_decision(d, merged.get((d.patient_id, d.form_code))) for d in send],
         "skip": [_decision(d) for d in skip],
         "proposals": proposals, "reminders_due": reminders, "call_list": call_list,
-        "auto_applied": [{"code": c, "packs": a} for c, a in auto],
+        "auto_pending": [{"code": c, "packs": a} for c, a in auto],
     }
 
 
@@ -100,13 +105,21 @@ def _store(name: str, data: bytes) -> str:
 def export(user: CurrentUser = Depends(require("export_form_sms"))) -> dict:
     rules, forms_cfg = load_rules(), load_forms()
     today = _today()
+    # 1) Giao dịch ngắn: áp dụng bộ câu có căn cứ bác sĩ + lưu kế hoạch gửi hôm nay (chốt ngay).
     with session_scope() as s:
         auto_apply_form_plans(s, today, rules, forms_cfg)
         decisions = plan_forms(build_states(s, today, rules), today, rules)
         if not any(d.send for d in decisions):
             raise HTTPException(409, "Hôm nay không có form cần gửi.")
         save_plan(s, decisions, today, rules.rules_version)
-        r = export_form_sms(s, today, rules, forms_cfg, get_sms_channel(rules), user.user_id)
+    # 2) CHỈ ĐỌC, không giữ khóa ghi: chọn câu (có thể gọi AI vài phút).
+    selector = selector_client(rules)
+    with session_scope() as s:
+        pre = precompute_selections(s, today, rules, forms_cfg, selector)
+    # 3) Giao dịch ngắn: tạo đường dẫn, gửi SMS. Lỗi ở đây → kế hoạch (bước 1) vẫn còn, bấm xuất lại được.
+    with session_scope() as s:
+        r = export_form_sms(s, today, rules, forms_cfg, get_sms_channel(rules), user.user_id,
+                            precomputed=pre, selector=selector)
     name = _store(r.file_path.name if r.file_path else f"gui_form_{today.isoformat()}.xlsx", r.file_bytes) if r.file_bytes else None
     return {"channel": r.channel, "ok": r.n_ok, "blocked": r.n_blocked, "file": name}
 

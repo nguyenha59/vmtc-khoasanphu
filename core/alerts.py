@@ -101,13 +101,11 @@ def submit_response(
     at = submitted_at or now()
     # 1) Đánh giá TRƯỚC khi ghi: chỉ có lệnh đọc → không giữ khóa ghi SQLite trong lúc chờ AI (có thể vài chục giây).
     ga = ga_on(patient, at.date())
-    # Quy tắc đã đỏ thì không chờ tác vụ LLM phụ. Dò văn bản xác định vẫn chạy.
-    structured_red = triage(answers, ga[0] if ga else None, bool(patient.on_insulin), rules).level == Level.RED
+    # Quy tắc đã đỏ → assess_answers tự bỏ qua LLM (skip_llm khi rule.level đỏ); dò văn bản xác định vẫn chạy.
     result = assess_answers(
         form_code, answers, free_text, ga[0] if ga else None, rules, forms_cfg, client=client,
         history=history_for(s, patient.id, as_of=at), on_insulin=patient.on_insulin, risk_groups=list(patient.risk_groups or []),
         ga_label=stage_text(patient, at.date()), patient_name=patient_name(patient), pid=patient.pid, ner=ner, at=at,
-        skip_llm=structured_red,
     )
     # 2) Ghi – một giao dịch ngắn.
     if token:
@@ -142,6 +140,12 @@ def submit_response(
               {"patient": patient.code, "form": form_code, "level": result.level.code, "source": source,
                "rules_version": rules.rules_version}, session=s)
     return resp, asm, alert, result
+
+
+def structured_red(patient: Patient, answers: dict[str, Any], at: datetime, rules: Rules) -> bool:
+    """Câu trả lời có cấu trúc đã đủ báo ĐỎ? Dùng để khỏi tạo / thăm dò client AI (cùng tuần thai với submit_response)."""
+    ga = ga_on(patient, at.date())
+    return triage(answers, ga[0] if ga else None, bool(patient.on_insulin), rules).level == Level.RED
 
 
 def _alert_reasons(result: AssessResult) -> list[str]:

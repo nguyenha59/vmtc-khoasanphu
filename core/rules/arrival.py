@@ -183,7 +183,10 @@ def compute_arrival(
         if rx_time is not None or ai_time is not None or find_minutes_early(note) is not None:
             res.reasons.append("WAITING_NOTE_TIME")
             shown = rx_time or ai_time
-            details.append(f"Lịch khám chờ nhưng ghi chú có giờ đến {shown:%H:%M} – cần người xác nhận")
+            mins = find_minutes_early(note)
+            what = (f"giờ đến {shown:%H:%M}" if shown is not None
+                    else f"dặn đến trước {mins} phút" if mins is not None else "giờ đến")
+            details.append(f"Lịch khám chờ nhưng ghi chú có {what} – cần người xác nhận")
         w = cfg["waiting_slot"]
         limit = _shift(parse_hhmm(w["to"]), int(w.get("mixed_review_minutes", 30)))
         late_real = [x for x in slots if not is_waiting_slot(x.start_time, cfg) and x.start_time > limit]

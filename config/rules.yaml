@@ -278,6 +278,8 @@ red_basis:
     GLU_2H: [BYT1470]
     EPDS_TOTAL: [EPDS]
     IMPLAUSIBLE: [KHOA]
+    TXT_BP: [S4]                          # triệu chứng tự viết kèm HA ≥ bp_yellow (red_with_bp, vd đau đầu)
+    UNSURE: [NHCH]                        # trả lời "Không chắc"
 
 # Ca đỏ bị điều dưỡng hạ mức (hạ vàng / báo nhầm) → danh sách bác sĩ xem lại trong ngày (docs/04 C6).
 # [CẦN XÁC NHẬN] khoa duyệt. Bắt đầu 100%; giảm khi màn "Học từ kết quả gọi" cho thấy điều dưỡng hạ đúng.

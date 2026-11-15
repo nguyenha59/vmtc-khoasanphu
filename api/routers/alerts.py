@@ -30,7 +30,7 @@ from core.channels import get_alert_channel
 from core.config import load_forms, load_rules
 from core.db import session_scope
 from core.models import Alert, AlertReview, Assessment, FormResponse, Patient, User
-from core.red_basis import basis_text, explain
+from core.red_basis import explain
 from core.repo import patient_phone, stage_text
 from core.security import can, decrypt, mask_phone
 
@@ -103,7 +103,7 @@ def _why(f: dict[str, Any], answers: dict[str, Any], questions: dict[str, Any],
             detail = " + ".join(f"{questions.get(c, {}).get('text', c)} → {answers.get(c, '—')}" for c in COMBO_QUESTIONS[code])
         source = ("Số đo trong phần tự viết" if code.startswith("TEXT_")
                   else "Kết hợp triệu chứng trong phần tự viết" if code.startswith("TXT_") else "Câu trả lời trong form")
-        basis = ({"basis_codes": ["NHCH"], "basis": basis_text(["NHCH"], rules)}
+        basis = (explain("rule", "UNSURE", rules)
                  if str(x.get("reason", "")).startswith("Không chắc") else explain("rule", code, rules))
         out.append({"level": x.get("level", "yellow"), "source": source, "title": x["reason"], "detail": detail,
                     **basis})

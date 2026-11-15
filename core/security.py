@@ -62,6 +62,10 @@ class MissingSecretKey(RuntimeError):
     pass
 
 
+class MissingUsersFile(RuntimeError):
+    """Chưa có file tài khoản (config/users.yaml không đưa lên GitHub – tạo bằng scripts/make_key.py)."""
+
+
 def _fernet() -> Fernet:
     key = os.environ.get("APP_SECRET_KEY", "").strip()
     if not key:
@@ -132,9 +136,24 @@ def users_file() -> Path:
     return ROOT / os.environ.get("APP_USERS_FILE", "config/users.yaml")
 
 
+_USERS_CACHE: dict[str, tuple[float, list[dict[str, str]]]] = {}
+
+
 def load_users(path: Path | None = None) -> list[dict[str, str]]:
-    with open(path or users_file(), encoding="utf-8") as f:
-        return list((yaml.safe_load(f) or {}).get("users", []))
+    """Đọc users.yaml – lưu tạm theo thời điểm sửa file (mỗi request đăng nhập không đọc lại đĩa; sửa file → đọc lại)."""
+    target = Path(path or users_file())
+    try:
+        mtime = target.stat().st_mtime
+    except FileNotFoundError as e:
+        raise MissingUsersFile(
+            f"Chưa có file tài khoản {target.name} – chạy: python scripts/make_key.py (tạo từ users.example.yaml)"
+        ) from e
+    hit = _USERS_CACHE.get(str(target))
+    if hit is None or hit[0] != mtime:
+        with open(target, encoding="utf-8") as f:
+            hit = (mtime, list((yaml.safe_load(f) or {}).get("users", [])))
+        _USERS_CACHE[str(target)] = hit
+    return [dict(u) for u in hit[1]]
 
 
 # Băm giả để tên đăng nhập không tồn tại vẫn tốn thời gian như tên có thật (không dò được tài khoản qua thời gian).

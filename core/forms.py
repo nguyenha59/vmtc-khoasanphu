@@ -141,15 +141,47 @@ def check_token(s: Session, token: str) -> tuple[FormToken | None, str | None]:
     return t, None
 
 
+Precomputed = dict[tuple[int, tuple[str, ...]], tuple[Any, list[Any]]]
+
+
+def _form_codes_today(s: Session, fs: FormSchedule, today: date) -> list[str]:
+    merged = s.scalars(select(FormSchedule).where(FormSchedule.patient_id == fs.patient_id,
+                                                  FormSchedule.send_date == today, FormSchedule.status == "merged"))
+    return [fs.form_code or "", *[m.form_code or "" for m in merged]]
+
+
+def precompute_selections(s: Session, today: date, rules: Rules, forms_cfg: FormsConfig, selector: Any) -> Precomputed:
+    """CHỈ ĐỌC: chọn câu (có thể gọi AI vài lần × 120 giây) cho các form gửi hôm nay.
+
+    Gọi trong một phiên KHÔNG ghi gì, trước phiên ghi đường dẫn – để form thai phụ gửi vào cùng lúc không bị
+    "database is locked". Khóa theo (thai phụ, mã form) nên vẫn dùng được nếu kế hoạch bị lưu lại ở giữa chừng.
+    """
+    out: Precomputed = {}
+    for fs in s.scalars(select(FormSchedule).where(FormSchedule.send_date == today, FormSchedule.status == "planned")):
+        p = s.get(Patient, fs.patient_id)
+        if p is None or p.consent_status != "granted":
+            continue
+        codes = _form_codes_today(s, fs, today)
+        out[(p.id, tuple(codes))] = compute_selection(s, p, codes, rules, forms_cfg, selector)
+    return out
+
+
 def export_form_sms(s: Session, today: date, rules: Rules, forms_cfg: FormsConfig, channel: SmsChannel,
-                    user_id: int | None) -> SendResult:
+                    user_id: int | None, precomputed: Precomputed | None = None, selector: Any = None) -> SendResult:
+    """Ghi đường dẫn + gửi SMS cho form 'planned' hôm nay (giao dịch ngắn nếu có `precomputed`).
+
+    Chỉ lấy dòng còn 'planned' trong chính giao dịch ghi này → bấm xuất 2 lần không tạo 2 đường dẫn.
+    Dòng chưa có lựa chọn tính trước (kế hoạch đổi giữa chừng) thì chọn câu tại chỗ.
+    """
     rows = s.scalars(select(FormSchedule).where(FormSchedule.send_date == today,
                                                 FormSchedule.status == "planned")).all()
     sms: list[SmsRow] = []
     ttl = rules["forms"]["token_ttl_days"]
-    from core.ai.question_selector import selector_client
+    if selector is None and rows and precomputed is None:
+        from core.ai.question_selector import selector_client
 
-    selector = selector_client(rules) if rows else None  # AI chấm điểm chọn câu (None = chỉ quy tắc)
+        selector = selector_client(rules)  # AI chấm điểm chọn câu (None = chỉ quy tắc)
+    precomputed = precomputed or {}
     for fs in rows:
         p = s.get(Patient, fs.patient_id)
         if p is None or p.consent_status != "granted":
@@ -163,8 +195,9 @@ def export_form_sms(s: Session, today: date, rules: Rules, forms_cfg: FormsConfi
                                                       FormSchedule.status == "merged")).all()
         for m in merged:
             m.token, m.status = token, "exported"
-        snapshot_selection(s, p, token, [fs.form_code or "", *[m.form_code or "" for m in merged]], rules, forms_cfg,
-                           selector)
+        codes = [fs.form_code or "", *[m.form_code or "" for m in merged]]
+        snapshot_selection(s, p, token, codes, rules, forms_cfg, selector,
+                           computed=precomputed.get((p.id, tuple(codes))))
         name = " + ".join(str(forms_cfg.forms.get(c or "", {}).get("name", c))
                           for c in [fs.form_code, *[m.form_code for m in merged]])
         sms.append(SmsRow(phone=patient_phone(p), patient_code=p.code or "",
@@ -354,16 +387,25 @@ def clinical_context(s: Session, p: Patient, today: date, rules: Rules,
                              next_visit=nxt, today=today, rules=rules, as_of=until, lab_labels=list(lab_labels.values()))
 
 
-def snapshot_selection(s: Session, p: Patient, token: str, form_codes: list[str], rules: Rules,
-                       forms_cfg: FormsConfig, client: Any = None) -> Any:
-    """Chọn + xếp câu cho đường dẫn và LƯU lại (AI nếu có, lỗi → quy tắc). Ghi audit."""
+def compute_selection(s: Session, p: Patient, form_codes: list[str], rules: Rules, forms_cfg: FormsConfig,
+                      client: Any = None) -> tuple[Any, list[Any]]:
+    """Chọn + xếp câu (CHỈ ĐỌC + gọi AI). Gọi TRƯỚC khi ghi để không giữ khóa ghi SQLite trong lúc chờ AI."""
     from core.ai.question_selector import ai_scores
-    from core.models import QuestionSelection
-    from core.rules.question_select import as_dicts, select_questions
+    from core.rules.question_select import select_questions
 
     ctx = selection_context(s, p, now().date(), rules, forms_cfg)
     ai = ai_scores(form_codes, ctx, rules, forms_cfg, client)
-    chosen = select_questions(form_codes, ctx, rules, forms_cfg, ai.scores if ai.ok else None)
+    return ai, select_questions(form_codes, ctx, rules, forms_cfg, ai.scores if ai.ok else None)
+
+
+def snapshot_selection(s: Session, p: Patient, token: str, form_codes: list[str], rules: Rules,
+                       forms_cfg: FormsConfig, client: Any = None, computed: tuple[Any, list[Any]] | None = None) -> Any:
+    """LƯU bộ câu cho đường dẫn (AI nếu có, lỗi → quy tắc). Ghi audit. `computed` = kết quả compute_selection
+    đã tính trước (khuyến nghị); không có thì tính tại chỗ."""
+    from core.models import QuestionSelection
+    from core.rules.question_select import as_dicts
+
+    ai, chosen = computed or compute_selection(s, p, form_codes, rules, forms_cfg, client)
     row = QuestionSelection(token=token, patient_id=p.id, created_at=now(), method="ai" if ai.ok else "rules",
                             questions=as_dicts(chosen, forms_cfg), model=ai.model, prompt_version=ai.prompt_version,
                             rules_version=rules.rules_version, confidence=ai.confidence, raw=ai.raw, error=ai.error)
