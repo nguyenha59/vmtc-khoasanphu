@@ -19,11 +19,14 @@ type Decision = { code: string; ga: string; form: string | null; kind: string; r
 type Data = {
   today: string; rules_version: string;
   policy: { min_gap_days: number; skip_if_visit_within_days: number; stop_routine_from_ga_weeks: number; resend_block_days: number;
+    resend_routine?: boolean; skip_if_visited_within_days?: number | null; module_schedule?: Record<string, string>;
+    insulin_schedule?: string; preeclampsia_schedule?: string; pack_mid_gap_days?: number | null;
     postpartum_days: number[]; reminder_hours: number };
-  counts: { routine: number; m_tha: number; m_dtd: number; postpartum: number; skip: number; proposals: number };
+  counts: { routine: number; m_tha: number; m_dtd: number; postpartum: number; skip: number; proposals: number;
+    packs?: number; links?: number; merged?: number };
   send: Decision[]; skip: Decision[];
   proposals: { patient_id: number; code: string; flags: string[]; modules: string[]; current: string[] }[];
-  reminders_due: number; call_list: { code: string; forms: string[] }[];
+  reminders_due: number; call_list: { code: string; forms: string[]; why?: string }[];
 };
 
 const gapCol: Column<Decision> = { key: "gap_days", label: "Khoảng trống", width: 160, render: (d) => (
@@ -72,9 +75,17 @@ export function FormSchedule() {
           onClick={() => exp.mutate()}>Lưu lịch & xuất SMS ({data.send.length})</Button>} />
 
       <Alert variant="light" color="brand" icon={<IconInfoCircle size={18} />} mb="lg" radius="lg">
-        <Text size="sm">Chỉ thai phụ <b>đã đồng thuận</b>. Form định kỳ khi khoảng trống đến lần hẹn tới &gt; {P.min_gap_days} ngày;
-          không gửi nếu hẹn trong {P.skip_if_visit_within_days} ngày, tuần thai ≥ {P.stop_routine_from_ga_weeks} (trừ module), đã gửi trong {P.resend_block_days} ngày
-          hoặc đã trả lời. M-THA hằng ngày, M-ĐTĐ mỗi 3 ngày; sau sinh S1–S4 ngày {P.postpartum_days.join(", ")}.</Text>
+        <Stack gap={4}>
+          <Text size="sm">Chỉ thai phụ <b>đã đồng thuận</b>, <b>mỗi người tối đa 1 SMS/ngày</b> (form đến hạn cùng ngày được gộp, không hỏi trùng).</Text>
+          <Text size="sm"><b>Form theo mốc</b> khi khoảng trống đến lần hẹn tới &gt; {P.min_gap_days} ngày
+            {P.resend_routine === false ? "; mỗi mốc gửi 1 lần + nhắc 1 lần" : `; gửi lại sau ${P.resend_block_days} ngày nếu chưa trả lời`}.
+            Không gửi nếu sắp khám ≤ {P.skip_if_visit_within_days} ngày
+            {P.skip_if_visited_within_days ? ` hoặc vừa khám ≤ ${P.skip_if_visited_within_days} ngày` : ""}; tuần thai ≥ {P.stop_routine_from_ga_weeks} dừng form mốc.</Text>
+          <Text size="sm"><b>Module:</b> M-THA {P.module_schedule?.["M-THA"] ?? "—"} (tiền sản giật {P.preeclampsia_schedule ?? "—"});
+            M-ĐTĐ {P.module_schedule?.["M-DTD"] ?? "—"} (insulin {P.insulin_schedule ?? "—"}).
+            <b> Bộ theo tình trạng</b> ghép vào form mốc{P.pack_mid_gap_days ? `, thêm 1 lần khi 2 lần khám cách nhau > ${P.pack_mid_gap_days} ngày` : ""}.
+            <b> Sau sinh</b> S1–S4 ngày {P.postpartum_days.join(", ")}.</Text>
+        </Stack>
       </Alert>
 
       {files.length > 0 && (
@@ -83,13 +94,15 @@ export function FormSchedule() {
             leftSection={<IconDownload size={16} />}>{n}</Button>))}</Group>
       )}
 
-      <SimpleGrid cols={{ base: 2, sm: 3, xl: 6 }} mb="lg">
+      <SimpleGrid cols={{ base: 2, sm: 4 }} mb="lg">
         <StatCard label="Định kỳ F1–F6" value={c.routine} icon={<IconCalendarRepeat size={22} />} />
         <StatCard label="Module M-THA" value={c.m_tha} icon={<IconActivityHeartbeat size={22} />} color="danger" />
         <StatCard label="Module M-ĐTĐ" value={c.m_dtd} icon={<IconDroplet size={22} />} color="blue" />
         <StatCard label="Sau sinh S1–S4" value={c.postpartum} icon={<IconBabyCarriage size={22} />} color="grape" />
+        <StatCard label={`SMS gửi hôm nay${c.merged ? ` (đã gộp ${c.merged} form)` : ""}`} value={c.links ?? 0}
+          icon={<IconCalendarRepeat size={22} />} color="ok" />
         <StatCard label="Không gửi" value={c.skip} icon={<IconBan size={22} />} color="gray" />
-        <StatCard label="Đề xuất module" value={c.proposals} icon={<IconSparkles size={22} />} color="warn" />
+        <StatCard label="Đề xuất bộ câu hỏi" value={c.proposals} icon={<IconSparkles size={22} />} color="warn" />
       </SimpleGrid>
 
       <Paper p={0} mb="lg" style={{ overflow: "hidden" }}>
@@ -110,7 +123,7 @@ export function FormSchedule() {
       <Grid gutter="lg">
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Paper p="lg" h="100%">
-            <SectionTitle icon={<IconSparkles size={18} />}>Đề xuất module bệnh lý (từ AI đọc ghi chú)</SectionTitle>
+            <SectionTitle icon={<IconSparkles size={18} />}>Đề xuất bộ câu hỏi theo tình trạng (từ hồ sơ + AI)</SectionTitle>
             {!data.proposals.length ? <Text size="sm" c="dimmed">Không có đề xuất mới.</Text> : (
               <Stack gap="sm">
                 {data.proposals.map((p) => (
@@ -144,7 +157,7 @@ export function FormSchedule() {
             <Group gap={6} mb="xs"><ThemeIcon size={22} variant="light" color="danger"><IconPhoneCall size={14} /></ThemeIcon>
               <Text size="sm" fw={600}>Cần gọi (module bỏ 2 lần liên tiếp)</Text></Group>
             {data.call_list.length ? (
-              <Stack gap={4}>{data.call_list.map((x) => <Text key={x.code} size="sm"><b>{x.code}</b> – bỏ {x.forms.join(", ")}</Text>)}</Stack>
+              <Stack gap={4}>{data.call_list.map((x) => <Text key={x.code + x.forms.join()} size="sm"><b>{x.code}</b> – {x.why ?? "bỏ"}: {x.forms.join(", ")}</Text>)}</Stack>
             ) : <Text size="sm" c="dimmed">Không có.</Text>}
           </Paper>
         </Grid.Col>

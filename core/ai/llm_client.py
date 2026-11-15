@@ -1,10 +1,12 @@
-"""Client mô hình ngôn ngữ: Ollama cục bộ, mock, hoặc OpenAI (API ngoài – CHỈ dữ liệu giả)."""
+"""Client Ollama cục bộ, OpenAI (chỉ dữ liệu giả), hybrid có dự phòng, hoặc mock."""
 
 from __future__ import annotations
 
 import csv
 import ipaddress
 import json
+import logging
+import math
 import os
 import re
 from collections.abc import Callable
@@ -15,10 +17,12 @@ from urllib.parse import urlparse
 import jsonschema
 import requests
 
-from core.config import ROOT, Rules, llm_provider
+from core.ai import spend_store
+from core.config import ROOT, Rules, check_provider, llm_provider, ollama_model
 
 INPUT_RE = re.compile(r"<<<INPUT>>>\s*(.*?)\s*<<<END>>>", re.DOTALL)
 TASK_RE = re.compile(r"<<<TASK:([\w-]+)>>>")
+log = logging.getLogger(__name__)
 
 
 class LlmError(Exception):
@@ -35,9 +39,14 @@ class LlmClient(Protocol):
 
 def validate(output: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
     try:
+        if not isinstance(output, dict):
+            raise LlmError("Đầu ra AI phải là một đối tượng JSON")
         jsonschema.validate(output, schema)
+        json.dumps(output, allow_nan=False)
     except jsonschema.ValidationError as e:
-        raise LlmError(f"Sai lược đồ JSON: {e.message}") from e
+        raise LlmError("Đầu ra AI sai lược đồ JSON") from e
+    except (ValueError, TypeError) as e:
+        raise LlmError("Đầu ra AI có giá trị không hợp lệ") from e
     return output
 
 
@@ -81,7 +90,13 @@ class OllamaClient:
 
     def _tags(self) -> dict[str, dict[str, Any]]:
         r = requests.get(f"{self.url}/api/tags", timeout=3)
-        return {m["name"]: m for m in r.json().get("models", [])}
+        r.raise_for_status()
+        data = r.json()
+        if not isinstance(data, dict) or not isinstance(data.get("models"), list):
+            raise LlmError("Ollama trả danh sách mô hình sai cấu trúc")
+        if not all(isinstance(m, dict) and isinstance(m.get("name"), str) for m in data["models"]):
+            raise LlmError("Ollama trả mô hình sai cấu trúc")
+        return {m["name"]: m for m in data["models"]}
 
     def _check_local(self) -> bool:
         try:
@@ -107,16 +122,19 @@ class OllamaClient:
                 timeout=self.timeout,
             )
             r.raise_for_status()
-            text = r.json().get("response", "")
+            data = r.json()
+            if not isinstance(data, dict) or not isinstance(data.get("response"), str):
+                raise LlmError("Ollama trả nội dung không hợp lệ")
+            text = data["response"]
             out = json.loads(text)
-        except (requests.RequestException, ValueError) as e:
+        except (requests.RequestException, ValueError, TypeError, KeyError) as e:
             raise LlmError(f"Ollama lỗi: {e}") from e
         return validate(out, schema)
 
     def available(self) -> bool:
         try:
             info = self._tags().get(self.model)
-        except (requests.RequestException, ValueError):
+        except (requests.RequestException, ValueError, LlmError, TypeError):
             return False
         self._local = info is not None and (self.allow_cloud_eval or not is_cloud_model(self.model, info))
         return self._local
@@ -136,7 +154,8 @@ class BudgetExceeded(LlmError):
 
 def _env_float(name: str, default: float) -> float:
     try:
-        return float(os.environ.get(name) or default)
+        value = float(os.environ.get(name) or default)
+        return value if math.isfinite(value) and value >= 0 else default
     except ValueError:
         return default
 
@@ -151,10 +170,9 @@ def _today() -> str:
 
 def _read_spend() -> dict[str, Any]:
     try:
-        d = json.loads(SPEND_FILE.read_text(encoding="utf-8"))
-        return d if isinstance(d, dict) else {}
-    except (OSError, ValueError):
-        return {}
+        return spend_store.read(SPEND_FILE)
+    except (OSError, ValueError, TypeError) as e:
+        raise LlmError("Không đọc được sổ chi phí OpenAI – tạm chặn gọi") from e
 
 
 def openai_spent(day: str | None = None) -> float:
@@ -163,16 +181,31 @@ def openai_spent(day: str | None = None) -> float:
 
 
 def _add_spend(usd: float, tokens_in: int, tokens_out: int) -> float:
-    d = _read_spend()
-    days = d.setdefault("days", {})
-    t = days.setdefault(_today(), {"usd": 0.0, "tokens_in": 0, "tokens_out": 0, "calls": 0})
-    t["usd"] = float(t["usd"]) + usd
-    t["tokens_in"] = int(t["tokens_in"]) + tokens_in
-    t["tokens_out"] = int(t["tokens_out"]) + tokens_out
-    t["calls"] = int(t["calls"]) + 1
-    SPEND_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SPEND_FILE.write_text(json.dumps(d), encoding="utf-8")
-    return float(t["usd"])
+    with spend_store.locked(SPEND_FILE):
+        data = _read_spend()
+        total = spend_store.add(data, _today(), usd, tokens_in, tokens_out)
+        spend_store.write(SPEND_FILE, data)
+        return total
+
+
+def strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Sinh schema đóng cho provider; validation nghiệp vụ vẫn dùng schema gốc."""
+    result = json.loads(json.dumps(schema))
+
+    def close(node: Any) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "object":
+                properties = node.setdefault("properties", {})
+                node["required"] = list(properties)
+                node["additionalProperties"] = False
+            for value in node.values():
+                close(value)
+        elif isinstance(node, list):
+            for value in node:
+                close(value)
+
+    close(result)
+    return result
 
 
 class OpenAIClient:
@@ -210,17 +243,25 @@ class OpenAIClient:
         body: dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-            "response_format": {"type": "json_object"},
+            "response_format": {"type": "json_schema", "json_schema": {
+                "name": "clinical_extraction", "strict": True, "schema": strict_schema(schema)}},
+            "max_completion_tokens": 1000,
         }
         if seed is not None:
             body["seed"] = seed
         if not self._no_temperature:
             body["temperature"] = temperature
         # Rào ngân sách: ước lượng lần gọi này (≈ 3 ký tự / token, đầu ra ≤ 1000 token) – vượt thì không gọi.
-        est = ((len(system) + len(prompt)) / 3 * self.price_in + 1000 * self.price_out) / 1e6
-        if openai_spent() + est > self.budget:
+        est = ((len((system + prompt).encode("utf-8")) + 128) * self.price_in + 1000 * self.price_out) / 1e6
+        try:
+            reservation = spend_store.reserve(SPEND_FILE, _today(), est, self.budget)
+        except (OSError, ValueError, TypeError, TimeoutError) as e:
+            raise LlmError("Không giữ chỗ được ngân sách OpenAI – tạm chặn gọi") from e
+        if reservation is None:
             self.budget_hit = True
             raise BudgetExceeded(f"Đã chạm ngân sách OpenAI hôm nay {self.budget:.2f} USD – dừng gọi.")
+        usage_cost: tuple[float, int, int] | None = None
+        charged = True  # Lỗi truyền tải có thể xảy ra sau khi server đã nhận request.
         try:
             r = self._post(body)
             if r.status_code == 400 and "temperature" in r.text and "temperature" in body:
@@ -228,18 +269,99 @@ class OpenAIClient:
                 body.pop("temperature")
                 r = self._post(body)
             if r.status_code >= 400:
-                raise LlmError(f"OpenAI lỗi {r.status_code}: {r.text[:200]}")
+                charged = False
+                raise LlmError(f"OpenAI lỗi HTTP {r.status_code}")
             data = r.json()
+            if not isinstance(data, dict):
+                raise LlmError("OpenAI trả phản hồi sai cấu trúc")
             usage = data.get("usage") or {}
             t_in, t_out = int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0))
-            _add_spend((t_in * self.price_in + t_out * self.price_out) / 1e6, t_in, t_out)
-            out = json.loads(data["choices"][0]["message"]["content"])
-        except (requests.RequestException, ValueError, KeyError, IndexError) as e:
-            raise LlmError(f"OpenAI lỗi: {e}") from e
+            if t_in < 0 or t_out < 0:
+                raise LlmError("OpenAI trả số token không hợp lệ")
+            if usage:
+                usage_cost = ((t_in * self.price_in + t_out * self.price_out) / 1e6, t_in, t_out)
+            choice = data["choices"][0]
+            message = choice["message"]
+            if message.get("refusal") or choice.get("finish_reason") in ("length", "content_filter"):
+                raise LlmError("AI từ chối hoặc chưa hoàn tất kết quả")
+            if not isinstance(message.get("content"), str) or not message["content"].strip():
+                raise LlmError("OpenAI trả nội dung trống hoặc sai kiểu")
+            out = json.loads(message["content"])
+        except (requests.RequestException, ValueError, TypeError, AttributeError, KeyError, IndexError) as e:
+            raise LlmError(f"OpenAI trả phản hồi không dùng được ({type(e).__name__})") from e
+        finally:
+            try:
+                spend_store.settle(SPEND_FILE, reservation, usage=usage_cost, charged=charged)
+            except (OSError, ValueError, TypeError, TimeoutError) as e:
+                raise LlmError("Không đối soát được chi phí OpenAI – giữ chỗ ngân sách còn hiệu lực") from e
         return validate(out, schema)
 
     def available(self) -> bool:
         return bool(self.api_key)
+
+
+class HybridClient:
+    """Ưu tiên OpenAI được phép; lỗi một lần thì dùng local cho phần còn lại của client.
+
+    Không thăm dò API trả phí. Quyền gửi ra ngoài được kiểm tra lại trước mỗi lần gọi.
+    name mô tả cấu hình, last_provider ghi nguồn của kết quả vừa trả về.
+    """
+
+    def __init__(self, local: LlmClient, primary: LlmClient | None = None) -> None:
+        self.local = local
+        self.primary = primary
+        self.name = f"hybrid:{primary.name if primary else 'local-only'}|{local.name}"
+        self.last_provider: str | None = None
+        self._primary_failed = False
+
+    @property
+    def may_send_external(self) -> bool:
+        if self.primary is None or self._primary_failed:
+            return False
+        try:
+            check_provider("openai")
+        except ValueError:
+            return False
+        return True
+
+    def generate_json(
+        self, prompt: str, schema: dict[str, Any], temperature: float, seed: int | None
+    ) -> dict[str, Any]:
+        self.last_provider = None
+        if self.may_send_external:
+            try:
+                result = self.primary.generate_json(prompt, schema, temperature, seed)
+            except LlmError:
+                self._primary_failed = True
+                # Không ghi prompt, API key hoặc nội dung lỗi từ máy chủ vào log.
+                log.warning("OpenAI không dùng được; chuyển sang Ollama cho client này.")
+            else:
+                self.last_provider = self.primary.name
+                return result
+        result = self.local.generate_json(prompt, schema, temperature, seed)
+        self.last_provider = self.local.name
+        return result
+
+    def available(self) -> bool:
+        return self.may_send_external or self.local.available()
+
+
+def can_send_external(client: LlmClient | None) -> bool:
+    """Bao gồm wrapper hybrid và client tương thích chỉ khai báo name."""
+    if isinstance(client, HybridClient):
+        return client.may_send_external
+    return getattr(client, "name", "").startswith("openai:")
+
+
+def local_only_client(client: LlmClient | None) -> LlmClient | None:
+    """Ghi chú nhạy cảm chỉ đi nhánh local, không thử primary trước."""
+    if isinstance(client, HybridClient):
+        return client.local
+    return None if can_send_external(client) else client
+
+
+def result_provider(client: LlmClient) -> str:
+    return getattr(client, "last_provider", None) or client.name
 
 
 # ---------------------------------------------------------------- Mock
@@ -276,10 +398,22 @@ def _mock_summary(inp: dict[str, Any], seed: int | None) -> dict[str, Any]:
     return {"text": inp.get("template_summary", "")}
 
 
+def _mock_question_selector(inp: dict[str, Any], seed: int | None) -> dict[str, Any]:
+    """Mock: câu có từ khóa của tình trạng → điểm cao (đủ để test luồng; không phải đánh giá lâm sàng)."""
+    conds = " ".join(inp.get("conditions", [])).lower()
+    out = []
+    for q in [*inp.get("mandatory", []), *inp.get("candidates", [])]:
+        text = q["text"].lower()
+        hit = ("song thai" in conds or "sinh non" in conds) and ("gò" in text or "ra nước" in text)
+        out.append({"code": q["code"], "score": 0.9 if hit else 0.3, "reason": "Mock: liên quan tình trạng" if hit else ""})
+    return {"scores": out, "confidence": 0.7}
+
+
 DEFAULT_RESPONDERS: dict[str, Callable[[dict[str, Any], int | None], dict[str, Any]]] = {
     "note_extractor": _mock_note,
     "form_reader": _mock_form,
     "summary": _mock_summary,
+    "question_selector": _mock_question_selector,
 }
 
 
@@ -308,11 +442,42 @@ class MockClient:
 
 
 def make_client(rules: Rules) -> LlmClient:
-    provider = llm_provider(rules)
-    if provider == "ollama":
-        return OllamaClient(model=rules["llm"]["model"], timeout=rules["llm"].get("timeout_seconds", 120))
-    if provider == "openai":
-        return OpenAIClient(model=rules["llm"].get("openai_model"))
+    return make_client_for(rules, llm_provider(rules))
+
+
+
+def make_client_safe(rules: Rules) -> tuple[LlmClient | None, str | None]:
+    """Client cho luồng của app: cấu hình AI sai / thiếu khóa / Ollama không chạy → (None, lý do) để LÙI VỀ QUY TẮC.
+
+    Không bao giờ ném lỗi: form thai phụ có dấu hiệu đỏ vẫn phải được nhận và cảnh báo dù AI hỏng.
+    """
+    try:
+        client = make_client(rules)
+    except (ValueError, LlmError) as e:
+        log.warning("AI tắt, chỉ dùng quy tắc: %s", e)
+        return None, f"AI chưa dùng được ({e}) – chỉ xử lý bằng quy tắc."
+    if isinstance(client, (OllamaClient, HybridClient)) and not client.available():
+        return None, "Không kết nối được Ollama hoặc chưa tải mô hình – chỉ xử lý bằng quy tắc."
+    return client, None
+
+
+def make_client_for(rules: Rules, provider: str) -> LlmClient:
+    """Client cho MỘT tác vụ với nhà cung cấp riêng (vd. chọn câu hỏi dùng openai). Vẫn qua check_provider (luật 5)."""
+    p = check_provider(provider)
+    if p in ("ollama", "hybrid"):
+        local = OllamaClient(model=ollama_model(rules), timeout=rules.get("llm.timeout_seconds", 120))
+        if p == "ollama":
+            return local
+        primary = None
+        if os.environ.get("OPENAI_API_KEY", "").strip():
+            try:
+                check_provider("openai")
+                primary = OpenAIClient(model=rules.get("llm.openai_model"))
+            except (ValueError, LlmError):
+                pass  # Không có quyền gửi ra ngoài: hybrid chỉ dùng Ollama.
+        return HybridClient(local=local, primary=primary)
+    if p == "openai":
+        return OpenAIClient(model=rules.get("llm.openai_model"))
     return MockClient()
 
 

@@ -104,7 +104,7 @@ def default_ner() -> NerFn | None:
 
             _default_ner = _underthesea_ner
         except Exception:  # pragma: no cover - thiếu thư viện
-            log.warning("Không có underthesea – bỏ qua bước NER khi che dữ liệu.")
+            log.warning("Không có underthesea – không xác minh được tên trong văn bản.")
             return None
     return _default_ner
 
@@ -196,7 +196,12 @@ def _regex_pass(text: str, pid: str | None) -> tuple[str, dict[str, int]]:
 _NER_NOT_NAMES = {
     "tai", "tai kham", "pap", "pap smear", "kham", "sieu am", "thai", "be", "con", "doppler", "double", "triple",
     "npdn", "ogtt", "rh", "gbs", "hpv", "insulin",
+    "tha", "dtdtk", "sa", "xn", "ha", "bp", "hiv", "hbsag", "ctg", "cccd",
 }
+
+
+class NerUnavailable(Exception):
+    """Không thể hoàn tất bước kiểm chứng tên; không được coi là không có tên."""
 
 
 def _ner_persons(text: str, ner: NerFn | None) -> list[str]:
@@ -205,14 +210,16 @@ def _ner_persons(text: str, ner: NerFn | None) -> list[str]:
     stripped = PLACEHOLDER_RE.sub(" ", text)
     try:
         found = ner(stripped)
-    except Exception as e:  # pragma: no cover
-        log.warning("NER lỗi: %s", e)
-        return []
+        if not isinstance(found, list) or not all(isinstance(p, str) for p in found):
+            raise TypeError("NER trả sai kiểu")
+    except Exception as e:
+        log.warning("NER không dùng được (%s)", type(e).__name__)
+        raise NerUnavailable from e
     # Bỏ chữ viết tắt y khoa toàn chữ hoa (ĐTĐTK, THA, SA…) và từ y khoa đầu câu ("Tái khám", "Pap smear")
     # mà NER hay nhận nhầm là tên người.
     return [
         p for p in found
-        if len(p.strip()) >= 2 and not PLACEHOLDER_RE.fullmatch(p.strip()) and p.upper() != p
+        if isinstance(p, str) and len(p.strip()) >= 2 and not PLACEHOLDER_RE.fullmatch(p.strip())
         and deaccent(p.strip()).lower() not in _NER_NOT_NAMES
     ]
 
@@ -242,7 +249,11 @@ def mask_text(
         doc_words += _name_variants(clean)
     masked, counts["BS"] = _sub_words(masked, sorted(set(doc_words), key=len, reverse=True), "[BS]")
 
-    persons = _ner_persons(masked, ner_fn)
+    ner_failed = ner is True and ner_fn is None
+    try:
+        persons = _ner_persons(masked, ner_fn)
+    except NerUnavailable:
+        persons, ner_failed = [], True
     if persons:
         masked, k = _sub_words(masked, sorted(set(persons), key=len, reverse=True), "[TÊN]")
         counts["TÊN"] = counts.get("TÊN", 0) + k
@@ -257,7 +268,12 @@ def mask_text(
     for w in name_words:
         if re.search(rf"(?<!\w){re.escape(w)}(?!\w)", masked, re.IGNORECASE):
             leftovers.append("TÊN")
-    leftovers += ["NER" for _p in _ner_persons(masked, ner_fn)]
+    try:
+        leftovers += ["NER" for _p in _ner_persons(masked, ner_fn)]
+    except NerUnavailable:
+        ner_failed = True
+    if ner_failed:
+        leftovers.append("NER_UNAVAILABLE")
     masked = _unshield(masked, shielded)
     return MaskResult(
         text=masked, ok=not leftovers, replaced={k: v for k, v in counts.items() if v}, leftovers=leftovers,

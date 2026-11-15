@@ -163,3 +163,35 @@ def test_latest_eval_prefers_real_model(db):
         s.flush()
         assert latest_eval(s, "notes").model == "ollama:x"
         assert latest_eval(s, "notes", include_mock=True).model == "mock"
+
+
+def test_write_rule_concurrent_is_atomic(tmp_path) -> None:
+    """Hai bác sĩ duyệt cùng lúc: không hỏng file, không mất lần tăng phiên bản, không để lại file tạm."""
+    import shutil
+    from concurrent.futures import ThreadPoolExecutor
+
+    import yaml
+
+    from core.config import CONFIG_DIR
+    from core.rule_config import bump_minor, write_rule
+
+    dst = tmp_path / "rules.yaml"
+    shutil.copy(CONFIG_DIR / "rules.yaml", dst)
+    start = str(yaml.safe_load(dst.read_text(encoding="utf-8"))["rules_version"])
+    vals = [0.80 + i / 100 for i in range(8)]
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        versions = list(ex.map(lambda v: write_rule(dst, "arrival.ai_confidence_min", v), vals))
+    data = yaml.safe_load(dst.read_text(encoding="utf-8"))
+    expected = start
+    for _ in vals:
+        expected = bump_minor(expected)
+    assert str(data["rules_version"]) == expected and len(set(versions)) == len(vals)
+    assert data["arrival"]["ai_confidence_min"] in vals
+    assert [p.name for p in tmp_path.iterdir()] == ["rules.yaml"]
+
+
+def test_group_without_red_has_no_sensitivity() -> None:
+    from core.ai.evaluate import _form_metrics
+
+    assert _form_metrics([("green", "green"), ("yellow", "red")])["red_sensitivity"] is None
+    assert _form_metrics([("red", "red")])["red_sensitivity"] == 1.0

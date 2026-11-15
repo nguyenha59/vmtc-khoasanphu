@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import time
 from functools import lru_cache
@@ -110,19 +111,40 @@ def extract(
     votes = run_votes(client, prompt, NOTE_SCHEMA, runs, temp)
     # Phiếu có explicit_arrival_time không xuất hiện trong ghi chú = bịa / chép giờ hẹn → loại, tính như lỗi.
     grounded = []
-    for o in votes.outputs:
+    grounded_models = []
+    for o, model in zip(votes.outputs, votes.models, strict=True):
         t = o.get("explicit_arrival_time")
         if t and not time_in_note(t, masked_note):
             votes.errors.append(f"Giờ đến {t} không có trong ghi chú – loại phiếu")
         else:
             grounded.append(o)
+            grounded_models.append(model)
     votes.outputs = grounded
-    conf = agreement(votes.outputs, ["explicit_arrival_time", "minutes_early"], votes.n_total)
-    raw = {"runs": runs, "temperature": temp, "outputs": votes.outputs, "errors": votes.errors}
+    votes.models = grounded_models
+    confidence_by_field = {
+        name: agreement(votes.outputs, fields, votes.n_total)
+        for name, fields in {
+            "arrival": ["explicit_arrival_time", "minutes_early"],
+            "ga": ["ga_weeks", "ga_days"],
+            "risk": ["risk_flags"], "fasting": ["needs_fasting"],
+            "confirmation": ["asks_confirmation"],
+        }.items()
+    }
+    conf = min(confidence_by_field.values())
+    raw = {"runs": runs, "temperature": temp, "outputs": votes.outputs, "errors": votes.errors, "models": votes.models,
+           "min_confidence": float(rules["arrival"]["ai_confidence_min"])}
     if not votes.outputs:
         return Extraction(ai=None, attempted=True, confidence=0.0, errors=votes.errors, model=client.name,
                           prompt_version=version, raw=raw)
     m = majority(votes.outputs, FIELDS)
+    # Không tạo một cặp tuần/ngày bằng hai phiếu đa số độc lập.
+    ga_pair = Counter((o.get("ga_weeks"), o.get("ga_days")) for o in votes.outputs).most_common(1)[0][0]
+    m["ga_weeks"], m["ga_days"] = ga_pair
+    noted_ga = find_ga(masked_note)
+    ga_grounded = bool(noted_ga and ga_pair[0] == noted_ga[0]
+                       and (ga_pair[1] or 0) == noted_ga[1])
+    raw["confidence_by_field"] = confidence_by_field
+    raw["ga_grounded"] = ga_grounded
     ai = NoteAI(
         ok=True,
         confidence=conf,
@@ -134,6 +156,7 @@ def extract(
         risk_flags=list(m.get("risk_flags") or []),
         asks_confirmation=bool(m.get("asks_confirmation")),
         evidence=str(m.get("evidence") or ""),
+        ga_confidence=confidence_by_field["ga"], ga_grounded=ga_grounded,
     )
     return Extraction(ai=ai, attempted=True, confidence=conf, votes=votes.outputs, errors=votes.errors,
                       model=client.name, prompt_version=version, raw=raw)

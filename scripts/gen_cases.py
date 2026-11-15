@@ -122,6 +122,9 @@ def _remove(s: Session, pids: list[str]) -> None:
         return
     appt_ids = list(s.scalars(select(Appointment.id).where(Appointment.patient_id.in_(ids))))
     from core.models import PatientHistory
+    from scripts.gen_monitoring import remove_monitoring
+
+    remove_monitoring(s, ids)
 
     s.execute(delete(VisitResult).where(VisitResult.appointment_id.in_(appt_ids)))
     s.execute(delete(NoteExtraction).where(NoteExtraction.appointment_id.in_(appt_ids)))
@@ -208,7 +211,10 @@ def generate(s: Session, today: date) -> dict[str, int]:
     ref = load_clinical_reference()
     _remove(s, [c.pid for c in CASES])
     n = sum(build_case(s, c, today, ref) for c in CASES)
-    return {"cases": len(CASES), "visits": n}
+    from scripts.gen_monitoring import generate as gen_monitoring
+
+    mon = gen_monitoring(s, today)  # theo dõi tại nhà cho 5 ca nguy cơ (số đo, form, cảnh báo, xử trí)
+    return {"cases": len(CASES), "visits": n, "monitoring_responses": mon["responses"], "monitoring_alerts": mon["alerts"]}
 
 
 def main() -> None:
@@ -219,7 +225,8 @@ def main() -> None:
     dbmod.init_db()
     with dbmod.session_scope() as s:
         out = generate(s, datetime.now(TZ).date())
-    print(f"Đã tạo {out['cases']} hồ sơ thai phụ đầy đủ, {out['visits']} lần khám có kết quả (dữ liệu giả).")
+    print(f"Đã tạo {out['cases']} hồ sơ thai phụ đầy đủ, {out['visits']} lần khám có kết quả, "
+          f"{out['monitoring_responses']} câu trả lời form tại nhà, {out['monitoring_alerts']} cảnh báo (dữ liệu giả).")
 
 
 if __name__ == "__main__":

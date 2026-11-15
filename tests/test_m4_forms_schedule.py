@@ -64,8 +64,10 @@ def test_no_consent_not_in_list(rules):
 def test_resend_block_and_answered(rules):
     st = st_at(25, sent=[("F4", TODAY - timedelta(days=3))])
     assert not routine(rules, st)[0].send
+    # docs/13 (13/11/2026): mỗi mốc gửi 1 lần (+ nhắc 1 lần) – KHÔNG gửi lại sau 7 ngày
     st = st_at(25, sent=[("F4", TODAY - timedelta(days=7))])
-    assert routine(rules, st)[0].send
+    r = routine(rules, st)[0]
+    assert not r.send and "mỗi mốc gửi 1 lần" in (r.skip_reason or "")
     st = st_at(25, answered={"F4"})
     assert not routine(rules, st)[0].send
 
@@ -86,12 +88,30 @@ def test_postpartum_other_day_nothing(rules):
 
 
 def test_modules_frequency(rules):
-    st = st_at(30, modules=["M-DTD"], sent=[("M-DTD", TODAY - timedelta(days=2))])
-    assert not [d for d in plan_for_patient(st, TODAY, rules) if d.kind == "module"]
-    st.on_insulin = True
-    assert [d.form_code for d in plan_for_patient(st, TODAY, rules) if d.kind == "module"] == ["M-DTD"]
-    st = st_at(30, modules=["M-THA"], sent=[("M-THA", TODAY - timedelta(days=1))])
-    assert [d.form_code for d in plan_for_patient(st, TODAY, rules) if d.kind == "module"] == ["M-THA"]
+    """docs/13: module gửi vào ngày cố định trong tuần (TODAY = Thứ 2, 09/11/2026)."""
+    assert TODAY.weekday() == 0
+
+    def mods(st, day):  # type: ignore[no-untyped-def]
+        return [d.form_code for d in plan_for_patient(st, day, rules) if d.kind == "module" and (d.send or d.merged_into)]
+
+    wed, thu = TODAY + timedelta(days=2), TODAY + timedelta(days=3)
+    dtd = st_at(30, modules=["M-DTD"])
+    assert mods(dtd, TODAY) == ["M-DTD"] and mods(dtd, thu) == []  # 1 lần/tuần (T2)
+    dtd.on_insulin = True
+    assert mods(dtd, thu) == ["M-DTD"]  # dùng insulin: T2, T5
+    tha = st_at(30, modules=["M-THA"])
+    assert mods(tha, TODAY) == ["M-THA"] and mods(tha, wed) == [] and mods(tha, thu) == ["M-THA"]
+    tha.flags = ["PREECLAMPSIA"]
+    assert mods(tha, wed) == ["M-THA"]  # tiền sản giật: T2, T4, T6
+    tha_sent = st_at(30, modules=["M-THA"], sent=[("M-THA", TODAY)])
+    assert mods(tha_sent, TODAY) == []  # không gửi 2 lần trong ngày
+
+
+def test_no_forms_right_before_or_after_visit(rules):
+    near = st_at(30, next_in=2, modules=["M-THA"])
+    assert not [d for d in plan_for_patient(near, TODAY, rules) if d.send]  # sắp khám
+    just = st_at(30, next_in=30, modules=["M-THA"], last_visit=TODAY - timedelta(days=1))
+    assert not [d for d in plan_for_patient(just, TODAY, rules) if d.send]  # vừa khám
 
 
 def test_five_sample_patients(rules):
@@ -105,10 +125,15 @@ def test_five_sample_patients(rules):
         PatientState(5, "R0005", "granted", delivery_date=TODAY - timedelta(days=14)),
     ]
     ds = plan_forms(pts, TODAY, rules)
-    sent = sorted((d.code, d.form_code) for d in ds if d.send)
-    skipped = sorted((d.code, d.form_code) for d in ds if not d.send)
-    assert sent == [("R0001", "F1"), ("R0003", "F5"), ("R0003", "M-THA"), ("R0005", "S3")]
+    # Form có câu được hỏi hôm nay (kể cả form gộp vào đường dẫn chung)
+    covered = sorted((d.code, d.form_code) for d in ds if d.send or d.merged_into)
+    skipped = sorted((d.code, d.form_code) for d in ds if not d.send and not d.merged_into)
+    assert covered == [("R0001", "F1"), ("R0003", "F5"), ("R0003", "M-THA"), ("R0005", "S3")]
     assert skipped == [("R0002", "F3")]
+    # 13/11/2026: mỗi thai phụ 1 đường dẫn / ngày – M-THA gộp vào F5 (không gửi 2 SMS, không hỏi trùng C6, C7)
+    links = sorted((d.code, d.form_code) for d in ds if d.send)
+    assert links == [("R0001", "F1"), ("R0003", "F5"), ("R0005", "S3")]
+    assert next(d for d in ds if d.form_code == "M-THA").merged_into == "F5"
 
 
 # ---------------- kênh

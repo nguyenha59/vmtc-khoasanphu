@@ -102,13 +102,19 @@ def test_cap_disabled_keeps_red(rules):
             "CONTRACTIONS",
             "bé đạp nhiều rồi tự nhiên bụng cứng",
         ),
-        # LLM không có evidence bám văn bản → không đủ chắc để hạ
-        ("em khỏe, bé đạp nhiều", "CONTRACTIONS", ""),
     ],
 )
 def test_not_capped(rules, text, concept, evidence):
     r = read_free_text(text, 30, _llm(concept, evidence), rules, ner=False)
     assert r.level == Level.RED, (text, r.conflicts)
+
+
+def test_missing_evidence_requires_review_instead_of_fabricating_red(rules):
+    """Unverified model output must not create a red finding; preserve review floor."""
+    reading = read_free_text("em khỏe, bé đạp nhiều", 30, _llm("CONTRACTIONS", ""), rules, ner=False)
+    result = combine(Level.GREEN, Level.GREEN, reading.level, ai_ok=reading.ok,
+                     ai_confidence=reading.confidence, min_confidence=rules["arrival"]["ai_confidence_min"])
+    assert reading.level < Level.RED and result.level == Level.YELLOW and result.needs_human
 
 
 def test_locked_concept_never_capped(rules):

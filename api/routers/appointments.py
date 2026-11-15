@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 from datetime import date, time, timedelta
 
@@ -12,8 +13,16 @@ from pydantic import BaseModel
 from api.deps import CurrentUser, require
 from api.util import file_response, jsonable, safe_name
 from core import audit
-from core.ai.llm_client import OllamaClient, OpenAIClient, make_client
-from core.config import DATA_DIR, TZ, llm_provider, load_his_columns, load_rules
+from core.ai.llm_client import can_send_external, make_client_safe
+from core.config import (
+    DATA_DIR,
+    TZ,
+    llm_provider,
+    load_his_columns,
+    load_rules,
+    ollama_model,
+    work_dir,
+)
 from core.db import now, session_scope
 from core.ingest.his_reader import read_raw
 from core.pipeline import process_his
@@ -30,7 +39,6 @@ from core.rules.review import REASON_LABELS
 from core.security import mask_phone
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
-EXPORT_DIR = DATA_DIR / "exports"
 AI_STATUS_LABELS = {
     "no_note": "Không gọi AI – lịch hẹn không có ghi chú.",
     "off": "Không gọi AI – lần tải này chỉ dùng quy tắc (tắt AI hoặc không kết nối được mô hình).",
@@ -81,8 +89,15 @@ def list_plans(d: date | None = None, user: CurrentUser = Depends(require("uploa
     with session_scope() as s:
         plans = plans_for_date(s, d)
     bad = invalid_phone_rows(_export_rows(plans))
-    exports = sorted(p.name for p in EXPORT_DIR.glob(f"*{d.isoformat()}*.xlsx")) if EXPORT_DIR.exists() else []
+    export_dir = work_dir("exports")
+    exports = sorted(p.name for p in export_dir.glob(f"*{d.isoformat()}*.xlsx")) if export_dir.exists() else []
     provider = llm_provider(rules)
+    model = "mock"
+    if provider in ("ollama", "hybrid"):
+        model = ollama_model(rules)
+    if provider in ("openai", "hybrid"):
+        cloud_model = os.environ.get("OPENAI_MODEL") or rules.get("llm.openai_model")
+        model = f"{cloud_model} / {model}" if provider == "hybrid" else cloud_model
     return {
         "date": d.isoformat(), "waiting_label": waiting,
         "items": [_row(p, waiting) for p in plans],
@@ -92,7 +107,7 @@ def list_plans(d: date | None = None, user: CurrentUser = Depends(require("uploa
         "invalid_phones": [r.pid for r in bad],
         "exports": exports,
         "samples": [p.name for p in sorted((DATA_DIR / "synthetic").glob("his_*.xlsx"))],
-        "llm": {"provider": provider, "model": rules["llm"]["model"] if provider == "ollama" else "mock"},
+        "llm": {"provider": provider, "model": model},
     }
 
 
@@ -137,7 +152,7 @@ async def upload(d: date = Form(...), use_ai: bool = Form(True), sample: str | N
     except UnsafeFile as e:
         audit.log("upload_his_unsafe", "file", fname, {"reason": str(e)}, user_id=user.user_id)
         raise HTTPException(422, str(e)) from e
-    uploads = DATA_DIR / "uploads"
+    uploads = work_dir("uploads")
     uploads.mkdir(parents=True, exist_ok=True)
     # Thêm chuỗi ngẫu nhiên: hai người tải cùng một giây không ghi đè file của nhau.
     stored = uploads / f"{now():%Y%m%d_%H%M%S}_{secrets.token_hex(4)}_{fname}"
@@ -145,12 +160,9 @@ async def upload(d: date = Form(...), use_ai: bool = Form(True), sample: str | N
     warning = None
     client = None
     if use_ai:
-        client = make_client(rules)
-        if isinstance(client, OllamaClient) and not client.available():
-            warning = "Không kết nối được Ollama hoặc chưa tải mô hình – chỉ xử lý bằng quy tắc."
-            client = None
-        elif isinstance(client, OpenAIClient):
-            warning = "Đang dùng OpenAI (API bên ngoài) – CHỈ được dùng với dữ liệu giả."
+        client, warning = make_client_safe(rules)
+        if can_send_external(client):
+            warning = "Có sử dụng OpenAI (API bên ngoài) – CHỈ được dùng với dữ liệu giả."
 
     def work():  # chạy ngoài vòng sự kiện (đọc Excel + gọi AI có thể lâu)
         try:
@@ -218,7 +230,7 @@ def export(d: date, user: CurrentUser = Depends(require("export_worldsms"))) -> 
                                 phone_format=hc.worldsms_phone_format, vn_aliases=hc.vietnam_aliases)
     except ExportLocked as e:
         raise HTTPException(409, str(e)) from e
-    paths = write_exports(exports, EXPORT_DIR)
+    paths = write_exports(exports, work_dir("exports"))
     audit.log("export_worldsms", "date", d.isoformat(),
               {"files": [x.name for x in paths], "rows": {k: len(v) for k, v in exports.items()},
                "rules_version": rules.rules_version}, user_id=user.user_id)
@@ -227,7 +239,7 @@ def export(d: date, user: CurrentUser = Depends(require("export_worldsms"))) -> 
 
 @router.get("/export/{name}")
 def download_export(name: str, user: CurrentUser = Depends(require("export_worldsms"))):
-    path = EXPORT_DIR / safe_name(name)
+    path = work_dir("exports") / safe_name(name)
     if not path.is_file() or path.suffix != ".xlsx":
         raise HTTPException(404, "Không có file.")
     audit.log("download_export", "file", path.name, user_id=user.user_id)

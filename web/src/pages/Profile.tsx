@@ -14,7 +14,9 @@ import { VitalsCharts } from "../components/VitalsChart";
 import { VisitHistory, type Visit } from "../components/VisitHistory";
 import { PatientList } from "../components/PatientList";
 import { ObstetricSummary, ProgramBadges, ProgramEditor, type ObHistory, type Program } from "../components/PatientRecord";
+import { FormPlanPanel } from "../components/FormPlan";
 import { api, type BpSeries, type GlucoseSeries } from "../lib/api";
+import { reasonTags } from "../lib/reasons";
 import { useCan } from "../lib/auth";
 import { fmtDate, fmtDateTime } from "../lib/format";
 import { fail, ok } from "../lib/notify";
@@ -26,7 +28,7 @@ type ProfileData = {
   metrics: { bp_mean: number | null; bp_n: number; bp_max: string | null; weight: number | null; reply_rate: number | null; answered: number; sent: number };
   summary_lines: string[];
   responses: { at: string; form: string; level: string; summary: string }[];
-  alerts: { id: number; at: string | null; level: string; status: string; final_level: string; note: string }[];
+  alerts: { id: number; at: string | null; level: string; form: string; reasons: string[]; status: string; final_level: string; note: string }[];
   visits: Visit[];
   program: Program;
   history: ObHistory | null;
@@ -171,6 +173,7 @@ function ProfileView({ d }: { d: ProfileData }) {
             <Tabs.Tab value="visits" rightSection={<Badge size="sm" variant="light">{d.visits.length}</Badge>}>Lịch sử khám</Tabs.Tab>
             <Tabs.Tab value="forms" rightSection={<Badge size="sm" variant="light">{d.responses.length}</Badge>}>Nhật ký form</Tabs.Tab>
             <Tabs.Tab value="alerts" rightSection={<Badge size="sm" variant="light">{d.alerts.length}</Badge>}>Nhật ký cảnh báo</Tabs.Tab>
+            <Tabs.Tab value="formplan">Bộ câu hỏi</Tabs.Tab>
             <Tabs.Tab value="consent">Đồng thuận</Tabs.Tab>
             <Tabs.Tab value="delivery" rightSection={d.delivery_date ? <Badge size="sm" variant="light" color="ok">đã sinh</Badge> : null}>
               Sau sinh</Tabs.Tab>
@@ -189,10 +192,14 @@ function ProfileView({ d }: { d: ProfileData }) {
           <Tabs.Panel value="alerts" py="md">
             <DataTable rows={d.alerts} empty="Chưa có cảnh báo." columns={[
               { key: "at", label: "Thời điểm", render: (r) => <Text component={Link} to={`/canh-bao/${r.id}`} size="sm" c="brand.7">{fmtDateTime(r.at)}</Text> },
-              { key: "level", label: "Mức", render: (r) => <LevelBadge level={r.level} size="sm" /> },
-              { key: "status", label: "Trạng thái" }, { key: "final_level", label: "Mức sau gọi" },
-              { key: "note", label: "Xử trí", render: (r) => <Text size="sm" lineClamp={2}>{r.note || "—"}</Text> },
+              { key: "level", label: "Mức", width: 90, render: (r) => <LevelBadge level={r.level} size="sm" /> },
+              { key: "reasons", label: "Lý do", render: (r) => <Text size="sm" lineClamp={2}>{reasonTags(r.reasons).map((t) => t.text).join(" · ") || "—"}</Text> },
+              { key: "status", label: "Trạng thái", width: 110 }, { key: "final_level", label: "Mức sau gọi", width: 110 },
+              { key: "note", label: "Xử trí", render: (r) => <Text size="sm" lineClamp={3}>{r.note || "—"}</Text> },
             ]} />
+          </Tabs.Panel>
+          <Tabs.Panel value="formplan" py="md">
+            <FormPlanPanel patientId={d.patient_id} />
           </Tabs.Panel>
           <Tabs.Panel value="consent" p="md">
             <Stack gap="md" maw={520}>

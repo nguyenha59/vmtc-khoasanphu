@@ -19,7 +19,17 @@ CONFIG_DIR = ROOT / "config"
 DATA_DIR = ROOT / "data"
 TZ = ZoneInfo("Asia/Bangkok")
 
-ALLOWED_LLM_PROVIDERS = ("ollama", "mock", "openai")
+
+def work_dir(name: str) -> Path:
+    """Thư mục ghi file chứa dữ liệu cá nhân (uploads / exports / outbox).
+
+    Gốc là `APP_DATA_DIR` nếu đặt (test dùng thư mục tạm, không ghi vào data/ thật), mặc định `data/`.
+    Đọc lúc gọi, không lúc import.
+    """
+    base = Path(os.environ["APP_DATA_DIR"]) if os.environ.get("APP_DATA_DIR") else DATA_DIR
+    return base / name
+
+ALLOWED_LLM_PROVIDERS = ("ollama", "mock", "openai", "hybrid")
 # openai = API bên ngoài: CHỈ với dữ liệu giả – cần SYNTHETIC_DATA_ONLY=1 và không phải production.
 EXTERNAL_LLM_PROVIDERS = ("openai",)
 
@@ -87,6 +97,7 @@ class FormsConfig:
     questions: dict[str, dict[str, Any]]
     epds: dict[str, Any]
     forms: dict[str, dict[str, Any]] = field(default_factory=dict)
+    quality: dict[str, Any] = field(default_factory=dict)  # cổng chất lượng câu hỏi (docs/12)
 
 
 def rules_path() -> Path:
@@ -124,13 +135,23 @@ def load_clinical_reference(path: Path | str | None = None) -> dict[str, Any]:
 def load_forms(path: Path | str | None = None) -> FormsConfig:
     p = Path(path) if path else CONFIG_DIR / "forms.yaml"
     d = _read_yaml(p)
-    return FormsConfig(questions=d["questions"], epds=d["epds"], forms=d["forms"])
+    return FormsConfig(questions=d["questions"], epds=d["epds"], forms=d["forms"], quality=d.get("quality") or {})
 
 
 def llm_provider(rules: Rules | None = None) -> str:
     """Nhà cung cấp LLM: biến môi trường LLM_PROVIDER ưu tiên, sau đó rules.yaml."""
     provider = os.environ.get("LLM_PROVIDER") or (rules.get("llm.provider") if rules else None)
-    provider = (provider or "mock").strip().lower()
+    return check_provider(provider or "ollama")
+
+
+def ollama_model(rules: Rules) -> str:
+    """Mặc định công khai 7B; máy riêng có thể ghi đè mà không sửa rules.yaml."""
+    return os.environ.get("OLLAMA_MODEL", "").strip() or rules.get("llm.model", "qwen2.5:7b-instruct")
+
+
+def check_provider(provider: str) -> str:
+    """Kiểm tra một nhà cung cấp LLM theo luật 5: openai chỉ với dữ liệu giả, cấm khi production."""
+    provider = provider.strip().lower()
     if provider not in ALLOWED_LLM_PROVIDERS:
         raise ValueError(
             f"LLM_PROVIDER='{provider}' không được phép. MVP chỉ cho phép: {ALLOWED_LLM_PROVIDERS}"

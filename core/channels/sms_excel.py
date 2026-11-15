@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from core.channels.base import RowResult, SendResult, SmsRow
-from core.config import DATA_DIR, TZ
+from core.config import TZ, work_dir
 from core.safe_files import df_to_xlsx_bytes
 
 
@@ -16,7 +16,7 @@ class ExcelSmsChannel:
     name = "excel"
 
     def __init__(self, out_dir: Path | None = None) -> None:
-        self.out_dir = out_dir or DATA_DIR / "exports"
+        self.out_dir = out_dir or work_dir("exports")
 
     def send_batch(self, template_code: str, rows: list[SmsRow]) -> SendResult:
         keys: list[str] = []

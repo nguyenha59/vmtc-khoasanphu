@@ -44,21 +44,13 @@ def env(tmp_path_factory) -> Any:
     new_env = {"APP_SECRET_KEY": dotenv["APP_SECRET_KEY"].strip(),
                "APP_DB_URL": f"sqlite:///{(tmp / 'app.db').as_posix()}",
                "APP_RULES_FILE": str(tmp / "rules.yaml"),
+               "APP_DATA_DIR": str(tmp / "data"),  # uploads / exports / outbox vào thư mục tạm
                "LLM_PROVIDER": "mock"}
     old = {k: os.environ.get(k) for k in new_env}
     os.environ.update(new_env)
 
-    import api.routers.appointments as appt_mod
-    import api.routers.form_schedule as fs_mod
-    import core.channels.sms_excel as sms_mod
     from core import db as dbmod
 
-    exports = tmp / "data"
-    patches = [(appt_mod, "EXPORT_DIR", exports / "exports"), (fs_mod, "DATA_DIR", exports),
-               (sms_mod, "DATA_DIR", exports)]
-    saved = [(m, n, getattr(m, n)) for m, n, _ in patches]
-    for m, n, v in patches:
-        setattr(m, n, v)
     dbmod._engine = None
     from api.main import create_app
 
@@ -66,8 +58,6 @@ def env(tmp_path_factory) -> Any:
         yield {"client": c, "tmp": tmp, "state": {}}
 
     dbmod._engine = None
-    for m, n, v in saved:
-        setattr(m, n, v)
     for k, v in old.items():
         if v is None:
             os.environ.pop(k, None)

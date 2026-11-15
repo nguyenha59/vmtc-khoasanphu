@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 
 from api.deps import CurrentUser, current_user
+from api.routers.alerts import _reasons
 from core.alerts import STATUS_VI
 from core.config import TZ, llm_provider, load_rules
 from core.db import now, session_scope
@@ -70,7 +71,7 @@ def overview(user: CurrentUser = Depends(current_user)) -> dict:
             .order_by(Alert.created_at.desc()).limit(5)
         ).all() if can(user.role, "view_alerts") else []
         latest_rows = [{"id": a.id, "level": a.level, "status": a.status, "status_label": STATUS_VI.get(a.status, a.status),
-                        "code": p.code, "summary": (asm.summary or "")[:160],
+                        "code": p.code, "summary": (asm.summary or "")[:160], "reasons": _reasons(asm),
                         "created_at": a.created_at.isoformat() if a.created_at else None}
                        for a, asm, _r, p in latest]
 

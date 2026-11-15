@@ -30,6 +30,7 @@ from core.channels import get_alert_channel
 from core.config import load_forms, load_rules
 from core.db import session_scope
 from core.models import Alert, AlertReview, Assessment, FormResponse, Patient, User
+from core.red_basis import basis_text, explain
 from core.repo import patient_phone, stage_text
 from core.security import can, decrypt, mask_phone
 
@@ -63,21 +64,70 @@ def _summary_item(a: Alert, asm: Assessment, resp: FormResponse, p: Patient) -> 
             "demo": resp.source == "demo"}
 
 
-def _why(f: dict[str, Any], answers: dict[str, Any], questions: dict[str, Any]) -> list[dict[str, Any]]:
-    """Giải thích từng lý do: lấy từ câu trả lời nào / xu hướng nào / câu tự viết nào. Chỉ đọc kết quả đã lưu."""
+BP_SLOTS = {"BP_AM": "Huyết áp buổi sáng", "BP_PM": "Huyết áp buổi tối", "BP": "Huyết áp"}
+COMBO_QUESTIONS = {"FEVER_PLUS": ["C4", "C2", "C3"], "EDEMA_PLUS": ["C7", "C6"]}
+
+
+TREND_TITLES = {"bp_sys": "Huyết áp tâm thu tăng so với nền của thai phụ",
+                "bp_dia": "Huyết áp tâm trương tăng so với nền của thai phụ", "weight": "Tăng cân nhanh"}
+
+
+def _combo_concepts(code: str, rules: Any) -> set[str]:
+    for c in rules.get("text_combos") or []:
+        if c.get("code") == code:
+            return set(c.get("all", [])) | set(c.get("any_of", []))
+    return {code.removeprefix("TXT_").removesuffix("_BP")}
+
+
+def _why(f: dict[str, Any], answers: dict[str, Any], questions: dict[str, Any],
+         rules: Any = None) -> list[dict[str, Any]]:
+    """Giải thích từng lý do: lấy từ câu trả lời nào / xu hướng nào / câu tự viết nào + căn cứ (nguồn y khoa).
+
+    Chỉ đọc kết quả đã lưu; căn cứ đọc từ cấu hình hiện hành (red_basis).
+    """
+    rules = rules or load_rules()
     out: list[dict[str, Any]] = []
     for x in f.get("rule", []):
         code = x.get("code", "")
         q = questions.get(code, {}).get("text")
         detail = f"{q} → trả lời: {answers[code]}" if q and code in answers else ""
-        out.append({"level": x.get("level", "yellow"), "source": "Câu trả lời trong form", "title": x["reason"], "detail": detail})
+        if not detail and code in BP_SLOTS:  # số đo huyết áp: hiện đúng số thai phụ nhập
+            sv, dv = answers.get(f"{code}_SYS"), answers.get(f"{code}_DIA")
+            if sv not in (None, "") or dv not in (None, ""):
+                detail = f"{BP_SLOTS[code]} → trả lời: {sv if sv not in (None, '') else '—'}/{dv if dv not in (None, '') else '—'} mmHg"
+        if not detail and code.startswith("TXT_"):  # kết hợp trong phần tự viết: trích đúng các câu thai phụ viết
+            quotes = [a["evidence"] for a in f.get("ai", []) if a.get("evidence") and a.get("present")
+                      and a.get("level") in ("red", "yellow") and a.get("concept") in _combo_concepts(code, rules)]
+            detail = " · ".join(f"“{q}”" for q in dict.fromkeys(quotes))
+        if not detail and code in COMBO_QUESTIONS:
+            detail = " + ".join(f"{questions.get(c, {}).get('text', c)} → {answers.get(c, '—')}" for c in COMBO_QUESTIONS[code])
+        source = ("Số đo trong phần tự viết" if code.startswith("TEXT_")
+                  else "Kết hợp triệu chứng trong phần tự viết" if code.startswith("TXT_") else "Câu trả lời trong form")
+        basis = ({"basis_codes": ["NHCH"], "basis": basis_text(["NHCH"], rules)}
+                 if str(x.get("reason", "")).startswith("Không chắc") else explain("rule", code, rules))
+        out.append({"level": x.get("level", "yellow"), "source": source, "title": x["reason"], "detail": detail,
+                    **basis})
     for x in f.get("trend", []):
         if x.get("level") in ("red", "yellow"):
-            out.append({"level": x["level"], "source": "Xu hướng so với các lần trước", "title": x["kind"], "detail": x.get("reason") or ""})
+            out.append({"level": x["level"], "source": "Xu hướng so với các lần trước",
+                        "title": TREND_TITLES.get(x["kind"], x["kind"]),
+                        "detail": x.get("reason") or "", "basis": "Theo dõi xu hướng EWMA so với nền của chính thai phụ",
+                        "basis_codes": []})
     for x in f.get("ai", []):
         if x.get("present") and x.get("level") in ("red", "yellow"):
-            out.append({"level": x["level"], "source": "AI đọc phần tự viết", "title": x["name"],
-                        "detail": f"“{x['evidence']}”" if x.get("evidence") else ""})
+            source = ("Quy tắc đọc phần tự viết" if x.get("source") == "lexicon"
+                      else "Đọc tự viết, đã đối chiếu quy tắc" if "rule" in x.get("source", "")
+                      else "AI đọc phần tự viết")
+            title = x["name"]
+            if x.get("concept") == "HEADACHE" and x.get("severity") == "mild" and x["level"] == "red":
+                source, title = "Cần xác minh mức độ theo cấu hình", "Đau đầu: văn bản mô tả mức nhẹ"
+            if "unverified" in str(x.get("source", "")):
+                source = "AI nghi ngờ – quy tắc không thấy từ khóa, cần gọi xác minh"
+            if x.get("assertion_status") == "uncertain":
+                source = "Cần gọi xác minh – thông tin đọc/nghe được"
+            out.append({"level": x["level"], "source": source, "title": title,
+                        "detail": f"“{x['evidence']}”" if x.get("evidence") else "",
+                        **explain("concept", x.get("concept", ""), rules)})
     for code in f.get("implausible") or []:
         out.append({"level": "yellow", "source": "Số liệu bất thường", "title": "Nghi nhập sai số",
                     "detail": questions.get(code, {}).get("text", code)})
@@ -169,7 +219,7 @@ def alert_detail(alert_id: int, user: CurrentUser = Depends(require("view_alerts
         out = {
             **_summary_item(a, asm, resp, p),
             "summary": asm.summary or "",
-            "why": _why(f, resp.answers or {}, qs),
+            "why": _why(f, resp.answers or {}, qs, rules),
             "ai_escalated": bool(f.get("ai_escalated")),
             "layers": {
                 "rule": {"level": asm.rule_level, "reasons": [x["reason"] for x in f.get("rule", [])],
@@ -177,6 +227,7 @@ def alert_detail(alert_id: int, user: CurrentUser = Depends(require("view_alerts
                 "trend": {"level": asm.trend_level,
                           "items": [{"kind": x["kind"], "reason": x["reason"] or "ổn định"} for x in f.get("trend", [])]},
                 "ai": {"level": asm.ai_level, "confidence": asm.ai_confidence, "needs_human": bool(f.get("needs_human")),
+                       "skipped": ((asm.raw or {}).get("llm") or {}).get("llm_status") == "skipped_confirmed_red",
                        "findings": [{"name": x["name"], "present": x["present"], "temporality": x["temporality"],
                                      "experiencer": x["experiencer"], "evidence": x["evidence"]} for x in f.get("ai", [])],
                        "model": asm.model, "prompt_version": asm.prompt_version, "rules_version": asm.rules_version},

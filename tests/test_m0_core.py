@@ -105,7 +105,9 @@ def test_openai_client_parses_and_validates(monkeypatch, tmp_path):
     c = llm_client.OpenAIClient(model="m", api_key="sk-test")
     schema = {"type": "object", "properties": {"x": {"type": "integer"}}, "required": ["x"]}
     assert c.generate_json("p", schema, 0.2, 7) == {"x": 1}
-    assert sent[0]["response_format"] == {"type": "json_object"} and sent[0]["seed"] == 7
+    assert sent[0]["response_format"]["type"] == "json_schema" and sent[0]["seed"] == 7
+    assert sent[0]["response_format"]["json_schema"]["strict"] is True
+    assert sent[0]["max_completion_tokens"] > 0
     with pytest.raises(llm_client.LlmError):
         c.generate_json("p", {"type": "object", "required": ["y"]}, 0.2, None)
 

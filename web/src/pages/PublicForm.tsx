@@ -3,14 +3,14 @@ import {
   Textarea, ThemeIcon, Title,
 } from "@mantine/core";
 import { IconAlertTriangle, IconCircleCheck, IconHeartHandshake, IconPhone, IconUrgent } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { LogoMark } from "../components/Logo";
 import classes from "./PublicForm.module.css";
 
 type Clinic = { name: string; hotline: string; emergency_number: string };
-type Q = { key: string; type: "yesno" | "number"; text: string; min: number | null; max: number | null; step: number };
-type FormDef = { code: string; form: string; name: string; questions: Q[]; epds: { options: string[]; items: { key: string; text: string }[] } | null; clinic: Clinic };
+type Q = { key: string; type: "yesno" | "number"; text: string; min: number | null; max: number | null; step: number; group?: string | null };
+type FormDef = { code: string; form: string; name: string; period?: string | null; yesno?: string[]; questions: Q[]; epds: { options: string[]; items: { key: string; text: string }[] } | null; clinic: Clinic };
 type Result = { level: string; code: string; reminder: string | null; clinic: Clinic };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -107,20 +107,25 @@ export function PublicForm() {
               <Progress value={total ? (answered / total) * 100 : 100} radius="xl" size="md" />
             </Paper>
 
-            {def.questions.map((q, i) => (
-              <Paper key={q.key} p="lg" className={classes.q} data-done={answers[q.key] !== undefined || undefined}>
+            {def.questions.map((q, i) => (<Fragment key={q.key}>
+              {q.group && (i === 0 || def.questions[i - 1].group !== q.group) && (
+                <Text fw={700} c="brand.8" mt={i ? "md" : 0}>{q.group}</Text>
+              )}
+              <Paper p="lg" className={classes.q} data-done={answers[q.key] !== undefined || undefined}>
                 <Text size="xs" c="dimmed" fw={600} mb={4}>CÂU {i + 1}</Text>
+                {def.period && q.type === "yesno" && <Text size="xs" c="dimmed" mb={2}>{def.period}:</Text>}
                 <Text fw={600} mb="md" fz="md">{q.text}</Text>
                 {q.type === "yesno" ? (
                   <SegmentedControl fullWidth size="md" radius="md" value={String(answers[q.key] ?? "")}
-                    onChange={(v) => set(q.key, v)} data={["Không", "Có"]} color={answers[q.key] === "Có" ? "warn" : "brand"} />
+                    onChange={(v) => set(q.key, v)} data={def.yesno ?? ["Không", "Có"]}
+                    color={answers[q.key] === "Có" || answers[q.key] === "Không chắc" ? "warn" : "brand"} />
                 ) : (
                   <NumberInput size="md" min={q.min ?? 0} max={q.max ?? 999} step={q.step} decimalScale={q.step < 1 ? 1 : 0}
                     decimalSeparator="," placeholder="Nhập số" value={answers[q.key] ?? ""} inputMode="decimal"
                     onChange={(v) => set(q.key, v === "" ? null : Number(v))} />
                 )}
               </Paper>
-            ))}
+            </Fragment>))}
 
             {def.epds && (
               <Paper p="lg">

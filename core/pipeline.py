@@ -7,7 +7,7 @@ from datetime import date
 
 import pandas as pd
 
-from core.ai.llm_client import LlmClient
+from core.ai.llm_client import LlmClient, can_send_external, local_only_client
 from core.ai.masking import MaskResult, NerFn, mask_text
 from core.ai.note_extractor import Extraction, extract
 from core.config import HisColumns, Rules
@@ -68,17 +68,18 @@ def plan_appointment(
         skip_ai = read_fully_by_rules(m.note, rules["arrival"].get("ai_skip_vocabulary", []))
         sensitive = find_sensitive(m.note, (rules.get("privacy") or {}).get("sensitive_topics", []))
         # Ghi chú nhạy cảm không gửi ra API bên ngoài, kể cả khi đã che (chỉ mô hình cục bộ / mock).
-        external = getattr(client, "name", "").startswith("openai:")
+        external = can_send_external(client)
+        task_client = local_only_client(client) if sensitive else client
         if client is None:
             ai_status = "off"
         elif not mask.ok:
             ai_status = "mask_failed"
         elif skip_ai:
             ai_status = "rules_read"
-        elif sensitive and external:
+        elif task_client is None:
             ai_status = "sensitive"
         else:
-            extraction = extract(mask.text, m.services, m.start_time, client, rules)
+            extraction = extract(mask.text, m.services, m.start_time, task_client, rules)
             ai_status = "ok" if extraction.ai is not None else "failed"
     ai = extraction.ai if extraction else None
     arrival = compute_arrival(m.start_time, m.services, m.note, ai, rules, slots=m.slots)

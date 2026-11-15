@@ -12,7 +12,7 @@ export function LevelBadge({ level, label, size = "md" }: { level: string | null
   if (!def) return <Badge color="gray" size={size}>{label ?? level ?? "—"}</Badge>;
   const Icon = LEVEL_ICON[lv];
   return (
-    <Badge color={def.color} size={size} variant="light" leftSection={<Icon size={size === "sm" ? 11 : 13} />}
+    <Badge color={def.color} size={size} variant={lv === "red" ? "filled" : "light"} leftSection={<Icon size={size === "sm" ? 11 : 13} />}
       styles={{ root: { textTransform: "none", fontWeight: 600 } }}>
       {label ?? def.label}
     </Badge>
@@ -20,10 +20,48 @@ export function LevelBadge({ level, label, size = "md" }: { level: string | null
 }
 
 export function LevelDot({ level }: { level: string }) {
-  const def = LEVEL[level as Level];
+  // Chấm vàng dùng hổ phách sáng (#F79009) thay vì nâu #B54708 – để không lẫn với chấm đỏ.
+  const hex = level === "yellow" ? "#F79009" : LEVEL[level as Level]?.hex ?? "#9AA9B6";
   return (
-    <Box w={10} h={10} style={{ borderRadius: 99, flex: "none", background: def?.hex ?? "#9AA9B6",
-      boxShadow: `0 0 0 3px ${def ? def.hex + "22" : "#9AA9B622"}` }} />
+    <Box w={10} h={10} style={{ borderRadius: 99, flex: "none", background: hex, boxShadow: `0 0 0 3px ${hex}33` }} />
+  );
+}
+
+/** Mức độ dạng chữ (kiểu phần mềm lâm sàng): "ĐỎ / Khẩn", "VÀNG / Theo dõi". Màu chữ đậm, không nền. */
+export const SEVERITY: Record<string, { label: string; sub: string; color: string; bar: string }> = {
+  red: { label: "ĐỎ", sub: "Khẩn", color: "#B42318", bar: "#D92D20" },
+  yellow: { label: "VÀNG", sub: "Theo dõi", color: "#93370D", bar: "#F79009" },
+  green: { label: "XANH", sub: "Ổn định", color: "#05603A", bar: "#12B76A" },
+};
+
+export function SeverityLabel({ level, compact }: { level: string; compact?: boolean }) {
+  const s = SEVERITY[level] ?? { label: "—", sub: "", color: "#4A5A69", bar: "#9AA9B6" };
+  return (
+    <Box style={{ lineHeight: 1.15 }}>
+      <Text span fw={800} size={compact ? "xs" : "sm"} style={{ color: s.color, letterSpacing: ".04em" }}>{s.label}</Text>
+      {!compact && <Text size="xs" c="ink.5" fw={500}>{s.sub}</Text>}
+    </Box>
+  );
+}
+
+/** Lý do cảnh báo dạng văn bản liền, phân cách "·". Lý do từ AI / xu hướng có ký hiệu nhỏ phía sau. */
+export function ReasonText({ tags, size = "sm", lineClamp }: { tags: ReasonTag[]; size?: string; lineClamp?: number }) {
+  if (!tags.length) return <Text size={size} c="dimmed">Chưa ghi lý do</Text>;
+  return (
+    <Text size={size} fw={600} c="ink.8" lineClamp={lineClamp}>
+      {tags.map((t, i) => (
+        <span key={t.text}>
+          {i > 0 && <Text span c="ink.4" fw={400}>{"  ·  "}</Text>}
+          {t.text}
+          {t.source !== "rule" && (
+            <Text span fz={10} fw={600} c="ink.5" ml={4} px={4} py={0}
+              style={{ border: "1px solid var(--mantine-color-ink-3)", borderRadius: 3, verticalAlign: 1, whiteSpace: "nowrap" }}>
+              {t.source === "ai" ? "AI" : "xu hướng"}
+            </Text>
+          )}
+        </span>
+      ))}
+    </Text>
   );
 }
 
@@ -44,8 +82,7 @@ export function StatCard({ label, value, hint, icon, color = "brand", emphasis }
   label: string; value: ReactNode; hint?: ReactNode; icon: ReactNode; color?: MantineColor; emphasis?: boolean;
 }) {
   return (
-    <Paper p={{ base: "sm", sm: "lg" }} h="100%" style={emphasis ? { borderColor: "var(--mantine-color-danger-3)",
-      background: "linear-gradient(180deg, var(--mantine-color-danger-0), #fff 70%)" } : undefined}>
+    <Paper p={{ base: "sm", sm: "lg" }} h="100%" style={emphasis ? { borderColor: "#FECDCA", background: "#FFFBFA" } : undefined}>
       <Group justify="space-between" align="flex-start" wrap="nowrap" gap="xs">
         <Stack gap={6} style={{ minWidth: 0 }}>
           <Text size="sm" c="dimmed" fw={500} lh={1.3}>{label}</Text>
@@ -55,17 +92,17 @@ export function StatCard({ label, value, hint, icon, color = "brand", emphasis }
           </Text>
           {hint && <Text size="xs" c="dimmed">{hint}</Text>}
         </Stack>
-        <ThemeIcon size={44} radius="md" variant="light" color={color} visibleFrom="sm">{icon}</ThemeIcon>
+        <ThemeIcon size={40} radius="md" variant="light" color={color} visibleFrom="sm">{icon}</ThemeIcon>
       </Group>
     </Paper>
   );
 }
 
 /** Trạng thái cảnh báo: chưa xử lý = đặc (màu theo mức), chờ bác sĩ = tím, đã đóng = xám nhạt. */
-export function StatusBadge({ status, label, level }: { status: string; label: string; level: string }) {
-  const open = status === "open" || status === "escalated";
-  const color = status === "open" ? (level === "red" ? "danger" : "warn") : status === "escalated" ? "grape" : "gray";
-  return <Badge size="sm" variant={open ? "filled" : "light"} color={color} style={{ flex: "none" }}>{label}</Badge>;
+export function StatusBadge({ status, label }: { status: string; label: string; level?: string }) {
+  // Mức đã hiện bằng nhãn Đỏ/Vàng → trạng thái để trung tính, không tô đậm ở mọi dòng.
+  const color = status === "escalated" ? "grape" : "gray";
+  return <Badge size="sm" variant={status === "open" ? "outline" : "light"} color={color} style={{ flex: "none" }}>{label}</Badge>;
 }
 
 /** Lý do cảnh báo dạng nhãn ngắn (xem lib/reasons.ts). `max`: số nhãn hiện, còn lại gom "+n". */
@@ -91,10 +128,11 @@ export function ReasonTags({ tags, max = 3, level }: { tags: ReasonTag[]; max?: 
 
 export function SectionTitle({ icon, children, right }: { icon?: ReactNode; children: ReactNode; right?: ReactNode }) {
   return (
-    <Group justify="space-between" mb="md" wrap="nowrap">
+    // Tiêu đề thẻ gọn như mẫu: chữ đậm, không ô biểu tượng (biểu tượng nhỏ, màu xám nếu có).
+    <Group justify="space-between" mb="md" wrap="nowrap" gap="xs">
       <Group gap={8} wrap="nowrap">
-        {icon && <ThemeIcon variant="light" size={30} radius="md">{icon}</ThemeIcon>}
-        <Title order={3}>{children}</Title>
+        {icon && <Box c="ink.4" style={{ display: "flex" }}>{icon}</Box>}
+        <Text fw={700} fz={18} c="ink.9" lh={1.3}>{children}</Text>
       </Group>
       {right}
     </Group>

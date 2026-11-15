@@ -68,7 +68,8 @@ def decide(
 
     ga_w: int | None = None
     ga_d: int | None = None
-    if ai is not None and ai.ok and ai.ga_weeks is not None:
+    if (ai is not None and ai.ok and ai.ga_weeks is not None and ai.ga_grounded
+            and ai.ga_confidence is not None and ai.ga_confidence >= cfg["ai_confidence_min"]):
         ga_w, ga_d = ai.ga_weeks, ai.ga_days
     else:
         found = find_ga(note) if note else None

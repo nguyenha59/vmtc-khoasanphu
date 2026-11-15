@@ -126,12 +126,15 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
                           .where(FormResponse.patient_id == pid_).order_by(FormResponse.submitted_at.desc())).all()
     resp_rows = [{"at": r.submitted_at, "form": r.form_code, "level": a.level, "summary": (a.summary or "")[:160]}
                  for r, a in responses]
-    alerts = s.execute(select(Alert).join(Assessment, Alert.assessment_id == Assessment.id)
+    alerts = s.execute(select(Alert, Assessment, FormResponse).join(Assessment, Alert.assessment_id == Assessment.id)
                        .join(FormResponse, Assessment.response_id == FormResponse.id)
-                       .where(FormResponse.patient_id == pid_).order_by(Alert.created_at.desc())).scalars().all()
+                       .where(FormResponse.patient_id == pid_).order_by(Alert.created_at.desc())).all()
+    from api.routers.alerts import _reasons
+
     alert_rows = [{"id": a.id, "at": a.created_at.isoformat() if a.created_at else None, "level": a.level,
-                   "status": STATUS_VI.get(a.status, a.status), "final_level": FINAL_LEVELS.get(a.final_level or "", ""),
-                   "note": a.note or ""} for a in alerts]
+                   "form": r.form_code, "reasons": _reasons(asm), "status": STATUS_VI.get(a.status, a.status),
+                   "final_level": FINAL_LEVELS.get(a.final_level or "", ""), "note": a.note or ""}
+                  for a, asm, r in alerts]
     sent = s.scalar(select(func.count()).select_from(FormToken).where(FormToken.patient_id == pid_, FormToken.created_at >= since)) or 0
     answered = s.scalar(select(func.count()).select_from(FormToken).where(
         FormToken.patient_id == pid_, FormToken.created_at >= since, FormToken.used_at.is_not(None))) or 0

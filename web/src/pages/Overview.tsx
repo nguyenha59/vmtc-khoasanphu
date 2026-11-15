@@ -7,7 +7,8 @@ import {
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { EmptyState, LevelDot, PageHeader, SectionTitle, StatCard } from "../components/ui";
+import { reasonTags } from "../lib/reasons";
+import { EmptyState, PageHeader, SectionTitle, StatCard } from "../components/ui";
 import { api, type Overview as OverviewData } from "../lib/api";
 import { useMe } from "../lib/auth";
 import { fmtDate, relTime } from "../lib/format";
@@ -101,20 +102,20 @@ export function Overview() {
             ) : data.latest_alerts.length === 0 ? (
               <EmptyState icon={<IconCheck size={28} />} title="Chưa có cảnh báo" text="Khi thai phụ trả lời form có dấu hiệu bất thường, cảnh báo sẽ hiện ở đây." />
             ) : (
-              <Stack gap={0}>
+              <Stack gap={8}>
                 {data.latest_alerts.map((a) => (
-                  <UnstyledButton key={a.id} component={Link} to={`/canh-bao/${a.id}`} className={classes.alert}>
-                    <Group gap="md" wrap="nowrap" align="flex-start">
-                      <Box pt={6}><LevelDot level={a.level} /></Box>
-                      <Box style={{ minWidth: 0 }} flex={1}>
-                        <Group justify="space-between" gap="xs" wrap="nowrap">
-                          <Text fw={700} size="sm">{a.code}</Text>
-                          <Text size="xs" c="dimmed">{relTime(a.created_at)}</Text>
-                        </Group>
-                        <Text size="sm" c="ink.6" lineClamp={2}>{a.summary || "—"}</Text>
-                        <Text size="xs" c="dimmed" mt={2}>{a.status_label}</Text>
-                      </Box>
+                  <UnstyledButton key={a.id} component={Link} to={`/canh-bao/${a.id}`} className={classes.alert} data-level={a.level}>
+                    <Group justify="space-between" wrap="nowrap" gap={6}>
+                      <Group gap={8} wrap="nowrap">
+                        <span className={classes.dot} data-level={a.level} />
+                        <Text fw={700} size="sm">{a.code}</Text>
+                      </Group>
+                      {a.level === "red"
+                        ? <span className={classes.waitBadge}>Chờ {relTime(a.created_at).replace(" trước", "")}</span>
+                        : <Text size="xs" fw={600} c="warn.8">{relTime(a.created_at).replace(" trước", "")}</Text>}
                     </Group>
+                    <Text size="sm" c="ink.8" mt={4} lineClamp={2}>{reasonTags(a.reasons ?? []).map((t) => t.text).join(" · ") || "Chưa ghi lý do"}</Text>
+                    <Text size="xs" c="ink.5" mt={2}>{a.status_label}</Text>
                   </UnstyledButton>
                 ))}
               </Stack>

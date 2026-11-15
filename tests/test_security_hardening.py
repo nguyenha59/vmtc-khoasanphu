@@ -162,3 +162,17 @@ def test_masking_short_surname_does_not_eat_words():
     assert r.text == "dan do HA hang ngay, ho nhieu"
     r2 = mask_text("chị Đỗ gọi lại", full_name="Đỗ Thị Hồ", pid="1", ner=False)
     assert "Đỗ" not in r2.text
+
+
+def test_session_key_is_separate_from_encryption_key(monkeypatch) -> None:
+    from cryptography.fernet import Fernet
+
+    from api.deps import session_signing_key
+
+    k = Fernet.generate_key().decode()
+    monkeypatch.setenv("APP_SECRET_KEY", k)
+    monkeypatch.delenv("SESSION_SECRET_KEY", raising=False)
+    derived = session_signing_key()
+    assert derived and derived != k and k not in derived
+    monkeypatch.setenv("SESSION_SECRET_KEY", "khoa-rieng")
+    assert session_signing_key() == "khoa-rieng"

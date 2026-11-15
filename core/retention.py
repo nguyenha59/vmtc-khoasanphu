@@ -5,11 +5,11 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from core.config import DATA_DIR, Rules
+from core.config import Rules, work_dir
 
 
 def purge_uploads(rules: Rules, folder: Path | None = None) -> int:
-    folder = folder or DATA_DIR / "uploads"
+    folder = folder or work_dir("uploads")
     if not folder.exists():
         return 0
     limit = time.time() - int(rules["retention_days"]) * 86400
@@ -26,5 +26,5 @@ RETAINED_FOLDERS = ("uploads", "exports", "outbox")
 
 def purge_all(rules: Rules, data_dir: Path | None = None) -> dict[str, int]:
     """File nhập (uploads) và file xuất gửi WorldSMS / danh sách gọi (exports, outbox) đều chứa dữ liệu cá nhân."""
-    base = data_dir or DATA_DIR
+    base = data_dir or work_dir("")
     return {name: purge_uploads(rules, base / name) for name in RETAINED_FOLDERS}

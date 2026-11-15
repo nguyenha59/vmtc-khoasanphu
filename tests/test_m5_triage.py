@@ -260,3 +260,39 @@ def test_missing_systolic_shown_as_dash(rules):
 
     r = triage({"BP_DIA": "112"}, 30, False, rules)
     assert r.level.code == "red" and "—/112" in r.findings[0].reason
+
+
+# ---------------- luật 4: tóm tắt LLM phải qua masking.py
+class _SpyClient:
+    def __init__(self) -> None:
+        self.prompts: list[str] = []
+
+    def generate_json(self, prompt: str, schema: dict, **_kw: object) -> dict:
+        self.prompts.append(prompt)
+        from core.ai.llm_client import INPUT_RE
+
+        return {"text": json.loads(INPUT_RE.search(prompt).group(1))["template_summary"]}
+
+
+def _rules_with_rewrite(rules):
+    return {"llm": {**rules["llm"], "summary_llm_rewrite": True}}  # summarize chỉ đọc khóa "llm"
+
+
+def test_summary_llm_payload_is_masked(rules):
+    from core.ai.summary import summarize
+
+    spy = _SpyClient()
+    data = {"ga": "32+1", "level": "red", "reasons": ["Gọi lại 0900123456"]}
+    text, method = summarize(data, _rules_with_rewrite(rules), spy, ner=False)  # type: ignore[arg-type]
+    assert method == "llm" and spy.prompts
+    assert "0900123456" not in spy.prompts[0] and "[SĐT]" in spy.prompts[0]
+
+
+def test_summary_not_sent_when_mask_leaves_pii(rules):
+    from core.ai.summary import summarize
+
+    spy = _SpyClient()
+    data = {"ga": "32+1", "level": "red", "reasons": ["x"]}
+    # NER giả vẫn thấy tên sau khi che → lần quét 2 báo còn sót → không gửi mô hình
+    text, method = summarize(data, _rules_with_rewrite(rules), spy, ner=lambda _t: ["Hoa"])  # type: ignore[arg-type]
+    assert method == "template" and not spy.prompts

@@ -9,6 +9,7 @@ from core.config import Rules
 from core.levels import Level, max_level
 
 YES = {"có", "co", "yes", "true", "1", "x"}
+UNSURE = {"không chắc", "khong chac", "unsure", "?"}
 
 RED_ITEMS = {
     "C1": "Ra máu âm đạo",
@@ -29,6 +30,13 @@ YELLOW_ITEMS = {
 }
 
 
+# Câu có / không mà lớp quy tắc phân mức được (cổng chất lượng: câu không có ở đây thì câu trả lời không
+# nhận ra được vấn đề → không được đưa vào bộ cá nhân hóa). Câu số đo: tiền tố được đọc ở phần huyết áp / đường huyết.
+TRIAGED_YESNO = {*RED_ITEMS, *YELLOW_ITEMS, "C9", "HYPO"}
+TRIAGED_NUMBER_PREFIXES = ("BP_AM_", "BP_PM_", "BP_", "GLU_", "WEIGHT")
+UNSURE_LABELS = {**RED_ITEMS, **YELLOW_ITEMS, "C9": "Gò bụng đều", "HYPO": "Hạ đường huyết"}
+
+
 @dataclass
 class Finding:
     code: str
@@ -47,6 +55,10 @@ class RuleResult:
 
 def is_yes(v: Any) -> bool:
     return str(v).strip().lower() in YES if v is not None else False
+
+
+def is_unsure(v: Any) -> bool:
+    return str(v).strip().lower() in UNSURE if v is not None else False
 
 
 def num(v: Any) -> float | None:
@@ -71,6 +83,11 @@ def triage(answers: dict[str, Any], ga_weeks: int | None, on_insulin: bool, rule
     for q, label in YELLOW_ITEMS.items():
         if is_yes(answers.get(q)):
             add(q, Level.YELLOW, label)
+    # "Không chắc" ≠ "Không": tối thiểu mức unsure_level (mặc định vàng) để điều dưỡng gọi hỏi lại.
+    unsure_level = Level.parse(rules.get("forms.unsure_level") or "yellow")
+    for q, label in UNSURE_LABELS.items():
+        if is_unsure(answers.get(q)):
+            add(q, unsure_level, f"Không chắc: {label}")
     if is_yes(answers.get("C9")):
         term = th.get("contractions_red_before_ga_weeks", 37)
         if ga_weeks is not None and ga_weeks >= term:
@@ -108,10 +125,17 @@ def triage(answers: dict[str, Any], ga_weeks: int | None, on_insulin: bool, rule
             out.readings.append(("bp_sys", sys_v, slot))
         if dia_v is not None:
             out.readings.append(("bp_dia", dia_v, slot))
+        def crossed(lim: dict[str, int]) -> str:
+            # Nêu đúng chỉ số vượt ngưỡng: "138/90" vượt vì tâm trương, không ghi "≥ 140/90" gây hiểu lầm.
+            s_hit, d_hit = s_v >= lim["sys"], d_v >= lim["dia"]
+            if s_hit and d_hit:
+                return f"≥ {lim['sys']}/{lim['dia']}"
+            return f"tâm thu ≥ {lim['sys']}" if s_hit else f"tâm trương ≥ {lim['dia']}"
+
         if s_v >= th["bp_red"]["sys"] or d_v >= th["bp_red"]["dia"]:
-            add(prefix, Level.RED, f"Huyết áp {shown} ≥ {th['bp_red']['sys']}/{th['bp_red']['dia']}")
+            add(prefix, Level.RED, f"Huyết áp {shown} ({crossed(th['bp_red'])})")
         elif s_v >= th["bp_yellow"]["sys"] or d_v >= th["bp_yellow"]["dia"]:
-            add(prefix, Level.YELLOW, f"Huyết áp {shown} ≥ {th['bp_yellow']['sys']}/{th['bp_yellow']['dia']}")
+            add(prefix, Level.YELLOW, f"Huyết áp {shown} ({crossed(th['bp_yellow'])})")
 
     # Đường huyết
     gy = th["glucose_yellow"]

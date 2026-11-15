@@ -313,6 +313,27 @@ class VisitResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
 
+class QuestionSelection(Base):
+    """Bộ câu hỏi đã chọn cho MỘT đường dẫn form (chốt lúc tạo đường dẫn – mở lại vẫn cùng bộ câu).
+
+    method: rules | ai. questions: [{code, group, score, mandatory, reasons}]. Kèm model, prompt_version, rules_version,
+    confidence, JSON thô của AI (quy ước dự án). Không chứa tên / SĐT.
+    """
+
+    __tablename__ = "question_selection"
+    token: Mapped[str] = mapped_column(String(32), primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    method: Mapped[str] = mapped_column(String(8))
+    questions: Mapped[Any] = mapped_column(JSON, default=list)
+    model: Mapped[str | None] = mapped_column(String(64))
+    prompt_version: Mapped[str | None] = mapped_column(String(64))
+    rules_version: Mapped[str] = mapped_column(String(16))
+    confidence: Mapped[float | None] = mapped_column(Float)
+    raw: Mapped[Any] = mapped_column(JSON, default=dict)
+    error: Mapped[str | None] = mapped_column(Text)
+
+
 class PatientHistory(Base):
     """Thông tin sản khoa của hồ sơ (tuổi, PARA, kỳ kinh cuối, nhóm máu, dị ứng, tiền sử, cuộc sinh).
 

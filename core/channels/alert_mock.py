@@ -6,14 +6,14 @@ import json
 from pathlib import Path
 
 from core.channels.base import AlertPayload
-from core.config import DATA_DIR
+from core.config import work_dir
 
 
 class MockAlertChannel:
     name = "mock"
 
     def __init__(self, path: Path | None = None) -> None:
-        self.path = path or DATA_DIR / "outbox" / "alerts.jsonl"
+        self.path = path or work_dir("outbox") / "alerts.jsonl"
         self.sent: list[AlertPayload] = []
 
     def _write(self, kind: str, items: list[AlertPayload]) -> None:

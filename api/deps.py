@@ -1,6 +1,6 @@
 """Phiên đăng nhập phía máy chủ và kiểm tra quyền theo core.security.PERMISSIONS.
 
-Cookie (ký bằng APP_SECRET_KEY) chỉ chứa mã phiên ngẫu nhiên. Mỗi yêu cầu:
+Cookie (ký bằng khóa phiên – `SESSION_SECRET_KEY`, hoặc khóa dẫn xuất từ APP_SECRET_KEY) chỉ chứa mã phiên ngẫu nhiên. Mỗi yêu cầu:
   - phiên phải còn trong bảng user_session, chưa hết hạn, chưa bị thu hồi (đăng xuất = thu hồi thật);
   - người dùng phải còn trong users.yaml và vai trò lấy lại từ file (đổi vai trò / xóa tài khoản có hiệu lực ngay).
 """
@@ -8,6 +8,7 @@ Cookie (ký bằng APP_SECRET_KEY) chỉ chứa mã phiên ngẫu nhiên. Mỗi 
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import secrets
 from collections.abc import Callable
@@ -39,11 +40,23 @@ class CurrentUser:
         return sorted(a for a in PERMISSIONS if can(self.role, a))
 
 
-def _serializer() -> URLSafeTimedSerializer:
-    key = os.environ.get("APP_SECRET_KEY", "")
+def session_signing_key() -> str:
+    """Khóa ký cookie phiên, tách khỏi khóa mã hóa dữ liệu (Fernet).
+
+    Ưu tiên `SESSION_SECRET_KEY`; không đặt thì dẫn xuất một chiều từ APP_SECRET_KEY (HMAC-SHA256),
+    để lộ khóa ký không suy ra được khóa giải mã tên / SĐT.
+    """
+    own = os.environ.get("SESSION_SECRET_KEY", "").strip()
+    if own:
+        return own
+    key = os.environ.get("APP_SECRET_KEY", "").strip()
     if not key:
         raise MissingSecretKey("Thiếu APP_SECRET_KEY – chạy scripts/make_key.py rồi đặt vào .env")
-    return URLSafeTimedSerializer(key, salt="tl-session")
+    return hmac.new(key.encode(), b"tl-session-signing-v1", hashlib.sha256).hexdigest()
+
+
+def _serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(session_signing_key(), salt="tl-session")
 
 
 def _hash(sid: str) -> str:

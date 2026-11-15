@@ -13,6 +13,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
+from core.ai.clinical_facts import assertion_context, make_fact
 from core.ai.consistency import run_votes
 from core.ai.llm_client import LlmClient, render_prompt
 from core.ai.masking import NerFn, mask_fragment, mask_text
@@ -69,6 +70,10 @@ class ReadFinding:
     evidence: str
     source: str = "llm"
     level: str = "green"
+    assertion_status: str = "affirmed"
+    anatomy: str | None = None
+    evidence_start: int | None = None
+    evidence_end: int | None = None
 
 
 @dataclass
@@ -144,18 +149,7 @@ def assertion(clause: str, start: int, end: int, next_clause: str = "", negation
 
     next_clause: mệnh đề kế tiếp (chỉ truyền khi nó không chứa khái niệm nào), ví dụ "giờ hết rồi".
     """
-    before = clause[:start].lower()
-    tokens = re.findall(r"\w+", before)
-    negated = negation_allowed and _negated(tokens)
-    after_and_next = clause[end:] + " " + next_clause
-    if _has(clause, CONTINUE):
-        temporality = "current"
-    elif _has(clause, PAST) or _has(after_and_next, RESOLVED):
-        temporality = "past_resolved"
-    else:
-        temporality = "current"
-    experiencer = "other" if _other_subject(before) else "patient"
-    return {"present": not negated, "temporality": temporality, "experiencer": experiencer}
+    return assertion_context(clause, start, end, next_clause=next_clause, negation_allowed=negation_allowed)
 
 
 def _other_experiencer(before: str) -> bool:
@@ -176,15 +170,19 @@ def _concepts(rules: Rules | None = None) -> dict[str, dict[str, Any]]:
     return (rules or load_rules())["symptom_concepts"]
 
 
-# Từ chỉ mức độ / trợ từ hay chen giữa cụm triệu chứng: "mặt HƠI sưng", "ra BỊ máu", "nhìn RẤT mờ".
-FILLERS = ["hơi", "bị", "rất", "khá", "hay", "cũng", "thấy", "hoi", "bi", "rat", "kha", "cung", "thay"]
+# Từ chỉ mức độ / lượng / trợ từ / đại từ hay chen giữa cụm triệu chứng: "mặt HƠI sưng", "ra ÍT máu",
+# "ra MỘT CHÚT máu", "mặt EM sưng". Tối đa 2 từ chen (MAX_FILLERS). Chỉ làm bắt được NHIỀU hơn, không hạ mức.
+FILLERS = ["hơi", "bị", "rất", "khá", "hay", "cũng", "thấy", "ít", "chút", "tí", "một", "nhiều", "có", "em", "chị",
+           "tôi", "mình", "hoi", "bi", "rat", "kha", "cung", "thay", "it", "chut", "ti", "mot", "nhieu", "co", "chi",
+           "toi", "minh"]
+MAX_FILLERS = 2
 
 
 def _syn_pattern(syn: str, plain: bool) -> str:
-    """Mẫu khớp từ đồng nghĩa, cho phép tối đa một từ chỉ mức độ chen giữa các từ."""
+    """Mẫu khớp từ đồng nghĩa, cho phép tối đa MAX_FILLERS từ chen giữa các từ."""
     words = syn.split()
     fillers = sorted({deaccent(f) for f in FILLERS} if plain else set(FILLERS), key=len, reverse=True)
-    gap = rf"\s+(?:(?:{'|'.join(map(re.escape, fillers))})\s+)?"
+    gap = rf"\s+(?:(?:{'|'.join(map(re.escape, fillers))})\s+){{0,{MAX_FILLERS}}}"
     return r"(?<!\w)" + gap.join(map(re.escape, words)) + r"(?!\w)"
 
 
@@ -209,22 +207,38 @@ def lexicon_findings(text: str, apply_assertions: bool = True, rules: Rules | No
     text = nfc(text or "")
     clauses = _clauses(text)
     best: dict[str, dict[str, Any]] = {}
-    for idx, (_cstart, clause) in enumerate(clauses):
+    previous_clause_fact = None
+    previous_clause_end = 0
+    for idx, (cstart, clause) in enumerate(clauses):
         nxt = clauses[idx + 1][1] if idx + 1 < len(clauses) else ""
         if nxt and _match_all(nxt, concepts):
             nxt = ""
-        for code, s, e in _match_all(clause, concepts):
+        mentions = []
+        for code, s, e in sorted(set(_match_all(clause, concepts)), key=lambda m: (m[1], -(m[2] - m[1]))):
+            if mentions and s < mentions[-1][2]:
+                continue
+            mentions.append((code, s, e))
+        previous = None
+        previous_end = 0
+        separator = text[previous_clause_end:cstart]
+        inherited = (previous_clause_fact.experiencer if previous_clause_fact is not None
+                     and not re.search(r"[.;!?\n]", separator) else None)
+        for mi, (code, s, e) in enumerate(mentions):
             c = concepts[code]
-            a = (assertion(clause, s, e, nxt,
-                           c.get("negation_allowed", True))
-                 if apply_assertions else {"present": True, "temporality": "current", "experiencer": "patient"})
-            sev = "unknown"
-            if c.get("severe_words"):
-                sev = "severe" if _has(clause, c["severe_words"]) or _has(deaccent(clause), [deaccent(w) for w in c["severe_words"]]) else "mild"
-            f = {"concept": code, **a, "severity": sev, "evidence": clause.strip()[:120]}
+            fact = make_fact(code, clause, s, e, offset=cstart, next_clause=nxt,
+                             negation_allowed=c.get("negation_allowed", True),
+                             severe_words=c.get("severe_words"), previous=previous,
+                             previous_end=previous_end, inherited_subject=inherited,
+                             next_start=mentions[mi + 1][1] if mi + 1 < len(mentions) else None)
+            previous, previous_end = fact, e
+            f = fact.finding()
+            if not apply_assertions:
+                f.update(present=True, temporality="current", experiencer="patient", assertion_status="affirmed")
             prev = best.get(code)
             if prev is None or _safety_key(f) > _safety_key(prev):
                 best[code] = f
+        previous_clause_fact = previous
+        previous_clause_end = cstart + len(clause)
     return list(best.values())
 
 
@@ -250,11 +264,14 @@ def finding_level(f: dict[str, Any], ga_weeks: int | None, rules: Rules) -> Leve
         th = rules["thresholds"]
         if ga_weeks >= th.get("contractions_red_before_ga_weeks", 37):
             lvl = Level.parse(th.get("contractions_level_at_term", "yellow"))
+    if f.get("assertion_status") == "uncertain":  # thông tin đọc / nghe được – Vàng để gọi xác minh, không Xanh
+        lvl = Level.YELLOW
     return lvl
 
 
 def _effective(f: dict[str, Any]) -> bool:
-    return bool(f["present"]) and f["experiencer"] == "patient" and f["temporality"] != "past_resolved"
+    return (bool(f["present"]) and f["experiencer"] == "patient" and f["temporality"] != "past_resolved"
+            and f.get("assertion_status", "affirmed") == "affirmed")
 
 
 def _grounded(concern: str, text: str, min_ratio: float = 0.6) -> bool:
@@ -379,6 +396,15 @@ def cap_reason(f: dict[str, Any], lex_f: dict[str, Any] | None, text: str, rules
     return None
 
 
+def _ai_only(f: dict[str, Any], lex_f: dict[str, Any] | None, rules: Rules) -> bool:
+    """Đỏ chỉ dựa vào AI: lớp danh mục không thấy khái niệm này trong câu (config form_cap.ai_only_red_cap)."""
+    cap = rules.get("form_cap", {}) or {}
+    concept = rules["symptom_concepts"].get(f["concept"]) or {}
+    if not cap.get("enabled") or not cap.get("ai_only_red_cap") or concept.get("locked"):
+        return False
+    return "llm" in str(f.get("source", "")) and lex_f is None
+
+
 # ---------------------------------------------------------------- đọc form
 def build_prompt(masked: str, ga_weeks: int | None, no_diacritics: bool, rules: Rules) -> tuple[str, str]:
     template, version = prompt_text("form_reader")
@@ -389,6 +415,19 @@ def build_prompt(masked: str, ga_weeks: int | None, no_diacritics: bool, rules: 
     template = template.replace("{concepts}", "\n".join(lines))
     payload = {"text": masked, "ga_weeks": ga_weeks, "no_diacritics": no_diacritics}
     return render_prompt(template, payload), version
+
+
+def _evidence_in(evidence: str, text: str) -> bool:
+    """A complete quotation, allowing only casing and whitespace differences."""
+    words = nfc(evidence or "").strip().split()
+    return bool(words) and re.search(r"\s+".join(re.escape(w) for w in words), text, re.IGNORECASE) is not None
+
+
+def _vote_signature(findings: list[dict], concerns: list[str]) -> tuple:
+    facts = tuple(sorted((f["concept"], f["present"], f["temporality"], f["experiencer"], f["severity"])
+                         for f in findings))
+    concerns_key = tuple(sorted({" ".join(_tokens_plain(c)) for c in concerns}))
+    return facts, concerns_key
 
 
 def read_free_text(
@@ -412,21 +451,37 @@ def read_free_text(
 
     mask = mask_text(text, full_name=patient_name, pid=pid, ner=ner)
     reading = FormReading(level=Level.GREEN, ok=False, confidence=0.0, no_diacritics=no_dia,
-                          masked_text=mask.text, mask_ok=mask.ok)
+                          masked_text=mask.text if mask.ok else "", mask_ok=mask.ok)
+    if not mask.ok:
+        reading.raw["llm_status"] = "mask_failed"
     llm_runs: list[list[dict[str, Any]]] = []
     unmapped: list[str] = []
+    rejected = 0
     if client is not None and mask.ok:
         prompt, version = build_prompt(mask.text, ga_weeks, no_dia, rules)
         reading.prompt_version, reading.model = version, client.name
         votes = run_votes(client, prompt, FORM_SCHEMA, int(rules["llm"]["consistency_runs_form"]),
                           float(rules["llm"]["temperature"]))
-        reading.raw = {"outputs": votes.outputs, "errors": votes.errors}
-        llm_runs = [o["findings"] for o in votes.outputs]
-        unmapped = _vote_unmapped([o.get("unmapped_concerns", []) for o in votes.outputs], text, rules)
+        reading.raw = {"outputs": votes.outputs, "errors": votes.errors, "models": votes.models}
+        valid_concerns = []
+        for output in votes.outputs:
+            grounded = []
+            for f in output["findings"]:
+                if (f["concept"] not in rules["symptom_concepts"]
+                        or not _evidence_in(f.get("evidence", ""), mask.text)):
+                    rejected += 1
+                    continue
+                grounded.append(f)
+            llm_runs.append(grounded)
+            valid_concerns.append([u for u in output.get("unmapped_concerns", []) if _valid_concern(u, text, rules)])
+        unmapped = _vote_unmapped(valid_concerns, text, rules)
         if votes.outputs:
             reading.ok = True
-            sets = Counter(frozenset(f["concept"] for f in run if _effective(f)) for run in llm_runs)
+            sets = Counter(_vote_signature(run, concerns) for run, concerns in zip(llm_runs, valid_concerns, strict=True))
             reading.confidence = sets.most_common(1)[0][1] / votes.n_total
+        if rejected:
+            reading.raw["rejected_findings"] = rejected
+            reading.conflicts.append("LLM: mã khái niệm hoặc bằng chứng không hợp lệ – chuyển người xem")
 
     # Mỗi lần chạy LLM: đối chiếu luật khẳng định trên câu gốc (lấy hướng an toàn hơn).
     adjusted_runs: list[dict[str, dict[str, Any]]] = []
@@ -434,27 +489,6 @@ def read_free_text(
         per_run: dict[str, dict[str, Any]] = {}
         for f in run:
             f = {**f, "source": "llm"}
-            # Luật khẳng định chạy trên câu gốc quanh evidence
-            pos = text.lower().find(str(f.get("evidence", "")).lower()[:40]) if f.get("evidence") else -1
-            if pos >= 0 and f["concept"] in rules["symptom_concepts"]:
-                all_clauses = _clauses(text)
-                for ci, (cstart, clause) in enumerate(all_clauses):
-                    if cstart <= pos < cstart + len(clause) + 1:
-                        span = [m for m in _match_all(clause, {f["concept"]: rules["symptom_concepts"][f["concept"]]})]
-                        if span:
-                            _c, s, e = span[0]
-                            # Mệnh đề kế tiếp (nếu không chứa khái niệm khác), ví dụ "giờ hết rồi" – như lexicon_findings.
-                            nxt = all_clauses[ci + 1][1] if ci + 1 < len(all_clauses) else ""
-                            if nxt and _match_all(nxt, rules["symptom_concepts"]):
-                                nxt = ""
-                            a = assertion(clause, s, e, nxt,
-                                          rules["symptom_concepts"][f["concept"]].get("negation_allowed", True))
-                            safer = {**f, **{k: v for k, v in a.items()}}
-                            if _effective(safer) != _effective(f):
-                                reading.conflicts.append(f"{f['concept']}: LLM và luật khẳng định khác nhau")
-                                if _safety_key(safer) > _safety_key(f):
-                                    f = {**safer, "source": "llm+rule"}
-                        break
             prev = per_run.get(f["concept"])
             if prev is None or _safety_key(f) > _safety_key(prev):
                 per_run[f["concept"]] = f
@@ -472,19 +506,36 @@ def read_free_text(
             if _effective(f) and llm_runs:
                 reading.conflicts.append(f"{f['concept']}: LLM bỏ sót, luật phát hiện")
             merged[f["concept"]] = f
+        elif (f.get("assertion_status") in {"negated", "conditional", "other_site", "anatomy_only", "uncertain"}
+              and not rules["symptom_concepts"][f["concept"]].get("locked")):
+            if _effective(prev):
+                reading.conflicts.append(f"{f['concept']}: LLM và phạm vi khẳng định khác nhau")
+            merged[f["concept"]] = {**f, "source": "llm+rule"}
         elif _safety_key(f) > _safety_key(prev):
             reading.conflicts.append(f"{f['concept']}: luật khẳng định an toàn hơn LLM")
             merged[f["concept"]] = {**f, "source": "llm+rule"}
 
     if reading.conflicts and reading.ok:
         reading.confidence = max(0.0, reading.confidence - penalty)
+        # A semantic conflict is a review condition, including exactly-at-threshold
+        # agreement. Do not let a fixed subtraction accidentally certify it.
+        reading.confidence = min(reading.confidence, max(0.0, float(rules["arrival"]["ai_confidence_min"]) - 0.01))
 
     lex_by_concept = {f["concept"]: f for f in lex}
     findings = []
     for f in merged.values():
+        if f["concept"] == "HEADACHE" and lex_by_concept.get("HEADACHE", {}).get("severity") == "mild":
+            f = {**f, "severity": "mild"}
         lvl = finding_level(f, ga_weeks, rules)
+        if f["concept"] == "HEADACHE" and f.get("severity") == "mild" and lvl == Level.RED:
+            reading.conflicts.append("HEADACHE: văn bản mô tả mức nhẹ nhưng cấu hình xếp đỏ – cần xác minh mức độ")
         reason = cap_reason(f, lex_by_concept.get(f["concept"]), text, rules)
         cap_level = Level.parse(rules.get("form_cap.cap_level", "yellow"))
+        if reason is None and lvl > cap_level and _ai_only(f, lex_by_concept.get(f["concept"]), rules):
+            reading.conflicts.append(f"{f['concept']}: chỉ AI thấy, quy tắc không có từ khóa – hạ "
+                                     f"{lvl.code}→{cap_level.code}, gọi xác minh")
+            lvl = cap_level
+            f = {**f, "source": f"{f.get('source', 'llm')}+unverified"}
         if reason and lvl > cap_level:
             reading.conflicts.append(f"{f['concept']}: hạ {lvl.code}→{cap_level.code} ({reason})")
             lvl = cap_level
@@ -492,13 +543,28 @@ def read_free_text(
         findings.append(ReadFinding(concept=f["concept"], present=bool(f["present"]),
                                     temporality=f["temporality"], experiencer=f["experiencer"],
                                     severity=f.get("severity", "unknown"), evidence=str(f.get("evidence", ""))[:120],
-                                    source=f.get("source", "llm"), level=lvl.code))
+                                    source=f.get("source", "llm"), level=lvl.code,
+                                    assertion_status=f.get("assertion_status", "affirmed"),
+                                    anatomy=f.get("anatomy"), evidence_start=f.get("evidence_start"),
+                                    evidence_end=f.get("evidence_end")))
     level = max_level(*(f.level for f in findings)) if findings else Level.GREEN
+    if reading.conflicts and reading.ok:
+        reading.confidence = min(reading.confidence, max(0.0, float(rules["arrival"]["ai_confidence_min"]) - 0.01))
     if unmapped:
         level = max_level(level, Level.YELLOW)
     # Bằng chứng của lớp danh mục lấy từ câu GỐC → che trước khi lưu (Assessment.findings không mã hóa).
     for f in findings:
-        f.evidence = mask_fragment(f.evidence, full_name=patient_name, pid=pid, persons=mask.persons)
+        f.evidence = (mask_fragment(f.evidence, full_name=patient_name, pid=pid, persons=mask.persons)
+                      if mask.ok else "")
+        # Positions refer to the persisted masked quotation, not an unmasked mention.
+        words = f.evidence.split()
+        anchored = (re.search(r"\s+".join(re.escape(w) for w in words), mask.text, re.IGNORECASE)
+                    if words and mask.ok else None)
+        if anchored:
+            f.evidence_start, f.evidence_end = anchored.span()
+            f.evidence = mask.text[f.evidence_start:f.evidence_end]
+        else:
+            f.evidence, f.evidence_start, f.evidence_end = "", None, None
     reading.findings, reading.unmapped, reading.level = findings, unmapped, level
     if client is None:  # chạy không có AI: chỉ danh mục
         reading.ok, reading.confidence = False, 0.0

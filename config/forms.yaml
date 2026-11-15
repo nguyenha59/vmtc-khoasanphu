@@ -1,30 +1,32 @@
 # Bộ câu hỏi form cho thai phụ. [CẦN XÁC NHẬN] bác sĩ duyệt nội dung câu hỏi.
 # type: yesno | number | epds ; Mã câu dùng trong triage_rules và CSV Microsoft Forms.
+# Chọn câu cá nhân hóa (13/11/2026): section = danger (dấu hiệu nguy hiểm) | measure (số đo) | support;
+# ga = [từ tuần, đến tuần] câu có nghĩa; conditions = nhóm nguy cơ làm câu này phù hợp hơn; module_only = chỉ hỏi khi
+# thai phụ đã vào module (có máy đo / dùng thuốc). [CẦN XÁC NHẬN] bác sĩ duyệt.
 questions:
-  C1: {type: yesno, text: "Chị có ra máu âm đạo không?"}
-  C2: {type: yesno, text: "Chị có đau bụng nhiều không?"}
-  C3: {type: yesno, text: "Chị có ra nước âm đạo (ướt quần liên tục) không?"}
-  C4: {type: yesno, text: "Chị có sốt không?"}
-  C5: {type: yesno, text: "Chị có tiểu buốt, tiểu rắt không?"}
-  C6: {type: yesno, text: "Chị có đau đầu nhiều, nhìn mờ hoặc đau vùng dưới ức không?"}
-  C7: {type: yesno, text: "Mặt hoặc tay chị có bị phù (sưng, nhẫn chật) không?"}
-  C8: {type: yesno, text: "Chị có thấy thai máy (con đạp) ít hơn bình thường không?"}
-  C9: {type: yesno, text: "Chị có bị gò bụng đều đặn không?"}
-  DYSPNEA: {type: yesno, text: "Chị có khó thở không?"}
-  CALF: {type: yesno, text: "Chị có đau, sưng một bên bắp chân không?"}
-  ITCH: {type: yesno, text: "Chị có ngứa lòng bàn tay, bàn chân không?"}
-  NAUSEA: {type: yesno, text: "Chị có nôn nhiều, không ăn uống được không?"}
-  MISSED_MED: {type: yesno, text: "Chị có quên uống thuốc không?"}
-  HYPO: {type: yesno, text: "Chị có bị hạ đường huyết (run, vã mồ hôi, choáng) không?"}
-  BP_AM_SYS: {type: number, text: "Huyết áp sáng – số trên (mmHg)", min: 0, max: 300}
-  BP_AM_DIA: {type: number, text: "Huyết áp sáng – số dưới (mmHg)", min: 0, max: 200}
-  BP_PM_SYS: {type: number, text: "Huyết áp tối – số trên (mmHg)", min: 0, max: 300}
-  BP_PM_DIA: {type: number, text: "Huyết áp tối – số dưới (mmHg)", min: 0, max: 200}
-  GLU_FAST: {type: number, text: "Đường huyết lúc đói (mmol/L)", min: 0, max: 60, step: 0.1}
-  GLU_1H: {type: number, text: "Đường huyết sau ăn 1 giờ (mmol/L)", min: 0, max: 60, step: 0.1}
-  GLU_2H: {type: number, text: "Đường huyết sau ăn 2 giờ (mmol/L)", min: 0, max: 60, step: 0.1}
-  WEIGHT: {type: number, text: "Cân nặng hôm nay (kg)", min: 0, max: 200, step: 0.1}
-
+  C1: {type: yesno, text: "Chị có ra máu âm đạo không?", section: danger, conditions: [TWINS, PRETERM_RISK, PREV_CSECTION]}
+  C2: {type: yesno, text: "Chị có đau bụng nhiều không?", section: danger, conditions: [PREV_CSECTION, PRETERM_RISK]}
+  C3: {type: yesno, text: "Chị có ra nước âm đạo (ướt quần liên tục) không?", section: danger, ga: [14, 42], conditions: [TWINS, PRETERM_RISK]}
+  C4: {type: yesno, text: "Chị có sốt không?", section: danger, conditions: [UTI]}
+  C5: {type: yesno, text: "Chị có tiểu buốt, tiểu rắt không?", section: danger, conditions: [UTI]}
+  C6: {type: yesno, text: "Chị có đau đầu nhiều, nhìn mờ hoặc đau vùng dưới ức không?", section: danger, ga: [20, 42], conditions: [HTN, PREECLAMPSIA, PREV_PREECLAMPSIA]}
+  C7: {type: yesno, text: "Mặt hoặc tay chị có bị phù (sưng, nhẫn chật) không?", section: danger, ga: [20, 42], conditions: [HTN, PREECLAMPSIA, PREV_PREECLAMPSIA]}
+  C8: {type: yesno, text: "Chị có thấy thai máy (con đạp) ít hơn bình thường không?", section: danger, ga: [24, 42], conditions: [TWINS, HTN, PREECLAMPSIA, GDM]}
+  C9: {type: yesno, text: "Chị có bị gò bụng đều đặn không?", section: danger, ga: [22, 42], conditions: [TWINS, PRETERM_RISK, PREV_CSECTION]}
+  DYSPNEA: {type: yesno, text: "Chị có khó thở không?", section: danger, conditions: [ANEMIA]}
+  CALF: {type: yesno, text: "Chị có đau, sưng một bên bắp chân không?", section: danger}
+  ITCH: {type: yesno, text: "Chị có ngứa lòng bàn tay, bàn chân không?", section: danger, ga: [24, 42]}
+  NAUSEA: {type: yesno, text: "Chị có nôn nhiều, không ăn uống được không?", section: danger, ga: [4, 16]}
+  MISSED_MED: {type: yesno, text: "Chị có quên uống thuốc không?", section: support, module_only: true}
+  HYPO: {type: yesno, text: "Chị có bị hạ đường huyết (run, vã mồ hôi, choáng) không?", section: danger, module_only: true}
+  BP_AM_SYS: {type: number, text: "Huyết áp sáng – số trên (mmHg)", min: 0, max: 300, section: measure, module_only: true}
+  BP_AM_DIA: {type: number, text: "Huyết áp sáng – số dưới (mmHg)", min: 0, max: 200, section: measure, module_only: true}
+  BP_PM_SYS: {type: number, text: "Huyết áp tối – số trên (mmHg)", min: 0, max: 300, section: measure, module_only: true}
+  BP_PM_DIA: {type: number, text: "Huyết áp tối – số dưới (mmHg)", min: 0, max: 200, section: measure, module_only: true}
+  GLU_FAST: {type: number, text: "Đường huyết lúc đói (mmol/L)", min: 0, max: 60, step: 0.1, section: measure, module_only: true}
+  GLU_1H: {type: number, text: "Đường huyết sau ăn 1 giờ (mmol/L)", min: 0, max: 60, step: 0.1, section: measure, module_only: true}
+  GLU_2H: {type: number, text: "Đường huyết sau ăn 2 giờ (mmol/L)", min: 0, max: 60, step: 0.1, section: measure, module_only: true}
+  WEIGHT: {type: number, text: "Cân nặng hôm nay (kg)", min: 0, max: 200, step: 0.1, section: measure, ga: [20, 42]}
 # EPDS: điểm 0–3 mỗi câu. Câu 10 khác "Không bao giờ" → đỏ (khóa).
 epds:
   options: ["Không bao giờ", "Hầu như không", "Thỉnh thoảng", "Khá thường xuyên"]
@@ -49,7 +51,23 @@ forms:
   F6: {name: "Theo dõi 33–35 tuần", questions: [C1, C2, C3, C4, C6, C7, C8, C9, ITCH, DYSPNEA], reminder: "Nhắc: xét nghiệm liên cầu B"}
   M-THA: {name: "Theo dõi huyết áp", questions: [BP_AM_SYS, BP_AM_DIA, BP_PM_SYS, BP_PM_DIA, C6, C7, MISSED_MED], reminder: "Đo huyết áp sáng và tối"}
   M-DTD: {name: "Theo dõi đường huyết", questions: [GLU_FAST, GLU_1H, GLU_2H, HYPO, MISSED_MED], reminder: "Đo đường huyết theo hướng dẫn"}
+  # Bộ câu hỏi theo tình trạng (cá nhân hóa). CHỈ dùng câu đã có ở trên và phải qua cổng chất lượng (`quality`);
+  # câu không đạt bị loại khỏi bộ và hiện lý do. [CẦN XÁC NHẬN] bác sĩ duyệt nội dung từng bộ.
+  P-SINHNON: {name: "Theo dõi dấu hiệu sinh non", kind: pack, period: "Từ lần trả lời trước", questions: [C9, C3, C1, C2], reminder: "Gò bụng đều, ra nước hoặc ra máu → đến viện ngay, không chờ form"}
+  P-VETMO: {name: "Theo dõi vết mổ cũ", kind: pack, period: "Từ lần trả lời trước", questions: [C2, C1, C9], reminder: "Đau bụng không đỡ hoặc ra máu → đến viện ngay"}
+  P-TSG: {name: "Theo dõi dấu hiệu tiền sản giật", kind: pack, period: "Từ lần trả lời trước", questions: [C6, C7, C8], reminder: "Đau đầu, nhìn mờ, phù mặt → đến viện ngay"}
+  P-TIEUNIEU: {name: "Theo dõi tiết niệu", kind: pack, period: "Từ lần trả lời trước", questions: [C5, C4], reminder: "Sốt kèm đau lưng → đến viện ngay"}
   S1: {name: "Sau sinh ngày 3", questions: [C1, C4, C6, DYSPNEA, CALF]}
   S2: {name: "Sau sinh ngày 7", questions: [C1, C4, C6, DYSPNEA, CALF]}
   S3: {name: "Sau sinh ngày 14 + EPDS", questions: [C1, C4, DYSPNEA, CALF], epds: true}
   S4: {name: "Sau sinh ngày 42 + EPDS", questions: [C1, C4], epds: true}
+
+# Cổng chất lượng câu hỏi (docs/12): câu trả lời phải nhận ra được vấn đề của từng người.
+# Mã lỗi chặn (block) → câu bị loại khỏi bộ cá nhân hóa. Còn lại là cảnh báo, hiện cho người duyệt.
+quality:
+  block: [NO_TRIAGE, REVERSED, JARGON, VAGUE]
+  # từ chỉ mức độ không có mốc đo – chấp nhận nếu câu có ví dụ cụ thể trong ngoặc (…)
+  vague_words: ["nhiều", "dữ dội", "nghiêm trọng", "rõ rệt", "bất thường", "khác thường", "đáng kể", "kéo dài"]
+  jargon: ["rò ối", "vỡ ối", "tầng sinh môn", "tâm thu", "tâm trương", "sản dịch", "cổ tử cung", "chẩn đoán", "chỉ định", "CGM"]
+  # câu mà trả lời "Có" = tốt (ngược chiều các câu khác) → dễ trả lời nhầm
+  reversed_patterns: ["có uống và giữ được", "đúng hướng dẫn", "có được hướng dẫn", "có được giải thích", "có người hỗ trợ", "có đồng ý"]

@@ -93,8 +93,13 @@ def daily_maintenance(at: datetime) -> dict[str, int] | None:
     day = at.date().isoformat()
     if _done("daily_maintenance", day):
         return None
-    purged = purge_all(load_rules())
+    rules = load_rules()
+    purged = purge_all(rules)
     with session_scope() as s:
+        from core.config import load_forms
+        from core.patients import auto_apply_form_plans
+
+        purged["auto_form_plans"] = len(auto_apply_form_plans(s, at.date(), rules, load_forms()))
         res = s.execute(delete(UserSession).where(UserSession.expires_at < at - timedelta(days=1)))
         out = {**purged, "sessions": res.rowcount or 0}  # type: ignore[attr-defined]
         audit.log("daily_maintenance", "date", day, out, session=s)

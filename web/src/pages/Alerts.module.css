@@ -1,95 +1,417 @@
-.listPaper {
+/* Màn Cảnh báo – theo mẫu "Cảnh báo – xử trí ca khẩn":
+ * trái = danh sách cảnh báo mở; phải = đầu ca (toàn chiều rộng) + [lý do / tóm tắt / câu trả lời] + cột Xử trí. */
+
+.card {
+  border: 1px solid #e6eaee !important;
+  border-radius: 14px !important;
+  background: #fff;
+  box-shadow: none !important;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 284px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 62em) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------- Danh sách */
+.listCard {
+  composes: card;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.listHead {
-  border-bottom: 1px solid var(--mantine-color-ink-2);
-  background: #fff;
+@media (min-width: 62em) {
+  .listCard {
+    position: sticky;
+    top: 84px;
+    max-height: calc(100vh - 104px);
+  }
 }
 
-.row {
-  display: block;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--mantine-color-ink-1);
-  border-left: 3px solid transparent;
+.listHead {
+  border-bottom: 1px solid #eef1f4;
+}
+
+.listScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 10px 10px;
+  scrollbar-width: thin;
+}
+
+.listFoot {
+  border-top: 1px solid #eef1f4;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid #e1e7ec;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mantine-color-ink-7);
+  background: #fff;
   transition: background 100ms ease;
 
+  & b {
+    font-weight: 700;
+  }
+
+  &[data-tone="red"] {
+    color: #b42318;
+    border-color: #fecdca;
+    background: #fef3f2;
+  }
+
+  &[data-tone="yellow"] {
+    color: #93370d;
+    border-color: #fedf89;
+    background: #fffaeb;
+  }
+
+  &[data-tone="grape"] {
+    color: var(--mantine-color-grape-8);
+    border-color: var(--mantine-color-grape-2);
+    background: var(--mantine-color-grape-0);
+  }
+
+  &[data-active] {
+    color: #fff;
+    border-color: #102a43;
+    background: #102a43;
+  }
+
+  &[data-active][data-tone="red"] {
+    border-color: #b42318;
+    background: #b42318;
+  }
+
+  &[data-active][data-tone="yellow"] {
+    border-color: #dc6803;
+    background: #dc6803;
+  }
+
+  &[data-active][data-tone="grape"] {
+    border-color: var(--mantine-color-grape-7);
+    background: var(--mantine-color-grape-7);
+  }
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 6px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mantine-color-ink-5);
+
+  &::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 99px;
+    background: currentColor;
+  }
+
+  &[data-tone="red"] {
+    color: #b42318;
+  }
+
+  &[data-tone="yellow"] {
+    color: #b54708;
+  }
+}
+
+.item {
+  display: block;
+  margin-bottom: 8px;
+  padding: 12px 12px;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 100ms ease, background 100ms ease;
+
   &:hover {
-    background: var(--mantine-color-ink-0);
+    border-color: #c9d3db;
   }
 
+  &[data-active] {
+    border: 2px solid var(--mantine-color-brand-7);
+    padding: 11px;
+    background: #f1faf8;
+  }
+
+  &[data-closed] {
+    opacity: 0.7;
+  }
+}
+
+.waitBadge {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #c4271b;
+  white-space: nowrap;
+}
+
+.waitText {
+  flex: none;
+  color: #b54708;
+}
+
+/* ---------------------------------------------------------------- Chi tiết */
+.detailCol {
+  min-width: 0;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 312px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 80em) {
+  .detailGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.levelPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mantine-color-ink-7);
+  background: var(--mantine-color-ink-1);
+
   &[data-level="red"] {
-    border-left-color: var(--mantine-color-danger-7);
+    color: #b42318;
+    background: #fee4e2;
   }
 
   &[data-level="yellow"] {
-    border-left-color: var(--mantine-color-warn-5);
-  }
-}
-
-.headline {
-  line-height: 1.25;
-
-  &[data-level="red"] {
-    color: var(--mantine-color-danger-8);
-  }
-}
-
-.reviews {
-  border-color: var(--mantine-color-grape-3);
-  background: linear-gradient(180deg, var(--mantine-color-grape-0), #fff 50%);
-}
-
-.siblings {
-  padding: 10px 12px;
-  border-radius: var(--mantine-radius-md);
-  background: var(--mantine-color-brand-0);
-}
-
-.why {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--mantine-color-ink-1);
-
-  &:last-child {
-    border-bottom: 0;
-  }
-}
-
-.head {
-  border-top: 4px solid var(--mantine-color-ink-3);
-
-  &[data-level="red"] {
-    border-top-color: var(--mantine-color-danger-7);
-  }
-
-  &[data-level="yellow"] {
-    border-top-color: var(--mantine-color-warn-5);
+    color: #93370d;
+    background: #fef0c7;
   }
 
   &[data-level="green"] {
-    border-top-color: var(--mantine-color-ok-7);
+    color: #05603a;
+    background: #d1fadf;
   }
 }
 
-.layer {
+.whyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.why {
+  padding: 14px 16px;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
+  background: #fff;
+
   &[data-level="red"] {
-    background: linear-gradient(180deg, var(--mantine-color-danger-0), #fff 60%);
-    border-color: var(--mantine-color-danger-2);
+    border-color: #fecdca;
+    background: #fffbfa;
   }
 
   &[data-level="yellow"] {
-    background: linear-gradient(180deg, var(--mantine-color-warn-0), #fff 60%);
-    border-color: var(--mantine-color-warn-2);
+    border-color: #fedf89;
+    background: #fffcf5;
   }
 }
 
-.accordion :global(.mantine-Accordion-item) {
-  background: #fff;
-  border-color: var(--mantine-color-ink-2);
+.basis {
+  padding-top: 8px;
+  border-top: 1px dashed #e6eaee;
+  line-height: 1.45;
 }
 
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 99px;
+  background: var(--mantine-color-ink-4);
+
+  &[data-level="red"] {
+    background: #d92d20;
+  }
+
+  &[data-level="yellow"] {
+    background: #f79009;
+  }
+
+  &[data-level="green"] {
+    background: #12b76a;
+  }
+}
+
+.layers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+  border: 1px solid #eef1f4;
+  border-radius: 10px;
+}
+
+.layerCell {
+  padding: 10px 14px;
+
+  & + & {
+    border-left: 1px solid #eef1f4;
+  }
+}
+
+.layerVal {
+  margin-top: 2px;
+  color: var(--mantine-color-ink-7);
+
+  &[data-level="red"] {
+    color: #b42318;
+  }
+
+  &[data-level="yellow"] {
+    color: #b54708;
+  }
+
+  &[data-level="green"] {
+    color: #1e7b34;
+  }
+}
+
+.grayPill {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: var(--mantine-color-ink-6);
+  background: #f1f4f7;
+}
+
+.answers {
+  & tr {
+    border-top: 1px solid #f1f4f7;
+  }
+
+  & tr[data-bad] {
+    background: #fff6f5;
+  }
+}
+
+/* ---------------------------------------------------------------- Xử trí */
 .actions {
-  box-shadow: var(--mantine-shadow-md);
-  border-color: var(--mantine-color-brand-2);
-  background: linear-gradient(180deg, var(--mantine-color-brand-0), #fff 40%);
+  position: relative;
+}
+
+@media (min-width: 80em) {
+  .actions {
+    position: sticky;
+    top: 84px;
+  }
+}
+
+.step {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--mantine-color-brand-7);
+}
+
+.divider {
+  height: 1px;
+  margin: 18px 0 16px;
+  background: #eef1f4;
+}
+
+.option {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e1e7ec;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 100ms ease, background 100ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: #c9d3db;
+  }
+
+  &[data-active] {
+    border: 2px solid var(--mantine-color-brand-7);
+    padding: 9px 13px;
+    background: #f1faf8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.optDot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 99px;
+  background: #6b7a88;
+
+  &[data-tone="red"] {
+    background: #d92d20;
+  }
+
+  &[data-tone="yellow"] {
+    background: #f79009;
+  }
+}
+
+.notice {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f5f7f9;
+
+  &[data-tone="ok"] {
+    background: #ecfdf3;
+  }
+
+  &[data-tone="grape"] {
+    background: var(--mantine-color-grape-0);
+  }
+}
+
+/* ---------------------------------------------------------------- Bác sĩ xem lại */
+.reviews {
+  border-left: 4px solid var(--mantine-color-grape-6);
 }

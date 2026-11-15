@@ -198,6 +198,13 @@ cases:
   group: past
 - text: tuần trước có sốt
   ga_weeks: 30
+  # Thời điểm quá khứ không chứng minh đã hết: giữ mối lo chưa rõ hiện trạng.
+  expected_level: yellow
+  expected_concepts:
+  - FEVER
+  group: past
+- text: tuần trước sốt, giờ khỏe
+  ga_weeks: 30
   expected_level: green
   expected_concepts: []
   group: past

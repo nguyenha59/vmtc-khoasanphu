@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import io
+import logging
 import os
 from datetime import date, datetime, timedelta
 
-import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import delete, func, select
@@ -15,6 +15,7 @@ from api.deps import CurrentUser, require
 from api.util import file_response, safe_name
 from core import audit
 from core.ai.noshow import (
+    ModelNotReady,
     action_for,
     arrivals_imported,
     build_features,
@@ -22,6 +23,7 @@ from core.ai.noshow import (
     load_visits,
     predict,
     reinvite_list,
+    validate_bundle,
 )
 from core.config import TZ, load_rules
 from core.db import now, session_scope
@@ -31,6 +33,7 @@ from core.reports import xlsx_bytes
 from core.security import mask_phone
 
 router = APIRouter(prefix="/api/noshow", tags=["noshow"])
+log = logging.getLogger(__name__)
 
 
 def _today() -> date:
@@ -41,18 +44,29 @@ def _compute(target: date) -> dict:
     """Dự đoán cho ngày target (lưu NoshowPrediction) + danh sách mời đặt lại hôm qua. Có SĐT đầy đủ – chỉ dùng nội bộ."""
     rules = load_rules()
     bundle = load_latest()
+    warning = None if bundle is not None else "Chưa có mô hình bỏ hẹn hợp lệ; cần huấn luyện và kiểm chứng lại."
+    if bundle is not None:
+        try:
+            validate_bundle(bundle)
+        except ModelNotReady as e:
+            bundle, warning = None, str(e)
     yesterday = _today() - timedelta(days=1)
     with session_scope() as s:
         reinv = reinvite_list(s, yesterday, rules)
         imported = arrivals_imported(s, yesterday)
         n_appt = s.scalar(select(func.count(Appointment.id)).where(Appointment.appt_date == target)) or 0
-        if bundle is None:
-            return {"bundle": None, "rows": [], "reinvite": reinv, "n_appt": n_appt, "yesterday": yesterday,
-                    "arrivals_imported": imported}
+        base = {"bundle": bundle, "rows": [], "reinvite": reinv, "n_appt": n_appt,
+                "yesterday": yesterday, "arrivals_imported": imported, "model_warning": warning}
+        if bundle is None or n_appt == 0:
+            return base
         visits = load_visits(s)
         feats = build_features(visits)
         day = feats[feats["appt_date"] == target]
-        preds = predict(bundle, day) if len(day) else pd.DataFrame(columns=["appointment_id", "prob", "top_factors"])
+        try:
+            preds = predict(bundle, day)
+        except ModelNotReady as e:
+            log.warning("Dự đoán bỏ hẹn chưa dùng được: %s", e)
+            return {**base, "bundle": None, "model_warning": str(e)}
         ids = [int(x) for x in preds["appointment_id"]]
         if ids:
             s.execute(delete(NoshowPrediction).where(NoshowPrediction.appointment_id.in_(ids)))
@@ -72,7 +86,7 @@ def _compute(target: date) -> dict:
                      "prob": round(float(r["prob"]), 3), "factors": [f["text"] for f in r["top_factors"]],
                      "action": action_for(float(r["prob"]), rules)})
     return {"bundle": bundle, "rows": rows, "reinvite": reinv, "n_appt": n_appt, "yesterday": yesterday,
-            "arrivals_imported": imported}
+            "arrivals_imported": imported, "model_warning": warning}
 
 
 @router.get("")
@@ -92,6 +106,7 @@ def overview(d: date | None = None, user: CurrentUser = Depends(require("view_no
         "high_risk": sum(x["prob"] >= rules["noshow"]["call_threshold"] for x in rows),
         # Ngoài production mô hình chỉ học trên dữ liệu giả → giao diện ghi rõ "mô hình minh họa".
         "demo_model": os.environ.get("APP_ENV", "development") != "production",
+        "model_warning": r["model_warning"],
     }
 
 
@@ -144,5 +159,9 @@ async def upload_arrivals(file: UploadFile = File(...), user: CurrentUser = Depe
 async def retrain(user: CurrentUser = Depends(require("retrain_model"))) -> dict:
     from scripts.train_noshow import run as train_run
 
-    out = await run_in_threadpool(train_run, user.user_id)
+    try:
+        out = await run_in_threadpool(train_run, user.user_id)
+    except (ModelNotReady, OSError) as e:
+        message = str(e) if isinstance(e, ModelNotReady) else "Không xuất được mô hình mới; mô hình hiện tại được giữ nguyên."
+        raise HTTPException(409, message) from e
     return {"version": out["version"], "auc_lgb": out["lightgbm"]["roc_auc"], "auc_lr": out["logistic"]["roc_auc"]}

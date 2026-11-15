@@ -1,5 +1,5 @@
 # Cấu hình mặc định – MVP. Ngưỡng y khoa phải được bác sĩ duyệt trước khi dùng thật.
-rules_version: "0.11.0"
+rules_version: "0.17.0"
 
 departments_included: ["Phòng khám Sản phụ khoa"]   # [CẦN XÁC NHẬN tên khoa trong file HIS]
 
@@ -62,8 +62,10 @@ forms:
   eligibility: {package_only: true}
   min_gap_days: 14
   skip_if_visit_within_days: 3
+  skip_if_visited_within_days: 3          # vừa khám ≤ N ngày → không gửi (mọi loại form, trừ sau sinh) – docs/13
   stop_routine_from_ga_weeks: 36
   resend_block_days: 7
+  resend_routine: false                    # docs/13: mỗi mốc gửi 1 lần (+ nhắc 1 lần), không gửi lại trong cửa sổ
   token_ttl_days: 3
   windows:                                # tuần thai (tuần, ngày)
     F1: {from: [8, 0], to: [10, 6]}
@@ -72,12 +74,135 @@ forms:
     F4: {from: [24, 0], to: [26, 6]}
     F5: {from: [29, 0], to: [31, 6]}
     F6: {from: [33, 0], to: [35, 6]}
+  # Module bệnh lý gửi vào NGÀY CỐ ĐỊNH trong tuần (0 = Thứ 2 … 6 = Chủ nhật) – docs/13 (13/11/2026).
+  # Tách tần suất ĐO (bác sĩ dặn, có thể hằng ngày, ghi sổ) và tần suất GỬI FORM báo cáo.
+  # [CẦN XÁC NHẬN] bác sĩ duyệt. Tham chiếu: NICE NG133 (THA thai kỳ 1–2 lần/tuần; tiền sản giật ≥ mỗi 48 giờ), NICE NG3.
   modules:
-    M-THA: {every_days: 1}
-    M-DTD: {every_days: 3, every_days_if_insulin: 1}
+    M-THA: {weekdays: [0, 3], weekdays_if_flag: {PREECLAMPSIA: [0, 2, 4]}}
+    M-DTD: {weekdays: [0], weekdays_if_insulin: [0, 3]}
+    # Bộ câu hỏi theo tình trạng: KHÔNG gửi SMS riêng, chỉ ghép vào form mốc trong cửa sổ tuần thai ga_from–ga_to;
+    # riêng khi 2 lần khám cách nhau > packs.mid_gap_days → 1 form giữa khoảng. [CẦN XÁC NHẬN] bác sĩ duyệt.
+    P-SINHNON: {ga_from: [22, 0], ga_to: [36, 6]}
+    P-VETMO: {ga_from: [28, 0], ga_to: [39, 6]}
+    P-TSG: {ga_from: [20, 0], ga_to: [39, 6]}
+    P-TIEUNIEU: {ga_from: [4, 0], ga_to: [39, 6]}
+  packs: {standalone: false, mid_gap_days: 28}
+  # Thai phụ trả lời "Không chắc" cho câu triệu chứng → mức này (không bao giờ coi là Không / xanh).
+  # [CẦN XÁC NHẬN] bác sĩ duyệt. Ngân hàng câu hỏi 0.9: "Không chắc / không trả lời ≠ Không".
+  unsure_level: yellow
   postpartum_days: {S1: 3, S2: 7, S3: 14, S4: 42}
   postpartum_grace_days: 2                 # quên xuất SMS đúng ngày → vẫn gửi bù thêm N ngày (docs/04 C7)
   no_reply_reminder_hours: 48
+  # Form mốc / bộ theo tình trạng không trả lời sau khi đã nhắc → thai phụ có nguy cơ vào danh sách điều dưỡng gọi.
+  no_reply_call_if_risk: true
+
+# Cá nhân hóa bộ câu hỏi (13/11/2026): tình trạng của thai phụ → module / bộ câu hỏi đề xuất.
+# Nguồn: chẩn đoán ICD-10 trong kết quả khám, nhóm nguy cơ trong hồ sơ, tiền sử (từ khóa), AI đọc ghi chú lịch hẹn.
+# Hệ thống chỉ ĐỀ XUẤT – điều dưỡng xác nhận từng thai phụ (người dùng chốt 13/11/2026).
+# [CẦN XÁC NHẬN] bác sĩ duyệt toàn bộ ánh xạ dưới đây.
+personalization:
+  flag_names:
+    HTN: "Tăng huyết áp"
+    PREECLAMPSIA: "Tiền sản giật (thai này)"
+    PREV_PREECLAMPSIA: "Tiền sử tiền sản giật"
+    GDM: "Đái tháo đường thai kỳ"
+    TWINS: "Song thai / đa thai"
+    PRETERM_RISK: "Nguy cơ sinh non"
+    PREV_CSECTION: "Vết mổ cũ"
+    UTI: "Nhiễm khuẩn tiết niệu"
+    ANEMIA: "Thiếu máu"
+  # nhóm nguy cơ → module / bộ câu hỏi. Danh sách rỗng = chưa có bộ câu đạt chất lượng (chờ ngân hàng câu hỏi, docs/12).
+  flag_targets:
+    HTN: [M-THA]
+    PREECLAMPSIA: [M-THA, P-TSG]
+    PREV_PREECLAMPSIA: [P-TSG]
+    GDM: [M-DTD]
+    TWINS: [P-SINHNON]
+    PRETERM_RISK: [P-SINHNON]
+    PREV_CSECTION: [P-VETMO]
+    UTI: [P-TIEUNIEU]
+    ANEMIA: []
+  # mã nhóm nguy cơ trong hồ sơ (risk_summary) → nhóm
+  risk_codes: {HTN: HTN, PREECLAMPSIA: PREECLAMPSIA, GDM: GDM, TWINS: TWINS, PRETERM: PRETERM_RISK,
+               PRETERM_RISK: PRETERM_RISK, PREV_CSECTION: PREV_CSECTION}
+  # tiền tố mã ICD-10 → nhóm (chẩn đoán của thai kỳ này)
+  icd10_prefixes:
+    O10: HTN
+    O13: HTN
+    O14: PREECLAMPSIA
+    O11: PREECLAMPSIA
+    O24.4: GDM
+    O30: TWINS
+    O60: PRETERM_RISK
+    O34.2: PREV_CSECTION
+    O23: UTI
+    O99.0: ANEMIA
+  # từ khóa trong tiền sử (bỏ dấu khi so) → nhóm. Câu có từ phủ định ngay sau / trước ("không", "chưa") bị bỏ qua.
+  history_keywords:
+    PREV_CSECTION: ["mổ lấy thai", "mổ đẻ", "vết mổ cũ", "sẹo mổ tử cung"]
+    PREV_PREECLAMPSIA: ["tiền sản giật", "sản giật"]
+    HTN: ["tăng huyết áp"]
+    GDM: ["đái tháo đường"]
+    PRETERM_RISK: ["sinh non", "dọa sinh non", "khâu vòng cổ tử cung", "hở eo"]
+    UTI: ["viêm đường tiết niệu", "nhiễm khuẩn tiết niệu", "viêm bàng quang"]
+    ANEMIA: ["thiếu máu"]
+  negation_words: ["không", "chưa", "âm tính"]
+  # Bộ câu theo tình trạng TỰ áp dụng (không cần điều dưỡng duyệt) khi căn cứ do bác sĩ ghi trong hồ sơ – docs/13 mục 4.
+  # Căn cứ chỉ từ AI đọc ghi chú / từ khóa tiền sử → vẫn chờ điều dưỡng xác nhận. Module đo (M-…) luôn cần xác nhận 1 lần.
+  auto_apply_sources: [icd10, risk]
+  # AI đọc ghi chú lịch hẹn (risk_flags) → nhóm
+  note_flags: {HTN: HTN, PREECLAMPSIA: PREECLAMPSIA, GDM: GDM, TWINS: TWINS, PRETERM_RISK: PRETERM_RISK,
+               PREV_CSECTION: PREV_CSECTION}
+  # Khái niệm AI đọc từ phần tự viết lần trước → câu hỏi lần sau (hỏi lại cho rõ). [CẦN XÁC NHẬN]
+  concept_questions: {BLEEDING: C1, ABD_PAIN: C2, FLUID: C3, FEVER: C4, DYSURIA: C5, HEADACHE: C6, VISUAL: C6,
+                      EPIGASTRIC: C6, FACE_EDEMA: C7, REDUCED_FM: C8, CONTRACTIONS: C9, DYSPNEA: DYSPNEA, CALF: CALF,
+                      ITCH: ITCH, HYPEREMESIS: NAUSEA}
+  # Chọn + xếp câu trong từng form (docs/13 mục 5c). Câu bắt buộc (form mốc, module, bộ theo tình trạng, câu hỏi lại)
+  # KHÔNG BAO GIỜ bị bỏ; điểm chỉ quyết định thêm câu tùy chọn và thứ tự. AI chỉ được NÂNG điểm (lấy max với quy tắc).
+  selection:
+    max_questions: 15                      # trần cho câu tùy chọn thêm vào (câu bắt buộc không bị cắt)
+    include_threshold: 0.6                 # câu tùy chọn có điểm ≥ ngưỡng mới được thêm
+    rule_scores: {carry_over: 1.0, concept: 0.8, condition: 0.7, base: 0.1}
+    recent_answer_days: 30                 # câu trả lời / phần tự viết trong N ngày gần nhất mới dùng để hỏi lại
+    ai_runs: 3                             # AI chấm 3 lần, lấy trung vị (tự nhất quán)
+    ai_temperature: 0.3
+    ai_max_spread: 0.3                     # điểm một câu lệch > 0.3 giữa các lần → bỏ điểm AI câu đó
+    ai_min_confidence: 0.6                 # AI tự báo tin cậy < 0.6 → bỏ toàn bộ điểm AI, dùng quy tắc
+    ai_add_threshold: 0.8                  # AI tự THÊM câu (quy tắc chưa chọn) chỉ khi điểm AI ≥ 0.8 – vùng sát ngưỡng dễ dao động
+  # Tóm tắt lâm sàng ĐÃ PHÂN LOẠI gửi kèm cho AI chọn câu (người dùng chọn 14/11/2026). Không gửi số đo gốc, ngày,
+  # ghi chú tự do. Ngưỡng huyết áp / đường huyết dùng `thresholds`, xu hướng dùng `trends`. [CẦN XÁC NHẬN] bác sĩ duyệt.
+  ai_context:
+    fields: [measurements, medications, obstetric_history, visit_gap]   # bỏ bớt mục để ngừng gửi nhóm đó
+    measurement_days: 14                   # chỉ dùng số đo trong 14 ngày gần nhất
+    lab_kinds: {GLU_FAST: glu_fast, OGTT_0: glu_fast, OGTT_1: glu_1h, OGTT_2: glu_2h}   # xét nghiệm tại khoa (mmol/L) → loại số đo
+    # HIS chưa có danh sách thuốc → dò từ khóa trong phần xử trí của lần khám gần nhất (+ trường insulin có cấu trúc)
+    medication_keywords:
+      ANTIHYPERTENSIVE: ["thuốc hạ áp", "methyldopa", "nifedipin", "labetalol"]
+      ASPIRIN: ["aspirin"]
+      IRON: ["bổ sung sắt", "viên sắt"]
+      PROGESTERONE: ["progesteron"]
+    medication_names:
+      INSULIN: "Đang dùng insulin"
+      ANTIHYPERTENSIVE: "Đang dùng thuốc hạ áp"
+      ASPIRIN: "Đang dùng aspirin liều thấp"
+      IRON: "Đang bổ sung sắt"
+      PROGESTERONE: "Đang dùng progesteron"
+    obstetric_keywords:                    # tiền sử sản khoa (các lần mang thai trước) – chỉ gửi mục CÓ
+      PREV_PRETERM: ["sinh non"]
+      PREV_MISCARRIAGE: ["sẩy thai"]
+      PREV_STILLBIRTH: ["thai lưu"]
+      PREV_CSECTION: ["mổ lấy thai", "mổ đẻ"]
+      PREV_PREECLAMPSIA: ["tiền sản giật", "sản giật"]
+      PREV_PPH: ["băng huyết"]
+      NULLIPARA: ["con so"]
+    obstetric_names:
+      PREV_PRETERM: "Tiền sử sinh non"
+      PREV_MISCARRIAGE: "Tiền sử sẩy thai"
+      PREV_STILLBIRTH: "Tiền sử thai lưu"
+      PREV_CSECTION: "Tiền sử mổ lấy thai"
+      PREV_PREECLAMPSIA: "Tiền sử tiền sản giật"
+      PREV_PPH: "Tiền sử băng huyết sau sinh"
+      NULLIPARA: "Mang thai lần đầu (con so)"
 
 thresholds:                               # requires_doctor: true
   bp_yellow: {sys: 140, dia: 90}
@@ -103,6 +228,57 @@ trends:
 combine:
   ai_only_escalates: {value: true, locked: true}
 
+# Phần tự viết: kết hợp triệu chứng → Đỏ, giống luật kết hợp của câu có cấu trúc (FEVER_PLUS, EDEMA_PLUS) và P01.
+# any_of = chỉ cần 1 khái niệm trong nhóm. Chỉ NÂNG mức. [CẦN XÁC NHẬN] bác sĩ duyệt.
+text_combos:
+  - {code: TXT_EDEMA_HEADACHE, all: [FACE_EDEMA, HEADACHE], level: red, reason: "Phù mặt/tay kèm đau đầu (phần tự viết)", basis: [S4, S5]}
+  - {code: TXT_HEADACHE_SIGNS, all: [HEADACHE], any_of: [VISUAL, EPIGASTRIC], level: red, reason: "Đau đầu kèm nhìn mờ / đau thượng vị (phần tự viết)", basis: [S1, S4]}
+  - {code: TXT_FEVER_PLUS, all: [FEVER], any_of: [ABD_PAIN, FLUID], level: red, reason: "Sốt kèm đau bụng / ra nước (phần tự viết)", basis: [S1]}
+
+# Căn cứ của từng mức ĐỎ – hiện ở mục "Vì sao ca này khẩn" (mọi cảnh báo đỏ phải chỉ ra được: dữ liệu nào → quy tắc nào → nguồn nào).
+# Mã nguồn xem docs/10 mục 1. Khái niệm tự viết lấy nguồn từ "(S…)" cuối `meaning`.
+red_basis:
+  sources:
+    S1: "WHO PCPNC 2015 – dấu hiệu nguy hiểm khi mang thai"
+    S2: "CDC Hear Her – dấu hiệu cảnh báo khẩn"
+    S3: "ACOG/AIM – dấu hiệu cảnh báo khẩn"
+    S4: "NICE NG133 – dấu hiệu tiền sản giật"
+    S5: "QĐ 4128/QĐ-BYT – dấu hiệu báo động"
+    BYT1470: "QĐ 1470/QĐ-BYT – ngưỡng đường huyết thai kỳ"
+    EPDS: "Thang EPDS bản tiếng Việt (Tran và cs. 2011)"
+    NHCH: "Ngân hàng câu hỏi 0.9 – “Không chắc” ≠ “Không”"
+    KHOA: "Quy tắc của khoa (chờ bác sĩ xác nhận)"
+  # Khái niệm có nguồn khác với "(S…)" trong meaning (docs/10 mục 3: gò bụng không nằm trong S1–S3).
+  concepts:
+    CONTRACTIONS: [KHOA]
+  rules:
+    C1: [S1, S2, S5]
+    C2: [S1]
+    C3: [S1, S2]
+    C6: [S1, S4, S5]
+    C8: [S2, S3]
+    C9: [KHOA]
+    DYSPNEA: [S1, S2]
+    CALF: [S1, S2]
+    BP: [S4]
+    BP_AM: [S4]
+    BP_PM: [S4]
+    HYPO: [KHOA]
+    FEVER_PLUS: [S1]
+    EDEMA_PLUS: [S4, S5]
+    EPDS_10: [S1, S2]
+    C4: [S1, S2]
+    C5: [S1]
+    C7: [S1, S4]
+    NAUSEA: [S2, S3]
+    ITCH: [KHOA]
+    MISSED_MED: [KHOA]
+    GLU_FAST: [BYT1470]
+    GLU_1H: [BYT1470]
+    GLU_2H: [BYT1470]
+    EPDS_TOTAL: [EPDS]
+    IMPLAUSIBLE: [KHOA]
+
 # Ca đỏ bị điều dưỡng hạ mức (hạ vàng / báo nhầm) → danh sách bác sĩ xem lại trong ngày (docs/04 C6).
 # [CẦN XÁC NHẬN] khoa duyệt. Bắt đầu 100%; giảm khi màn "Học từ kết quả gọi" cho thấy điều dưỡng hạ đúng.
 alert_review:
@@ -114,19 +290,26 @@ alert_review:
 # [CẦN XÁC NHẬN] bác sĩ duyệt danh mục và mức.
 symptom_concepts:
   BLEEDING: {name: "Ra máu âm đạo", meaning: "máu hoặc dịch lẫn máu (đỏ, hồng, nâu) ra từ âm đạo – thấy trên quần lót, băng vệ sinh, giấy lau (S1, S2)", level: red, past_counts_yellow: true,
-             synonyms: ["ra máu", "ra huyết", "thấy hồng", "chảy máu", "ra mau", "ra huyet", "thay hong", "chay mau", "máu cục", "mau cuc", "ra cục máu", "ra cuc mau", "rỉ máu", "ri mau", "thấm ướt băng", "tham uot bang", "ướt đẫm băng", "uot dam bang"]}
+             synonyms: ["ra máu", "ra huyết", "thấy hồng", "chảy máu", "ra mau", "ra huyet", "thay hong", "chay mau", "máu cục", "mau cuc", "ra cục máu", "ra cuc mau", "rỉ máu", "ri mau", "thấm ướt băng", "tham uot bang", "ướt đẫm băng", "uot dam bang",
+                       "dính máu", "dinh mau", "thấy máu", "thay mau", "máu hồng", "mau hong", "dịch hồng", "dich hong", "ra dịch lẫn máu", "ra dich lan mau"]}
   REDUCED_FM: {name: "Giảm cử động thai", meaning: "thai cử động (đạp, cựa, máy, quẫy) ít hơn bình thường, yếu đi hoặc không thấy cử động (S2)", level: red, past_counts_yellow: true,
                synonyms: ["ít đạp", "con nằm im", "bé nằm im", "không thấy đạp", "thai máy giảm", "thai máy ít", "đạp ít", "nằm im", "it dap", "nam im", "khong thay dap", "thai may it", "con không đạp", "con khong dap", "bé không đạp", "be khong dap", "thai không máy", "thai khong may", "đạp yếu", "dap yeu"]}
   VISUAL: {name: "Rối loạn thị giác", meaning: "thay đổi thị lực: nhìn mờ, nhòe, lóa, thấy chấm sáng / đốm, nhìn một thành hai (S1, S2, S4)", level: red,
            synonyms: ["hoa mắt", "đom đóm mắt", "nhìn mờ", "mờ mắt", "hoa mat", "dom dom mat", "nhin mo", "mo mat", "nhìn nhòe", "nhin nhoe", "mắt nhòe", "mat nhoe", "lóa mắt", "loa mat", "nhìn đôi", "nhin doi", "nhìn không rõ", "nhin khong ro"]}
   EPIGASTRIC: {name: "Đau thượng vị", meaning: "đau vùng bụng trên giữa – dưới xương ức, trên rốn, vùng dạ dày – hoặc ngay dưới sườn phải (S2, S4)", level: red,
-               synonyms: ["đau dưới ức", "đau chấn thủy", "đau thượng vị", "đau vùng thượng vị", "dau duoi uc", "dau chan thuy", "dau thuong vi", "đau dưới sườn", "dau duoi suon", "đau hạ sườn phải", "dau ha suon phai", "đau dưới xương sườn", "dau duoi xuong suon"]}
-  HEADACHE: {name: "Đau đầu nhiều", meaning: "đau / nhức / căng / nặng ở đầu (trán, thái dương, gáy), nhất là không đỡ hoặc nặng dần (S1, S2, S4)", level: red,
-             synonyms: ["đau đầu", "nhức đầu", "dau dau", "nhuc dau"]}
+               synonyms: ["vùng dưới ức", "tức dưới ức", "vung duoi uc", "tuc duoi uc", "đau dưới ức","đau chấn thủy", "đau thượng vị", "đau vùng thượng vị", "dau duoi uc", "dau chan thuy", "dau thuong vi", "đau dưới sườn", "dau duoi suon", "đau hạ sườn phải", "dau ha suon phai", "đau dưới xương sườn", "dau duoi xuong suon"]}
+  # P01 (người dùng chọn 15/11/2026): Vàng; Đỏ khi nặng / không đỡ / kéo dài, hoặc kèm nhìn mờ, đau thượng vị, phù
+  # mặt/tay (text_combos) hay HA ≥ bp_yellow (red_with_bp). Nguồn S1 "severe … with blurred vision", S2 "won't go away", S4 "severe".
+  HEADACHE: {name: "Đau đầu", meaning: "đau / nhức / căng / nặng ở đầu (trán, thái dương, gáy), nhất là không đỡ hoặc nặng dần (S1, S2, S4)", level: yellow, level_if_severe: red, red_with_bp: true,
+             synonyms: ["đau đầu", "nhức đầu", "dau dau", "nhuc dau"],
+             severe_words: ["dữ dội", "nhiều", "không đỡ", "chưa đỡ", "chưa hết", "không hết", "không giảm", "không chịu nổi", "nặng dần",
+                            "ngày càng", "kéo dài", "liên tục", "suốt", "như búa bổ", "muốn nổ",
+                            "du doi", "nhieu", "khong do", "chua do", "chua het", "khong het", "khong giam", "khong chiu noi", "nang dan",
+                            "ngay cang", "keo dai", "lien tuc", "suot", "nhu bua bo", "muon no"]}
   FLUID: {name: "Ra nước âm đạo", meaning: "nước hoặc dịch (trong, đục) chảy / rỉ ra từ âm đạo, làm ướt quần – không phải nước tiểu (S1)", level: red,
           synonyms: ["ra nước", "ướt quần", "rỉ ối", "vỡ ối", "ra nuoc", "uot quan", "ri oi", "vo oi", "rỉ nước", "ri nuoc", "vỡ nước ối", "vo nuoc oi", "nước chảy ra âm đạo", "nuoc chay ra am dao"]}
   CONTRACTIONS: {name: "Gò bụng", meaning: "bụng (tử cung) căng cứng, co thắt, siết lại thành từng cơn, lặp lại (S3)", level: red, red_only_before_term: true,
-                 synonyms: ["gò bụng", "cứng bụng", "bụng thắt", "bụng gò", "gò cứng", "go bung", "cung bung", "bung that", "bung go", "go cung"]}
+                 synonyms: ["gò bụng", "cứng bụng", "bụng cứng", "bụng căng cứng", "bụng thắt", "bụng gò", "gò cứng", "go bung", "cung bung", "bung that", "bung go", "go cung"]}
   ABD_PAIN: {name: "Đau bụng", meaning: "đau, tức, quặn, âm ỉ, nhói ở bụng – ngoài vùng bụng trên giữa (S1)", level: yellow, level_if_severe: red,
              synonyms: ["đau bụng", "dau bung", "đau quặn", "dau quan"],
              severe_words: ["nhiều", "dữ dội", "quặn", "không chịu nổi", "nhieu", "du doi", "khong chiu noi"]}
@@ -144,6 +327,20 @@ symptom_concepts:
          synonyms: ["ngứa tay chân", "ngứa lòng bàn tay", "ngứa lòng bàn chân", "ngua tay chan", "ngua long ban"]}
   HYPEREMESIS: {name: "Nghén nặng", meaning: "nôn / ói nhiều, không giữ được thức ăn hoặc nước uống (S2)", level: yellow,
                 synonyms: ["nôn nhiều", "không ăn uống được", "nghén nặng", "non nhieu", "khong an uong duoc", "nghen nang", "ói nhiều", "oi nhieu", "nôn liên tục", "non lien tuc", "nôn ói nhiều", "non oi nhieu"]}
+  # P03, P04, P09 (người dùng chọn 15/11/2026 "thêm theo WHO/CDC"): co giật, ngất, đau ngực / tim đập nhanh = Đỏ;
+  # chóng mặt = Vàng. Không dùng từ đơn dễ nhầm ("xỉu" ≈ "xíu" khi không dấu, "hồi hộp" = lo lắng, "căng tức ngực" = vú).
+  CONVULSION: {name: "Co giật", meaning: "co giật, lên cơn giật tay chân, sùi bọt mép, mất ý thức kèm giật (S1)", level: red, past_counts_yellow: true,
+               synonyms: ["co giật", "lên cơn giật", "giật tay chân", "sùi bọt mép", "lên cơn động kinh",
+                          "co giat", "len con giat", "giat tay chan", "sui bot mep", "len con dong kinh"]}
+  SYNCOPE: {name: "Ngất / xỉu", meaning: "ngất, xỉu, bất tỉnh, mất ý thức trong chốc lát (S2, S3)", level: red, past_counts_yellow: true,
+            synonyms: ["ngất", "ngất xỉu", "bị xỉu", "xỉu đi", "xỉu xuống", "bất tỉnh", "lịm đi",
+                       "ngat xiu", "bi xiu", "xiu di", "xiu xuong", "bat tinh", "lim di"]}
+  CHEST_PAIN: {name: "Đau ngực / tim đập nhanh", meaning: "đau, tức, thắt ở ngực (không phải vú căng), tim đập nhanh / mạnh, đánh trống ngực (S2, S3)", level: red,
+               synonyms: ["đau ngực", "tức ngực", "đau thắt ngực", "tim đập nhanh", "tim đập mạnh", "đánh trống ngực",
+                          "dau nguc", "tuc nguc", "dau that nguc", "tim dap nhanh", "tim dap manh", "danh trong nguc"]}
+  DIZZINESS: {name: "Chóng mặt", meaning: "chóng mặt, choáng váng, xây xẩm, tối sầm mặt mũi nhưng không ngất (S2, S3)", level: yellow,
+              synonyms: ["chóng mặt", "choáng váng", "xây xẩm", "tối sầm mặt mũi", "tối sầm mắt",
+                         "chong mat", "choang vang", "xay xam", "toi sam mat mui", "toi sam mat"]}
   SELF_HARM: {name: "Ý nghĩ tự hại", meaning: "ý nghĩ tự hại hoặc không muốn sống – kể cả nói gián tiếp, sống vô nghĩa, muốn kết thúc (S1, S2)", level: red, locked: true, negation_allowed: false, past_counts_yellow: true,
               synonyms: ["muốn biến mất", "không muốn sống", "muốn chết", "tự tử", "chẳng thiết sống", "không thiết sống",
                          "tự làm hại", "ngủ luôn không dậy", "tốt hơn nếu không có em", "tốt hơn nếu không có mình",
@@ -156,6 +353,10 @@ symptom_concepts:
 form_cap:
   enabled: true
   cap_level: yellow
+  # Người dùng chọn 15/11/2026: Đỏ do CHỈ AI thấy (lớp danh mục không thấy từ khóa nào của khái niệm đó trong câu)
+  # → Vàng + "AI nghi ngờ – gọi xác minh". Vd "mắt em hơi mỏi" bị AI đọc thành Rối loạn thị giác.
+  # Không áp dụng cho khái niệm khóa (SELF_HARM luôn Đỏ). Không đụng mức của câu có cấu trúc.
+  ai_only_red_cap: true
   # Có các cụm này → thai phụ có thể cũng bị / đang kể lại triệu chứng của mình → không hạ.
   keep_red_markers: ["em cũng", "cả em", "mình cũng", "tôi cũng", "giống em", "bảo em", "nói em", "thấy em",
                      "em cung", "ca em", "minh cung", "toi cung", "giong em", "bao em", "noi em", "thay em"]
@@ -184,8 +385,8 @@ noshow:
     - {label: "liên cầu B 35-37", ga_from: [35, 0], ga_to: [37, 0], keywords: ["liên cầu"]}
 
 llm:
-  provider: ollama                         # ollama | mock | openai (openai: CHỈ dữ liệu giả, SYNTHETIC_DATA_ONLY=1)
-  model: "qwen2.5:3b-instruct"
+  provider: ollama                         # ollama | hybrid | mock | openai (API ngoài: CHỈ dữ liệu giả)
+  model: "qwen2.5:7b-instruct"
   openai_model: "gpt-4.1-mini"             # OPENAI_MODEL trong .env ưu tiên hơn
   consistency_runs_note: 5
   consistency_runs_form: 3
@@ -194,6 +395,9 @@ llm:
   summary_llm_rewrite: false
   assertion_conflict_penalty: 0.2
   timeout_seconds: 120
+  # inherit = cùng chế độ với AI chính; rules = chỉ chấm theo quy tắc.
+  # hybrid chỉ dùng OpenAI khi được phép; production hoặc không có key thì dùng Ollama.
+  question_selector_provider: inherit
 
 channels:
   sms: excel                               # excel | mock | test_api
@@ -222,6 +426,11 @@ rule_meta:
   forms.token_ttl_days: {group: forms, editable: true, requires_doctor: false, basis: "docs/04 B"}
   forms.windows: {group: forms, editable: true, requires_doctor: true, basis: "Mốc khám thai định kỳ"}
   forms.modules: {group: forms, editable: true, requires_doctor: true, basis: "Theo dõi bệnh lý"}
+  forms.unsure_level: {group: forms, editable: true, requires_doctor: true, basis: "Ngân hàng câu hỏi 0.9: Không chắc ≠ Không"}
+  personalization.selection: {group: forms, editable: true, requires_doctor: true, basis: "Chọn câu cá nhân hóa (docs/13)"}
+  personalization.ai_context: {group: forms, editable: true, requires_doctor: true, basis: "Tóm tắt lâm sàng gửi AI chọn câu (docs/13)"}
+  personalization.concept_questions: {group: forms, editable: true, requires_doctor: true, basis: "Hỏi lại theo phần tự viết (docs/13)"}
+  personalization.flag_targets: {group: forms, editable: true, requires_doctor: true, basis: "Cá nhân hóa bộ câu hỏi (docs/12)"}
   forms.postpartum_days: {group: forms, editable: true, requires_doctor: true, basis: "Chăm sóc sau sinh"}
   thresholds.bp_yellow: {group: thresholds, editable: true, requires_doctor: true, basis: "Tăng huyết áp thai kỳ"}
   thresholds.bp_red: {group: thresholds, editable: true, requires_doctor: true, basis: "THA nặng"}

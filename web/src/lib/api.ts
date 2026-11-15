@@ -50,7 +50,7 @@ export type DownReview = {
   note: string; handled_at: string | null; by: string;
 };
 
-export type WhyItem = { level: string; source: string; title: string; detail: string };
+export type WhyItem = { level: string; source: string; title: string; detail: string; basis?: string; basis_codes?: string[] };
 
 export type Overview = {
   today: string;
@@ -58,7 +58,7 @@ export type Overview = {
   shift: string;
   metrics: { appointments_tomorrow: number; forms_today: number; responses_24h: number; open_alerts: number; open_red: number };
   steps: { key: string; label: string; done: boolean; to: string; pending?: number | null }[];
-  latest_alerts: (Pick<AlertSummary, "id" | "level" | "status" | "status_label" | "code" | "summary" | "created_at">)[];
+  latest_alerts: (Pick<AlertSummary, "id" | "level" | "status" | "status_label" | "code" | "summary" | "reasons" | "created_at">)[];
   llm?: { provider: string; model: string };
 };
 
@@ -96,6 +96,7 @@ export type AlertDetail = AlertSummary & {
       level: string;
       confidence: number | null;
       needs_human: boolean;
+      skipped?: boolean;
       findings: { name: string; present: boolean; temporality: string; experiencer: string; evidence: string }[];
       model: string | null;
       prompt_version: string | null;

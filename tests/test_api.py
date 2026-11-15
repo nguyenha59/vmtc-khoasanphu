@@ -23,9 +23,10 @@ def client(tmp_path_factory):
 
     env = dict(line.split("=", 1) for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines()
                if "=" in line and not line.startswith("#"))
-    old_key, old_db = os.environ.get("APP_SECRET_KEY"), os.environ.get("APP_DB_URL")
+    saved = {k: os.environ.get(k) for k in ("APP_SECRET_KEY", "APP_DB_URL", "APP_DATA_DIR")}
     os.environ["APP_SECRET_KEY"] = env["APP_SECRET_KEY"].strip()
     tmp = tmp_path_factory.mktemp("api")
+    os.environ["APP_DATA_DIR"] = str(tmp / "data")  # uploads / exports / outbox ghi vào thư mục tạm, không vào data/ thật
     shutil.copy(DEMO_DB, tmp / "app.db")
     os.environ["APP_DB_URL"] = f"sqlite:///{(tmp / 'app.db').as_posix()}"
     from core import db as dbmod
@@ -36,7 +37,7 @@ def client(tmp_path_factory):
     with TestClient(create_app(serve_web=False)) as c:
         yield c
     dbmod._engine = None
-    for k, v in (("APP_SECRET_KEY", old_key), ("APP_DB_URL", old_db)):
+    for k, v in saved.items():
         if v is None:
             os.environ.pop(k, None)
         else:
@@ -528,3 +529,163 @@ def test_form_schedule_only_eligible_patients(client):
         ok = {code for code, pr in s.execute(select(Patient.code, PatientProgram).join(
             PatientProgram, PatientProgram.patient_id == Patient.id)) if pr.in_package or pr.override_monitoring}
     assert codes and codes <= ok
+
+
+def test_uploads_go_to_temp_dir_not_real_data(client):
+    """Test tải file không được ghi vào data/uploads thật (file HIS có tên + SĐT)."""
+    real = ROOT / "data" / "uploads"
+    before = set(real.glob("*")) if real.exists() else set()
+    _login(client, "nurse")
+    name = next(n for n in client.get("/api/appointments").json()["samples"] if n.startswith("his_export_"))
+    d = name.removeprefix("his_export_").removesuffix(".xlsx")
+    r = client.post("/api/appointments/upload", data={"d": d, "use_ai": "false", "sample": name})
+    assert r.status_code == 200, r.text
+    after = set(real.glob("*")) if real.exists() else set()
+    assert after == before
+    assert any((Path(os.environ["APP_DATA_DIR"]) / "uploads").glob("*"))
+
+
+# ---------------------------------------------------------------- bộ câu hỏi cá nhân hóa (13/11/2026)
+def _twins_patient() -> tuple[int, str]:
+    """Hồ sơ giả song thai (HS000105) – bật đồng thuận trên bản sao CSDL test."""
+    from sqlalchemy import select
+
+    from core.db import session_scope
+    from core.models import Patient
+
+    with session_scope() as s:
+        p = s.scalar(select(Patient).where(Patient.pid == "HS000105"))
+        if p is None:
+            pytest.skip("CSDL demo chưa có hồ sơ mẫu (scripts/gen_cases.py)")
+        p.consent_status = "granted"
+        return p.id, p.code
+
+
+def test_form_plan_proposes_from_record_and_nurse_confirms(client):
+    pid, code = _twins_patient()
+    _login(client, "doctor")
+    d = client.get(f"/api/patients/{pid}/form-plan").json()
+    item = next(i for i in d["items"] if i["code"] == "P-SINHNON")
+    assert any(f["flag"] == "TWINS" for f in d["flags"]) and "C2" in [r["code"] for r in item["rejected"]]
+    assert d["can_confirm"] is False
+    assert client.put(f"/api/patients/{pid}/form-plan", json={"codes": ["P-SINHNON"]}).status_code == 403  # chỉ điều dưỡng
+
+    _login(client, "nurse")
+    n = _audit_count("confirm_form_plan")
+    assert client.put(f"/api/patients/{pid}/form-plan", json={"codes": ["KHONG_CO"]}).status_code == 422
+    r = client.put(f"/api/patients/{pid}/form-plan", json={"codes": ["P-SINHNON"]})
+    assert r.status_code == 200 and "P-SINHNON" in r.json()["confirmed"]
+    assert _audit_count("confirm_form_plan") == n + 1
+
+    # Form của thai phụ: chỉ câu đạt chất lượng; "Không chắc" được nhận và không bao giờ ra xanh
+    tok = client.post("/api/forms/demo-token", json={"code": code, "form": "P-SINHNON"}).json()["token"]
+    form = client.get(f"/api/public/form/{tok}").json()
+    keys = [q["key"] for q in form["questions"]]
+    # Câu bắt buộc của bộ (đạt chất lượng) đứng đầu; câu thêm theo tình trạng song thai (thai máy) được chọn thêm;
+    # câu bị cổng chất lượng loại (C2 "đau bụng nhiều") không bao giờ xuất hiện.
+    assert keys[:3] == ["C9", "C3", "C1"] and "C8" in keys and "C2" not in keys and "Không chắc" in form["yesno"]
+    assert form["questions"][0]["group"]  # có tiêu đề khối
+    res = client.post(f"/api/public/form/{tok}", json={"answers": {"C9": "Không", "C3": "Không", "C1": "Không chắc",
+                                                                   "C2": "Có"}, "free_text": ""})
+    assert res.status_code == 200 and res.json()["level"] == "yellow"  # C2 không thuộc form → bị bỏ qua
+
+
+def test_e2e_ai_selects_questions_then_answers_are_checked_and_carried_over(client):
+    """Luồng đầy đủ (13/11/2026): AI chọn bộ câu → lưu kèm vết → thai phụ thấy đúng bộ đó → câu trả lời chỉ được nhận
+    cho câu trong bộ → phân mức ("Không chắc" ≥ vàng) → lần sau hỏi lại câu bất thường + triệu chứng tự viết."""
+    from sqlalchemy import select
+
+    from core.ai.llm_client import MockClient
+    from core.config import load_forms, load_rules
+    from core.db import session_scope
+    from core.forms import create_token, snapshot_selection
+    from core.models import Assessment, FormResponse, Patient, QuestionSelection
+    from core.rules.triage_rules import TRIAGED_NUMBER_PREFIXES, TRIAGED_YESNO
+
+    _pid, code = _twins_patient()
+    _login(client, "nurse")
+    forms = load_forms()
+
+    def issue_real_token():
+        # Demo responses deliberately do not feed real follow-up memory.
+        with session_scope() as s:
+            p = s.get(Patient, _pid)
+            token = create_token(s, p.id, "F5", 3)
+            s.flush()
+            snapshot_selection(s, p, token, ["F5"], load_rules(), forms, MockClient())
+            return token
+
+    # 1) Tạo đường dẫn → AI (mock) chấm, bộ câu được LƯU kèm model / prompt_version / rules_version / JSON thô
+    tok = issue_real_token()
+    with session_scope() as s:
+        sel = s.get(QuestionSelection, tok)
+        assert sel is not None and sel.method == "ai" and sel.model == "mock"
+        assert sel.prompt_version and sel.rules_version and sel.raw.get("runs")
+        stored = [q["code"] for q in sel.questions]
+    # Mọi câu được chọn đều phân mức được → câu trả lời nào cũng nhận ra được vấn đề
+    for c in stored:
+        q = forms.questions[c]
+        assert (c in TRIAGED_YESNO) if q["type"] == "yesno" else c.startswith(TRIAGED_NUMBER_PREFIXES), c
+
+    # 2) Thai phụ thấy ĐÚNG bộ câu đã lưu, đúng thứ tự, có khối
+    form = client.get(f"/api/public/form/{tok}").json()
+    assert [q["key"] for q in form["questions"]] == stored
+    assert all(q["group"] for q in form["questions"])
+
+    # 3) Trả lời: C8 "Không chắc", còn lại "Không"; kèm câu KHÔNG thuộc bộ (phải bị bỏ) và phần tự viết
+    answers = {c: "Không" for c in stored if forms.questions[c]["type"] == "yesno"}
+    answers["C8"] = "Không chắc"
+    answers["CALF"] = "Có"  # không thuộc bộ câu của đường dẫn này → không được ghi nhận
+    res = client.post(f"/api/public/form/{tok}", json={"answers": answers, "free_text": "dạo này em hay khó thở"})
+    assert res.status_code == 200, res.text
+    level = res.json()["level"]
+    assert level in ("yellow", "red")  # "Không chắc" thai máy ≥ vàng; khó thở (tự viết) có thể nâng đỏ
+
+    # 4) Đối chiếu đáp án: chỉ câu trong bộ được lưu; lý do phân mức có "Không chắc"
+    with session_scope() as s:
+        resp = s.scalar(select(FormResponse).where(FormResponse.token == tok))
+        assert resp is not None and "CALF" not in resp.answers and set(resp.answers) <= set(stored)
+        asm = s.scalar(select(Assessment).where(Assessment.response_id == resp.id))
+        reasons = " ".join(f["reason"] for f in asm.findings["rule"])
+        assert "Không chắc" in reasons and asm.level == level
+        assert any(f["concept"] == "DYSPNEA" and f["present"] for f in asm.findings["ai"])
+
+    # 5) Lần sau: câu "Không chắc" + triệu chứng tự viết (khó thở – không thuộc F5) được HỎI LẠI ở đầu form
+    tok2 = issue_real_token()
+    form2 = client.get(f"/api/public/form/{tok2}").json()["questions"]
+    first = [q["key"] for q in form2 if q["group"] == "Cần hỏi lại"]
+    assert {"C8", "DYSPNEA"} <= set(first)
+    assert [q["key"] for q in form2][: len(first)] == first  # khối hỏi lại đứng đầu
+    assert client.post(f"/api/public/form/{tok}", json={"answers": {}, "free_text": ""}).status_code == 409  # không gửi lại
+
+
+@pytest.mark.parametrize("env", [
+    {"LLM_PROVIDER": "openai", "SYNTHETIC_DATA_ONLY": ""},        # luật 5 chặn
+    {"LLM_PROVIDER": "openai", "SYNTHETIC_DATA_ONLY": "1"},       # thiếu OPENAI_API_KEY
+    {"LLM_PROVIDER": "ollama", "OLLAMA_URL": "http://8.8.8.8:11434"},  # Ollama trỏ ra ngoài
+    {"LLM_PROVIDER": "gemini"},                                   # nhà cung cấp không được phép
+])
+def test_broken_ai_config_still_accepts_red_form(client, monkeypatch, env):
+    """AI hỏng / sai cấu hình → form thai phụ vẫn được nhận, lùi về quy tắc, ca đỏ vẫn đỏ (không lỗi 500)."""
+    _pid, code = _twins_patient()
+    _login(client, "nurse")
+    tok = client.post("/api/forms/demo-token", json={"code": code, "form": "F5"}).json()["token"]
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    form = client.get(f"/api/public/form/{tok}").json()
+    answers = {q["key"]: "Không" for q in form["questions"] if q["type"] == "yesno"}
+    r = client.post(f"/api/public/form/{tok}", json={"answers": answers, "free_text": "chiều nay em hoa mắt, nhìn mờ"})
+    assert r.status_code == 200, r.text
+    assert r.json()["level"] == "red"
+
+
+def test_make_client_safe_never_raises(monkeypatch, rules):
+    from core.ai.llm_client import make_client_safe
+
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("SYNTHETIC_DATA_ONLY", "")
+    client, why = make_client_safe(rules)
+    assert client is None and why and "quy tắc" in why
+    monkeypatch.setenv("LLM_PROVIDER", "mock")
+    client, why = make_client_safe(rules)
+    assert client is not None and why is None

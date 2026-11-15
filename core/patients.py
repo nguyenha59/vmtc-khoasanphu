@@ -9,10 +9,10 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from core.config import Rules
@@ -129,11 +129,14 @@ def save_visit_result(s: Session, appointment_id: int, data: dict[str, Any], *, 
     s.add(row)
 
 
-def visit_results(s: Session, appointment_ids: list[int]) -> dict[int, dict[str, Any]]:
+def visit_results(s: Session, appointment_ids: list[int], *, as_of: datetime | None = None) -> dict[int, dict[str, Any]]:
     if not appointment_ids:
         return {}
     out: dict[int, dict[str, Any]] = {}
-    for r in s.scalars(select(VisitResult).where(VisitResult.appointment_id.in_(appointment_ids))):
+    query = select(VisitResult).where(VisitResult.appointment_id.in_(appointment_ids))
+    if as_of is not None:
+        query = query.where(VisitResult.created_at <= as_of)
+    for r in s.scalars(query):
         raw = decrypt(r.data_enc)
         if raw:
             out[r.appointment_id] = {**json.loads(raw), "source": r.source, "reference_version": r.reference_version}
@@ -150,9 +153,94 @@ def save_history(s: Session, patient_id: int, data: dict[str, Any], *, source: s
     s.add(row)
 
 
-def history_of(s: Session, patient_id: int) -> dict[str, Any] | None:
+def history_of(s: Session, patient_id: int, *, as_of: datetime | None = None) -> dict[str, Any] | None:
     from core.models import PatientHistory
 
     row = s.get(PatientHistory, patient_id)
+    if row is not None and as_of is not None and row.updated_at > as_of:
+        return None
     raw = decrypt(row.data_enc) if row else None
     return {**json.loads(raw), "source": row.source} if raw and row else None
+
+
+# ---------------------------------------------------------------- bộ câu hỏi cá nhân hóa (docs/12)
+def pregnancy_start(p: Patient) -> date | None:
+    """Temporary episode boundary inferred from EDD; never rewrites historical data."""
+    return p.edd - timedelta(days=280) if p.edd is not None else None
+
+
+def diagnoses_of(s: Session, patient_id: int, *, as_of: datetime | None = None) -> list[dict[str, Any]]:
+    """Current pregnancy diagnoses known at the decision time; unknown episode => no inferred diagnosis."""
+    from core.models import Appointment
+
+    p = s.get(Patient, patient_id)
+    start = pregnancy_start(p) if p is not None else None
+    if start is None:
+        return []
+    until = as_of or now()
+    ids = list(s.scalars(select(Appointment.id).where(Appointment.patient_id == patient_id,
+                        Appointment.appt_date >= start,
+                        or_(Appointment.appt_date < until.date(),
+                            (Appointment.appt_date == until.date()) & (Appointment.start_time <= until.time())))))
+    return [d for v in visit_results(s, ids, as_of=until).values() for d in (v.get("diagnoses") or [])]
+
+
+def form_plan_for(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: Any,
+                  *, as_of: datetime | None = None) -> Any:
+    from core.rules.form_scheduler import ga_at
+    from core.rules.personalize import build_plan, find_flags
+
+    until = min(as_of or now(), datetime.combine(today, datetime.max.time()))
+    flags = find_flags(history_of(s, p.id, as_of=until), diagnoses_of(s, p.id, as_of=until),
+                       list(p.proposed_risk_flags or []), rules)
+    return build_plan(flags, list(p.risk_groups or []), ga_at(p.edd, today),
+                      p.delivery_date is not None and p.delivery_date <= today,
+                      rules, forms_cfg)
+
+
+def set_form_plan(p: Patient, codes: list[str], insulin: bool, rules: Rules) -> tuple[list[str], list[str]]:
+    """Điều dưỡng xác nhận module / bộ câu hỏi cho thai phụ. Chỉ nhận mã có trong rules.yaml forms.modules.
+    Trả (trước, sau). Ghi nhật ký do lớp API làm."""
+    allowed = set(rules["forms"]["modules"])
+    bad = [c for c in codes if c not in allowed]
+    if bad:
+        raise PatientError("Mã không hợp lệ: " + ", ".join(bad))
+    before = sorted(p.risk_groups or [])
+    p.risk_groups = sorted(set(codes))
+    p.on_insulin = bool(insulin) if "M-DTD" in p.risk_groups else False
+    return before, list(p.risk_groups)
+
+
+def auto_apply_form_plans(s: Session, today: date, rules: Rules, forms_cfg: Any) -> list[tuple[str, list[str]]]:
+    """Tự áp dụng bộ câu theo tình trạng khi căn cứ do BÁC SĨ ghi trong hồ sơ (ICD-10, nhóm nguy cơ) – docs/13 mục 4.
+    Căn cứ chỉ từ AI / từ khóa tiền sử, và module đo (M-…), vẫn chờ điều dưỡng xác nhận. Ghi audit_log từng thai phụ."""
+
+    sources = set((rules.get("personalization") or {}).get("auto_apply_sources") or [])
+    if not sources:
+        return []
+    out: list[tuple[str, list[str]]] = []
+    for p in s.scalars(select(Patient).where(Patient.consent_status == "granted", Patient.edd.is_not(None),
+                                             Patient.delivery_date.is_(None))):
+        add = auto_apply_for(s, p, today, rules, forms_cfg)
+        if add:
+            out.append((p.code or "", add))
+    return out
+
+
+def auto_apply_for(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: Any) -> list[str]:
+    """Tự áp dụng cho MỘT thai phụ (dùng cả khi mở hồ sơ, để màn hình luôn khớp quy tắc). Trả mã đã thêm."""
+    from core import audit
+
+    sources = set((rules.get("personalization") or {}).get("auto_apply_sources") or [])
+    if not sources or p.consent_status != "granted" or p.edd is None or p.delivery_date is not None:
+        return []
+    plan = form_plan_for(s, p, today, rules, forms_cfg)
+    doc_flags = {f.flag for f in plan.flags if any(e.source in sources for e in f.evidence)}
+    add = [i.code for i in plan.items if i.kind == "pack" and not i.confirmed and i.questions and doc_flags & set(i.flags)]
+    if add:
+        p.risk_groups = sorted(set(p.risk_groups or []) | set(add))
+        audit.log("auto_apply_form_plan", "patient", p.code,
+                  {"added": add, "flags": sorted(doc_flags), "sources": sorted(sources),
+                   "rules_version": rules.rules_version}, session=s)
+        s.flush()
+    return add

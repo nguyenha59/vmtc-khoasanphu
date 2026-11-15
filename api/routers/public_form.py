@@ -14,17 +14,30 @@ from sqlalchemy import select
 
 from api.deps import CurrentUser, require
 from core import audit
-from core.ai.llm_client import OllamaClient, make_client
+from core.ai.llm_client import make_client_safe
+from core.ai.question_selector import selector_client
 from core.alerts import FormAlreadySubmitted, submit_response
 from core.channels import get_alert_channel
-from core.config import is_production, load_forms, load_rules
-from core.db import session_scope
-from core.forms import check_token, create_token, is_demo_token
-from core.models import Patient
+from core.config import FormsConfig, is_production, load_forms, load_rules
+from core.db import now, session_scope
+from core.forms import (
+    check_token,
+    create_token,
+    is_demo_token,
+    selection_for,
+    snapshot_selection,
+    token_form_codes,
+)
+from core.levels import Level
+from core.models import FormToken, Patient
+from core.repo import ga_on
+from core.rules.form_scheduler import ga_at
+from core.rules.personalize import compose_merged
+from core.rules.triage_rules import triage
 
 router = APIRouter(prefix="/api", tags=["form-demo"])  # cần đăng nhập – chỉ ở máy chủ nội bộ
 public_router = APIRouter(prefix="/api", tags=["public-form"])  # không đăng nhập – tiến trình công khai dùng riêng
-YESNO = ["Không", "Có"]
+YESNO = ["Không", "Có", "Không chắc"]  # "Không chắc" ≠ "Không" → tối thiểu vàng (rules.yaml forms.unsure_level)
 MAX_ANSWERS = 64  # form dài nhất < 30 câu (kể cả EPDS)
 
 
@@ -57,6 +70,8 @@ def demo_token(body: DemoIn, user: CurrentUser = Depends(require("demo_form"))) 
         if p.consent_status != "granted":
             raise HTTPException(409, "Thai phụ chưa đồng thuận – không gửi form được. Ghi nhận đồng thuận trong Hồ sơ theo dõi.")
         t = create_token(s, p.id, body.form, rules["forms"]["token_ttl_days"], demo=True)
+        s.flush()
+        snapshot_selection(s, p, t, [body.form], rules, forms_cfg, selector_client(rules))
         audit.log("create_demo_token", "patient", body.code.strip(), {"form": body.form}, user_id=user.user_id, session=s)
     return {"token": t, "path": f"/form?token={t}"}
 
@@ -70,18 +85,29 @@ def get_form(token: str) -> dict:
         if err or p is None:
             raise HTTPException(404, {"message": err or "Đường dẫn không hợp lệ.", "clinic": _clinic()})
         code, form_code = p.code, t.form_code
+        sel = selection_for(s, token)
+        qcodes = [x["code"] for x in sel if x["code"] in forms_cfg.questions] if sel else _questions_for(s, p, t, forms_cfg)
+        group_label = {x["code"]: x.get("group_label") for x in sel or []}
+        names = [forms_cfg.forms[c]["name"] for c in token_form_codes(s, t) if c in forms_cfg.forms]
     fdef = forms_cfg.forms[form_code]
     questions = []
-    for q in fdef["questions"]:
+    for q in qcodes:
         qd = forms_cfg.questions[q]
         questions.append({"key": q, "type": qd["type"], "text": qd["text"], "min": qd.get("min"),
-                          "max": qd.get("max"), "step": qd.get("step", 1)})
+                          "max": qd.get("max"), "step": qd.get("step", 1), "group": group_label.get(q)})
     epds = None
     if fdef.get("epds"):
         epds = {"options": forms_cfg.epds["options"],
                 "items": [{"key": k, "text": v} for k, v in forms_cfg.epds["items"].items()]}
-    return {"code": code, "form": form_code, "name": fdef["name"], "questions": questions, "epds": epds,
-            "clinic": _clinic()}
+    return {"code": code, "form": form_code, "name": " + ".join(names), "period": fdef.get("period"),
+            "questions": questions, "epds": epds, "clinic": _clinic(), "yesno": YESNO}
+
+
+def _questions_for(s: Any, p: Patient, t: FormToken, forms_cfg: FormsConfig) -> list[str]:
+    """Câu hỏi của đường dẫn cho ĐÚNG thai phụ này: form chính + form gộp cùng ngày + bộ câu theo tình trạng
+    điều dưỡng đã xác nhận; mỗi câu một lần. Tuần thai tính tại ngày tạo đường dẫn → mở lại vẫn cùng bộ câu."""
+    ga = ga_at(p.edd, t.created_at.date())
+    return compose_merged(token_form_codes(s, t), list(p.risk_groups or []), ga, load_rules(), forms_cfg)
 
 
 class SubmitIn(BaseModel):
@@ -99,11 +125,17 @@ async def submit(token: str, body: SubmitIn) -> dict:
         if err or t is None:
             raise HTTPException(409, {"message": err or "Đường dẫn không hợp lệ.", "clinic": _clinic()})
         form_code = t.form_code
+        p0 = s.get(Patient, t.patient_id)
+        sel = selection_for(s, token)
+        if sel:
+            allowed = {x["code"] for x in sel}
+        else:
+            allowed = set(_questions_for(s, p0, t, forms_cfg)) if p0 is not None else set()
     fdef = forms_cfg.forms[form_code]
     epds_keys = set(forms_cfg.epds["items"]) if fdef.get("epds") else set()
     answers: dict[str, object] = {}
     for k, v in body.answers.items():  # chỉ nhận câu thuộc form, đúng kiểu
-        if k in fdef["questions"]:
+        if k in allowed:
             qd = forms_cfg.questions[k]
             if qd["type"] == "yesno" and v in YESNO:
                 answers[k] = v
@@ -115,14 +147,16 @@ async def submit(token: str, body: SubmitIn) -> dict:
             answers[k] = v
 
     def work() -> tuple[str, str]:
-        client = make_client(rules)
-        if isinstance(client, OllamaClient) and not client.available():
-            client = None  # quy tắc vẫn chạy; phần tự viết dò theo danh mục và tối thiểu mức vàng
+        # AI hỏng / sai cấu hình → None: quy tắc vẫn chạy, phần tự viết dò theo danh mục và tối thiểu mức vàng.
         with session_scope() as s:
             t2, err2 = check_token(s, token)
             if err2 or t2 is None:
                 raise HTTPException(409, {"message": err2 or "Đường dẫn không hợp lệ.", "clinic": _clinic()})
             p = s.get(Patient, t2.patient_id)
+            ga = ga_on(p, now().date())
+            structured_red = triage(answers, ga[0] if ga else None, bool(p.on_insulin), rules).level == Level.RED
+            # Không kiểm tra mạng/Ollama khi quy tắc đã đủ để cảnh báo đỏ.
+            client, _why = (None, None) if structured_red else make_client_safe(rules)
             _r, asm, _a, _res = submit_response(s, p, form_code, answers, body.free_text, rules=rules, forms_cfg=forms_cfg,
                                                 client=client, alert_channel=get_alert_channel(rules), token=token,
                                                 source="demo" if is_demo_token(token) else "app")

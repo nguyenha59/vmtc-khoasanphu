@@ -27,15 +27,39 @@
 
 .alert {
   display: block;
-  padding: 12px 8px;
-  border-radius: var(--mantine-radius-md);
-  border-bottom: 1px solid var(--mantine-color-ink-1);
-
-  &:last-child {
-    border-bottom: none;
-  }
+  padding: 10px 12px;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 100ms ease;
 
   &:hover {
-    background: var(--mantine-color-ink-0);
+    border-color: #c9d3db;
   }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--mantine-color-ink-4);
+
+  &[data-level="red"] {
+    background: #d92d20;
+  }
+
+  &[data-level="yellow"] {
+    background: #f79009;
+  }
+}
+
+.waitBadge {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #c4271b;
+  white-space: nowrap;
 }

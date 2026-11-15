@@ -14,7 +14,7 @@
 - Ngưỡng y khoa và quy tắc nằm trong `config/rules.yaml`, không viết cứng trong code; mỗi kết quả ghi kèm `rules_version`.
 - Phân mức gồm 3 lớp (quy tắc → xu hướng → mô hình ngôn ngữ). Mô hình **chỉ được nâng mức**, không bao giờ hạ mức mà lớp quy tắc đã đặt.
 - Văn bản gửi cho mô hình ngôn ngữ phải được che dữ liệu cá nhân trước (`core/ai/masking.py`); còn sót số điện thoại / CCCD / tên thì không gửi, chuyển người duyệt.
-- Mô hình ngôn ngữ mặc định chạy cục bộ qua Ollama (`LLM_PROVIDER=ollama` hoặc `mock`). Có thể dùng OpenAI (`LLM_PROVIDER=openai`) **chỉ với dữ liệu giả**: phải đặt `SYNTHETIC_DATA_ONLY=1`, và ứng dụng từ chối chạy OpenAI khi `APP_ENV=production`.
+- Mô hình ngôn ngữ mặc định chạy cục bộ qua Ollama 7B, không cần API key. Chế độ `hybrid` ưu tiên OpenAI khi được phép và tự chuyển sang Ollama nếu API lỗi hoặc hết ngân sách. API ngoài **chỉ với dữ liệu giả**, cần `SYNTHETIC_DATA_ONLY=1`; hybrid trong production chỉ chạy Ollama.
 - Tên, số điện thoại, ghi chú gốc được mã hóa (Fernet, khóa `APP_SECRET_KEY`); giao diện chỉ hiện số điện thoại dạng che.
 - Mọi thao tác xem / sửa / duyệt / xử lý cảnh báo đều ghi vào `audit_log`.
 
@@ -50,17 +50,15 @@ python scripts/make_key.py
 # 3. Mô hình ngôn ngữ cục bộ (Ollama) – bỏ qua nếu chỉ chạy LLM_PROVIDER=mock
 #    Cài Ollama từ https://ollama.com/download rồi:
 ollama pull qwen2.5:7b-instruct
-#    Trong .env đặt: LLM_PROVIDER=ollama
+#    .env mới mặc định: LLM_PROVIDER=ollama, OLLAMA_MODEL=qwen2.5:7b-instruct
 #    KHÔNG dùng mô hình đuôi "-cloud" (chạy trên máy chủ Ollama) – ứng dụng sẽ chặn.
-#    Hoặc OpenAI (chỉ dữ liệu giả) – trong .env: LLM_PROVIDER=openai, OPENAI_API_KEY=..., SYNTHETIC_DATA_ONLY=1
-#    (tùy chọn OPENAI_MODEL, mặc định gpt-4.1-mini)
 
 # 4. Dữ liệu giả + nạp CSDL demo + huấn luyện mô hình bỏ hẹn
 python scripts/gen_synthetic.py --seed 42          # dữ liệu giả gọn: ~450 khách, 60 ngày
 python scripts/seed_demo.py --reset
 python scripts/train_noshow.py   # chỉ để minh họa; mô hình thật phải huấn luyện lại khi có dữ liệu lịch hẹn thật
 
-# 5. Đánh giá mô hình trên bộ dữ liệu chuẩn tests/benchmark/v1 (hiện ở màn Chất lượng AI)
+# 5. Đánh giá mô hình trên bộ dữ liệu chuẩn (hiện ở màn Chất lượng AI)
 #    --bench quick mất khoảng 30–60 phút với Ollama. --provider mock chỉ kiểm tra đường ống.
 python scripts/run_eval.py --dataset notes  --provider ollama --bench quick
 python scripts/run_eval.py --dataset forms  --provider ollama --bench quick
@@ -78,6 +76,28 @@ python -m uvicorn api.main:app --port 8000
 
 Tài khoản demo: `nurse / nurse123`, `doctor / doctor123`, `admin / admin123`.
 Sai mật khẩu 5 lần trong 15 phút → khóa tạm 15 phút.
+
+## Kết hợp OpenAI và Ollama
+
+Người tải mã từ GitHub dùng Ollama `qwen2.5:7b-instruct` theo `.env.example` và `config/rules.yaml`. Cần cài Ollama và chạy lệnh `ollama pull` ở trên; kho mã không chứa trọng số mô hình hay API key. Nếu Ollama chưa sẵn sàng, ứng dụng tiếp tục bằng quy tắc và báo AI chưa dùng được.
+
+Để thử cả hai nhà cung cấp **trên dữ liệu giả**, sửa `.env` riêng trên máy chủ:
+
+```dotenv
+LLM_PROVIDER=hybrid
+OPENAI_API_KEY=<key riêng của bạn>
+OPENAI_MODEL=gpt-4.1-mini
+OPENAI_BUDGET_USD=1.0
+SYNTHETIC_DATA_ONLY=1
+OLLAMA_MODEL=qwen2.5:7b-instruct
+QUESTION_SELECTOR_PROVIDER=inherit
+```
+
+Khởi động lại backend sau khi đổi `.env`. `inherit` cho phần chọn câu hỏi dùng cùng chế độ với AI chính. Có thể ghi đè `OLLAMA_MODEL` theo máy riêng mà không sửa cấu hình công khai.
+
+Hybrid không có key hoặc chưa được phép gửi ra ngoài sẽ chạy Ollama. Nếu một lần gọi OpenAI thất bại (kể cả lỗi xác thực, quota, JSON hoặc ngân sách), client dùng Ollama cho các lần gọi còn lại; yêu cầu mới có thể thử lại OpenAI. Nếu cả hai không dùng được, luồng nghiệp vụ trở về quy tắc. Ghi chú nhạy cảm luôn đi thẳng Ollama; kiểm tra che dữ liệu và các quy tắc cảnh báo vẫn áp dụng. Nhật ký AI lưu mô hình thực tế cho từng kết quả để kiểm tra khi chuyển nhà cung cấp.
+
+`LLM_PROVIDER=openai` vẫn có thể dùng để thử riêng OpenAI và bị chặn trong production. `.env` đã được loại khỏi Git; giữ key ở backend theo [hướng dẫn OpenAI](https://developers.openai.com/api/docs/quickstart). Mô hình local dùng tag [Qwen2.5 7B Instruct](https://ollama.com/library/qwen2.5:7b-instruct).
 
 ## Triển khai thật
 

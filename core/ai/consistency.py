@@ -8,13 +8,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.ai.llm_client import LlmClient, LlmError
+from core.ai.llm_client import LlmClient, LlmError, result_provider
 
 
 @dataclass
 class Votes:
     outputs: list[dict[str, Any]] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    models: list[str] = field(default_factory=list)
 
     @property
     def n_total(self) -> int:
@@ -34,6 +35,7 @@ def run_votes(
             votes.outputs.append(
                 client.generate_json(prompt, schema, temperature=temperature, seed=1000 + i)
             )
+            votes.models.append(result_provider(client))
         except LlmError as e:
             votes.errors.append(str(e))
     return votes

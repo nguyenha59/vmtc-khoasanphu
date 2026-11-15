@@ -26,17 +26,21 @@ from core.models import (
     VitalReading,
 )
 from core.repo import ga_on, patient_name, stage_text
+from core.rules.triage_rules import triage
 from core.security import encrypt
 
 FINAL_LEVELS = {"keep_red": "Giữ đỏ", "down_yellow": "Hạ vàng", "false_alarm": "Báo nhầm"}
 STATUS_VI = {"open": "Chưa xử lý", "called": "Đã gọi", "escalated": "Chờ bác sĩ", "closed": "Đã đóng"}
 
 
-def history_for(s: Session, patient_id: int, days: int = 60) -> dict[str, list[tuple[datetime, float]]]:
-    since = now() - timedelta(days=days)
+def history_for(s: Session, patient_id: int, days: int = 60, *, as_of: datetime | None = None) -> dict[str, list[tuple[datetime, float]]]:
+    at = as_of or now()
+    since = at - timedelta(days=days)
     out: dict[str, list[tuple[datetime, float]]] = {}
-    for v in s.scalars(select(VitalReading).where(VitalReading.patient_id == patient_id,
-                                                  VitalReading.measured_at >= since)
+    for v in s.scalars(select(VitalReading).outerjoin(FormResponse, VitalReading.source_response_id == FormResponse.id)
+                       .where(VitalReading.patient_id == patient_id,
+                              VitalReading.measured_at >= since, VitalReading.measured_at <= at,
+                              (VitalReading.source_response_id.is_(None)) | (FormResponse.source != "demo"))
                        .order_by(VitalReading.measured_at)):
         out.setdefault(v.kind, []).append((v.measured_at, v.value))
     return out
@@ -97,10 +101,13 @@ def submit_response(
     at = submitted_at or now()
     # 1) Đánh giá TRƯỚC khi ghi: chỉ có lệnh đọc → không giữ khóa ghi SQLite trong lúc chờ AI (có thể vài chục giây).
     ga = ga_on(patient, at.date())
+    # Quy tắc đã đỏ thì không chờ tác vụ LLM phụ. Dò văn bản xác định vẫn chạy.
+    structured_red = triage(answers, ga[0] if ga else None, bool(patient.on_insulin), rules).level == Level.RED
     result = assess_answers(
         form_code, answers, free_text, ga[0] if ga else None, rules, forms_cfg, client=client,
-        history=history_for(s, patient.id), on_insulin=patient.on_insulin, risk_groups=list(patient.risk_groups or []),
+        history=history_for(s, patient.id, as_of=at), on_insulin=patient.on_insulin, risk_groups=list(patient.risk_groups or []),
         ga_label=stage_text(patient, at.date()), patient_name=patient_name(patient), pid=patient.pid, ner=ner, at=at,
+        skip_llm=structured_red,
     )
     # 2) Ghi – một giao dịch ngắn.
     if token:
@@ -109,12 +116,9 @@ def submit_response(
                         answers=answers, free_text_enc=encrypt(free_text) if free_text else None, source=source)
     s.add(resp)
     s.flush()
-    for kind, value, slot in result.rule.readings:
+    for kind, value, _slot in result.rule.readings:
         measured = at
-        if slot == "am":
-            measured = at.replace(hour=7, minute=0)
-        elif slot == "pm":
-            measured = at.replace(hour=20, minute=0)
+        # Nhãn AM/PM không chứng minh giờ thực đo. Không tạo timestamp tương lai.
         s.add(VitalReading(patient_id=patient.id, measured_at=measured, kind=kind, value=value,
                            source_response_id=resp.id))
     asm = Assessment(response_id=resp.id, level=result.level.code, rule_level=result.rule_level.code,
@@ -122,7 +126,9 @@ def submit_response(
                      ai_confidence=result.reading.confidence, findings=result.findings_json(rules),
                      summary=result.summary, rules_version=rules.rules_version,
                      prompt_version=result.reading.prompt_version or None, model=result.reading.model or None,
-                     raw={"llm": result.reading.raw, "summary_method": result.summary_method}, created_at=at)
+                     raw={"llm": result.reading.raw, "summary_method": result.summary_method,
+                          "summary_prompt_version": _summary_version() if result.summary_method == "llm" else None},
+                     created_at=at)
     s.add(asm)
     s.flush()
     alert = None
@@ -298,3 +304,10 @@ def alert_rows(s: Session, include_closed: bool = False) -> list[tuple[Alert, As
     order = {"red": 0, "yellow": 1}
     rows.sort(key=lambda r: (order.get(r[0].level, 2), r[0].status != "open", (r[0].created_at or now()).timestamp()))
     return rows
+
+
+def _summary_version() -> str:
+    """prompt_version của câu tóm tắt do AI viết lại (luật lưu kết quả AI kèm phiên bản prompt)."""
+    from core.config import prompt_text
+
+    return prompt_text("summary")[1]

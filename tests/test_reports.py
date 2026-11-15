@@ -21,3 +21,10 @@ def test_summary_postpartum_wording():
 
     assert template_summary({"ga": "Hậu sản 52 ngày", "level": "green"}).startswith("Hậu sản 52 ngày.")
     assert template_summary({"ga": "32+1", "level": "green"}).startswith("Tuần thai 32+1.")
+
+
+def test_summary_shows_pack_names_not_codes():
+    from core.ai.summary import template_summary
+
+    s = template_summary({"ga": "30+1", "risk_groups": ["M-THA", "P-SINHNON"], "level": "yellow"})
+    assert "P-SINHNON" not in s and "sinh non" in s.lower()

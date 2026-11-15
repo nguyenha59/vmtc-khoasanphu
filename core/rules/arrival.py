@@ -26,6 +26,8 @@ class NoteAI:
     risk_flags: list[str] = field(default_factory=list)
     asks_confirmation: bool = False
     evidence: str = ""
+    ga_confidence: float | None = None
+    ga_grounded: bool = False
 
 
 @dataclass

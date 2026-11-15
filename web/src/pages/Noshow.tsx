@@ -20,6 +20,7 @@ type Data = {
   call_threshold: number; sms_threshold: number; n_appt: number; rows: Row[]; reinvite: Reinv[]; high_risk: number;
   arrivals_imported: boolean;
   demo_model?: boolean;
+  model_warning?: string | null;
 };
 
 export function Noshow() {
@@ -55,7 +56,7 @@ export function Noshow() {
 
       {isLoading || !data ? <Skeleton h={400} radius="lg" /> : !data.has_model ? (
         <Alert color="warn" icon={<IconAlertTriangle size={18} />} title="Chưa có mô hình">
-          Admin bấm “Huấn luyện lại” hoặc chạy: python scripts/train_noshow.py
+          {data.model_warning || "Chưa có mô hình đủ điều kiện. Quản trị viên có thể huấn luyện lại khi dữ liệu đã sẵn sàng."}
         </Alert>
       ) : (
         <>

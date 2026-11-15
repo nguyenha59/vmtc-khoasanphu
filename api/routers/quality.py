@@ -11,6 +11,7 @@ from api.deps import CurrentUser, require
 from api.util import df_records, jsonable
 from core import audit
 from core.ai.scorecard import fmt, load_targets
+from core.ai.scorecard import scorecard as evaluate_scorecard
 from core.db import session_scope
 from core.feedback import outcomes_from_db, summarize
 from core.quality import eval_table, human_agreement, latest_eval, recent_errors, weekly_table
@@ -24,14 +25,19 @@ def quality(user: CurrentUser = Depends(require("view_quality"))) -> dict:
     with session_scope() as s:
         audit.log("view_quality", "eval_run", None, user_id=user.user_id, session=s)
         runs = {ds: latest_eval(s, ds) for ds in DS_VI}
+        targets = load_targets()
         scorecard = []
         for ds, r in runs.items():
-            for c in ((r.metrics or {}).get("scorecard", []) if r else []):
+            # Recompute against the current target set. A missing run or missing stored
+            # scorecard cannot turn required, unmeasured metrics into a passing dashboard.
+            for check in evaluate_scorecard(ds, (r.metrics or {}) if r else {}, targets):
+                c = check.to_dict()
                 scorecard.append({
                     "dataset": DS_VI[ds], "label": c["label"], "value": fmt(c["value"]), "target": f"{c['op']} {fmt(c['target'])}",
                     "passed": c["passed"], "blocking": bool(c["blocking"]),
-                    "run": f"{r.ts:%d/%m %H:%M} · {r.model} · {r.prompt_version or ''}"
-                           + (f" · {r.metrics.get('limit')} mẫu" if r.metrics.get("limit") else ""),
+                    "run": (f"{r.ts:%d/%m %H:%M} · {r.model} · {r.prompt_version or ''} · quy tắc {r.rules_version}"
+                            + (f" · {r.metrics.get('limit')} mẫu" if r.metrics.get("limit") else ""))
+                           if r else "Chưa có lần chạy đánh giá",
                 })
         human = human_agreement(s)
         feedback = summarize(outcomes_from_db(s), load_targets().get("feedback", {}))
@@ -53,7 +59,7 @@ def quality(user: CurrentUser = Depends(require("view_quality"))) -> dict:
                   "arrival_total": human["arrival_total"], "redteam_sensitivity": rt.get("red_sensitivity"),
                   "redteam_n": rt.get("n", 0), "redteam_false_alarm": rt.get("false_alarm_rate")},
         "scorecard": scorecard,
-        "blocking_failed": any(c["passed"] is False and c["blocking"] for c in scorecard),
+        "blocking_failed": any(c["passed"] is not True and c["blocking"] for c in scorecard),
         "notes": notes_info,
         "forms": None if not fm else {
             "rules_only": fm.get("rules_only", {}).get("red_sensitivity"), "rules_plus_ai": fm.get("rules_plus_ai", {}).get("red_sensitivity"),
@@ -66,10 +72,11 @@ def quality(user: CurrentUser = Depends(require("view_quality"))) -> dict:
 
 @router.post("/run/{dataset}")
 async def run_eval(dataset: Literal["notes", "forms", "noshow"], user: CurrentUser = Depends(require("run_eval"))) -> dict:
+    from core.ai.noshow import ModelNotReady
     from scripts.run_eval import run
 
     try:
         await run_in_threadpool(run, dataset, None, user.user_id)
-    except SystemExit as e:
+    except (SystemExit, ModelNotReady) as e:
         raise HTTPException(409, str(e)) from e
     return {"ok": True}

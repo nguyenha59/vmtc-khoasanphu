@@ -21,7 +21,7 @@ type Data = {
   scorecard: Card[]; blocking_failed: boolean;
   notes: { ts: string; model: string; prompt: string; auto_rate: number | null; acc_auto: number | null; ga_acc: number | null } | null;
   forms: { rules_only: number | null; rules_plus_ai: number | null; extra_red: number; confusion: Record<string, Record<string, number>>;
-    by_group: Record<string, number>; missed_red: string[] } | null;
+    by_group: Record<string, number | null>; missed_red: string[] } | null;
   history: Records; weekly: Records; errors: Record<string, unknown>[];
   feedback: Feedback;
 };
@@ -145,7 +145,7 @@ export function Quality() {
                     })}</Table.Tr>))}</Table.Tbody>
                 </Table>
                 <Stack gap={4}>{Object.entries(data.forms.by_group).map(([g, v]) => (
-                  <Group key={g} justify="space-between"><Text size="sm">{g}</Text><Badge color={v >= 1 ? "ok" : v >= 0.8 ? "warn" : "danger"}>{pct(v)}</Badge></Group>))}</Stack>
+                  <Group key={g} justify="space-between"><Text size="sm">{g}</Text><Badge color={v === null ? "gray" : v >= 1 ? "ok" : v >= 0.8 ? "warn" : "danger"} title={v === null ? "Nhóm không có ca đỏ – không tính độ nhạy" : undefined}>{pct(v)}</Badge></Group>))}</Stack>
               </SimpleGrid>
               {data.forms.missed_red.length > 0 && <Alert color="danger" mt="md">Red-team bỏ sót: {data.forms.missed_red.join("; ")}</Alert>}
             </Accordion.Panel>

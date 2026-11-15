@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import io
 import json
+import os
 import re
+import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -120,11 +124,33 @@ def _edit_line(text: str, line_no: int, value: Any) -> str | None:
     return "".join(lines)
 
 
+_WRITE_LOCK = threading.Lock()  # máy chủ API chạy một tiến trình; khóa tránh hai lần duyệt ghi chồng nhau
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """Ghi file tạm cùng thư mục rồi đổi tên: không bao giờ để lại rules.yaml ghi dở."""
+    fd, tmp = tempfile.mkstemp(prefix=".rules-", suffix=".tmp", dir=str(Path(path).parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
 def write_rule(path: Path, key: str, value: Any) -> str:
     """Ghi giá trị vào rules.yaml (giữ chú thích, định dạng), tăng rules_version. Trả phiên bản mới."""
+    with _WRITE_LOCK:
+        return _write_rule_locked(Path(path), key, value)
+
+
+def _write_rule_locked(path: Path, key: str, value: Any) -> str:
     yaml = YAML()
     yaml.preserve_quotes = True
-    text = Path(path).read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8")
     data = yaml.load(text)
     parts = key.split(".")
     node = data
@@ -140,15 +166,16 @@ def write_rule(path: Path, key: str, value: Any) -> str:
         for p in parts:
             cur = cur[p]
         if cur == value and str(check["rules_version"]) == new_version:
-            Path(path).write_text(edited, encoding="utf-8")
+            _atomic_write(path, edited)
             return new_version
     # Dự phòng: ghi lại toàn bộ bằng ruamel (có thể đổi cách xuống dòng)
     node[parts[-1]] = value
     data["rules_version"] = new_version
     yaml.width = 4096
     yaml.indent(mapping=2, sequence=4, offset=2)
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f)
+    buf = io.StringIO()
+    yaml.dump(data, buf)
+    _atomic_write(path, buf.getvalue())
     return new_version
 
 

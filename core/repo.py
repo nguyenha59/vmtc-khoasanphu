@@ -102,6 +102,24 @@ RISK_TO_MODULE = {"HTN": "M-THA", "PREECLAMPSIA": "M-THA", "GDM": "M-DTD"}
 def _update_patient_from_note(p: Patient, plan: PlannedAppt) -> dict[str, Any]:
     info: dict[str, Any] = {}
     w, d = plan.decision.ga_weeks, plan.decision.ga_days
+    ex = plan.extraction
+    min_confidence = 1.0
+    if ex and ex.ai:
+        configured_min = ex.raw.get("min_confidence")
+        if configured_min is None:
+            from core.config import load_rules
+
+            configured_min = load_rules()["arrival"]["ai_confidence_min"]
+        min_confidence = float(configured_min)
+    # Một đề xuất AI chưa chắc chắn không được tự ghi hồ sơ; GA đọc chắc bằng luật vẫn dùng được.
+    if ex and ex.ai and ex.ai.ga_weeks is not None and not (
+        ex.ai.ga_grounded and ex.ai.ga_confidence is not None and ex.ai.ga_confidence >= min_confidence
+    ):
+        from core.rules.note_patterns import find_ga
+
+        grounded_ga = find_ga(plan.merged.note)
+        w, d = grounded_ga if grounded_ga else (None, None)
+        info["ga_ai_unverified"] = True
     if w is not None:
         appt_d = plan.merged.appt_date
         expected = ga_on(p, appt_d)
@@ -112,8 +130,7 @@ def _update_patient_from_note(p: Patient, plan: PlannedAppt) -> dict[str, Any]:
             info["ga_inconsistent"] = True
         else:
             p.edd = appt_d + timedelta(days=280 - (w * 7 + (d or 0)))
-    ex = plan.extraction
-    if ex and ex.ai and ex.ai.risk_flags:
+    if ex and ex.ai and ex.ai.confidence >= min_confidence and ex.ai.risk_flags:
         flags = sorted(set(p.proposed_risk_flags or []) | set(ex.ai.risk_flags))
         p.proposed_risk_flags = flags
     return info
@@ -158,7 +175,7 @@ def save_his_result(
                 votes=ex.votes if ex else [], confidence=ex.confidence if ex else None,
                 model=ex.model if ex else None, prompt_version=ex.prompt_version if ex else None,
                 rules_version=res.rules_version,
-                masked_note=plan.mask.text if plan.mask else None,
+                masked_note=plan.mask.text if plan.mask and plan.mask.ok else None,
                 raw={**(ex.raw if ex else {}), **extra,
                      "mask_ok": plan.mask.ok if plan.mask else True,
                      "mask_leftovers_count": len(plan.mask.leftovers) if plan.mask else 0,
@@ -199,6 +216,7 @@ def _ai_dict(ai: Any) -> dict[str, Any] | None:
         "explicit_arrival_time": _t(ai.explicit_arrival_time), "minutes_early": ai.minutes_early,
         "needs_fasting": ai.needs_fasting, "ga_weeks": ai.ga_weeks, "ga_days": ai.ga_days,
         "risk_flags": ai.risk_flags, "asks_confirmation": ai.asks_confirmation, "evidence": ai.evidence,
+        "ga_confidence": ai.ga_confidence, "ga_grounded": ai.ga_grounded,
     }
 
 

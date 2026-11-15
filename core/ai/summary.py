@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import re
+from collections import Counter
 from typing import Any
 
-from core.ai.llm_client import LlmClient, LlmError, render_prompt
+from core.ai.llm_client import LlmClient, LlmError
+from core.ai.masking import NerFn, mask_text
 from core.config import Rules, prompt_text
 
 RISK_VI = {"M-THA": "Tăng huyết áp", "M-DTD": "Đái tháo đường thai kỳ", "HTN": "Tăng huyết áp",
@@ -16,12 +18,21 @@ LEVEL_VI = {"red": "ĐỎ", "yellow": "VÀNG", "green": "XANH"}
 TEMP_VI = {"current": "hiện tại", "past_resolved": "đã qua", "unknown": "không rõ"}
 
 
+def _risk_name(code: str) -> str:
+    """Mã nhóm nguy cơ / module / bộ câu theo tình trạng → tên tiếng Việt (không hiện mã thô như P-SINHNON)."""
+    if code in RISK_VI:
+        return RISK_VI[code]
+    from core.config import load_forms
+
+    return str(load_forms().forms.get(code, {}).get("name", code))
+
+
 def template_summary(data: dict[str, Any]) -> str:
     """data: ga, risk_groups, vitals {kind: (value, trend_text)}, concepts [(name, temporality)], level, reasons."""
     ga = data.get("ga") or "chưa rõ"
     # Sau sinh, ga đã là "Hậu sản N ngày" → không thêm "Tuần thai" (trước đây ra "Tuần thai Hậu sản 52 ngày").
     parts = [f"{ga}." if str(ga).startswith("Hậu sản") else f"Tuần thai {ga}."]
-    risks = [RISK_VI.get(r, r) for r in data.get("risk_groups", [])]
+    risks = [_risk_name(r) for r in data.get("risk_groups", [])]
     parts.append("Nhóm nguy cơ: " + (", ".join(risks) if risks else "không") + ".")
     vit = data.get("vitals", {})
     if "bp" in vit:
@@ -47,19 +58,44 @@ def numbers_ok(text: str, source: dict[str, Any]) -> bool:
     return all(n in allowed for n in _NUM.findall(text))
 
 
-def summarize(data: dict[str, Any], rules: Rules, client: LlmClient | None = None) -> tuple[str, str]:
-    """Trả (tóm tắt, cách tạo: template | llm)."""
+def preserves_facts(text: str, base: str) -> bool:
+    """Chỉ nhận sắp xếp/định dạng lại các câu đã kiểm chứng, không nhận dữ kiện mới.
+
+    Giữ nguyên thứ tự từ trong từng câu để bảo vệ phủ định, cặp số và mức cảnh báo.
+    """
+    def sentences(value: str) -> Counter:
+        return Counter(tuple(re.findall(r"\w+|\d+[.,]\d+|/|[<>≥≤+−-]", sentence.lower()))
+                       for sentence in re.split(r"(?<=[.!?])\s+", value.strip()) if sentence.strip())
+
+    return sentences(text) == sentences(base)
+
+
+def summarize(
+    data: dict[str, Any], rules: Rules, client: LlmClient | None = None, *, ner: NerFn | None | bool = True
+) -> tuple[str, str]:
+    """Trả (tóm tắt, cách tạo: template | llm).
+
+    Luật 4 (CLAUDE.md): dữ liệu gửi mô hình phải qua masking.py; che không sạch → không gửi, dùng bản mẫu.
+    """
     base = template_summary(data)
     if not rules["llm"].get("summary_llm_rewrite") or client is None:
         return base, "template"
     schema = {"type": "object", "properties": {"text": {"type": "string", "maxLength": 600}}, "required": ["text"]}
     template, _version = prompt_text("summary")
     payload = {"data": data, "template_summary": base}
+    masked = mask_text(json.dumps(payload, ensure_ascii=False), ner=ner)
+    if not masked.ok:
+        return base, "template"
     try:
-        out = client.generate_json(render_prompt(template, payload), schema, temperature=0.0, seed=1)
+        masked_payload = json.loads(masked.text)
+        masked_base = masked_payload["template_summary"]
+    except (ValueError, KeyError, TypeError):
+        return base, "template"
+    try:
+        out = client.generate_json(template.replace("{input_json}", masked.text), schema, temperature=0.0, seed=1)
     except LlmError:
         return base, "template"
     text = out.get("text", "")
-    if not text or not numbers_ok(text, payload):
+    if not text or not numbers_ok(text, masked_payload) or not preserves_facts(text, masked_base):
         return base, "template"
     return text, "llm"

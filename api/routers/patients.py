@@ -15,11 +15,25 @@ from sqlalchemy import func, select
 
 from api.deps import CurrentUser, require
 from core import audit
-from core.config import TZ
+from core.ai.question_selector import ai_input_preview
+from core.config import TZ, load_forms, load_rules
 from core.db import session_scope
+from core.forms import selection_context
 from core.models import Appointment, Patient, PatientProgram
-from core.patients import NewPatient, PatientError, create_patient, program_of, set_program
+from core.patients import (
+    NewPatient,
+    PatientError,
+    auto_apply_for,
+    create_patient,
+    form_plan_for,
+    program_of,
+    set_form_plan,
+    set_program,
+)
 from core.repo import ga_on, patient_name, patient_phone, stage_text
+from core.rules.form_scheduler import ga_at
+from core.rules.personalize import plan_as_dict
+from core.rules.question_select import as_dicts, select_questions
 from core.security import can, mask_phone
 
 router = APIRouter(prefix="/api/patients", tags=["patients"])
@@ -109,3 +123,63 @@ def update_program(patient_id: int, body: ProgramIn, user: CurrentUser = Depends
                    "after": {k: after[k] for k in ("in_package", "override_monitoring")}},
                   user_id=user.user_id, session=s)
     return after
+
+
+class FormPlanIn(BaseModel):
+    codes: list[str] = Field(default_factory=list, max_length=20)
+    insulin: bool = False
+
+
+def _form_plan_payload(s, p: Patient, rules, forms_cfg) -> dict:  # type: ignore[no-untyped-def]
+    today = _today()
+    plan = form_plan_for(s, p, today, rules, forms_cfg)
+    ga = ga_at(p.edd, today)
+    window = next((c for c, w in rules["forms"]["windows"].items()
+                   if ga is not None and tuple(w["from"]) <= ga <= tuple(w["to"])), None)
+    preview, ai_input = None, None
+    if window and p.delivery_date is None:
+        # Xem trước bằng điểm QUY TẮC (không gọi AI khi chỉ mở hồ sơ). AI chấm thêm lúc tạo đường dẫn.
+        ctx = selection_context(s, p, today, rules, forms_cfg)
+        chosen = select_questions([window], ctx, rules, forms_cfg)
+        ai_input = ai_input_preview([window], ctx, rules, forms_cfg)
+        base = set(forms_cfg.forms[window]["questions"])
+        preview = {"form": window, "name": forms_cfg.forms[window]["name"], "method": "rules",
+                   "questions": [{**q, "added": q["code"] not in base} for q in as_dicts(chosen, forms_cfg)]}
+    return {**plan_as_dict(plan), "confirmed": list(p.risk_groups or []), "insulin": bool(p.on_insulin),
+            "question_text": {c: q["text"] for c, q in forms_cfg.questions.items()},
+            "preview": preview, "ai_input": ai_input, "rules_version": rules.rules_version}
+
+
+@router.get("/{patient_id}/form-plan")
+def get_form_plan(patient_id: int, user: CurrentUser = Depends(require("view_profile"))) -> dict:
+    """Bộ câu hỏi cá nhân hóa: đề xuất theo hồ sơ + AI, câu bị cổng chất lượng loại, form định kỳ sắp tới."""
+    rules, forms_cfg = load_rules(), load_forms()
+    with session_scope() as s:
+        p = s.get(Patient, patient_id)
+        if p is None:
+            raise HTTPException(404, "Không tìm thấy thai phụ.")
+        auto_apply_for(s, p, _today(), rules, forms_cfg)  # căn cứ bác sĩ ghi → áp dụng ngay, màn hình khớp quy tắc
+        out = _form_plan_payload(s, p, rules, forms_cfg)
+        audit.log("view_form_plan", "patient", p.code, {"rules_version": rules.rules_version},
+                  user_id=user.user_id, session=s)
+    return {**out, "can_confirm": can(user.role, "form_schedule")}
+
+
+@router.put("/{patient_id}/form-plan")
+def confirm_form_plan(patient_id: int, body: FormPlanIn, user: CurrentUser = Depends(require("form_schedule"))) -> dict:
+    """Điều dưỡng xác nhận bộ câu hỏi cho thai phụ (người dùng chốt 13/11/2026)."""
+    rules, forms_cfg = load_rules(), load_forms()
+    with session_scope() as s:
+        p = s.get(Patient, patient_id)
+        if p is None:
+            raise HTTPException(404, "Không tìm thấy thai phụ.")
+        try:
+            before, after = set_form_plan(p, body.codes, body.insulin, rules)
+        except PatientError as e:
+            raise HTTPException(422, str(e)) from e
+        audit.log("confirm_form_plan", "patient", p.code,
+                  {"before": before, "after": after, "insulin": bool(p.on_insulin), "rules_version": rules.rules_version},
+                  user_id=user.user_id, session=s)
+        s.flush()
+        out = _form_plan_payload(s, p, rules, forms_cfg)
+    return {**out, "can_confirm": True}
