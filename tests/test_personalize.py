@@ -207,6 +207,10 @@ def test_export_merges_into_one_sms_and_one_link(db, rules) -> None:
     with db.session_scope() as s:
         p = upsert_patient(s, "P200", "Lê Thị Hoa", "0900000001", "Việt Nam")
         p.consent_status, p.edd, p.risk_groups = "granted", _edd_for(30), ["M-THA", "P-SINHNON"]
+        from core.db import now
+        from core.models import PatientProgram
+
+        s.add(PatientProgram(patient_id=p.id, in_package=True, package_name="Gói (giả)", updated_at=now()))
         s.flush()
         monday = TODAY + timedelta(days=(7 - TODAY.weekday()) % 7)  # M-THA gửi T2, T5
         p.edd = monday + timedelta(days=280 - 30 * 7)

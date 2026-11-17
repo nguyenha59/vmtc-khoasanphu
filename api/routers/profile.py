@@ -17,6 +17,7 @@ from core import audit, consent
 from core.alerts import FINAL_LEVELS, STATUS_VI, history_for
 from core.config import TZ, load_rules
 from core.db import session_scope
+from core.forms import DEMO_PREFIX
 from core.models import (
     Alert,
     Appointment,
@@ -28,7 +29,7 @@ from core.models import (
     Patient,
 )
 from core.patients import history_of, program_of, visit_results
-from core.repo import ga_on, patient_phone, stage_text
+from core.repo import ga_on, last_visits, patient_phone, stage_text
 from core.reports import profile_html, profile_pdf
 from core.security import decrypt, mask_phone
 
@@ -132,13 +133,16 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
     pid_ = p.id
     ga = ga_on(p, today)
     stage = stage_text(p, today)
-    last_visit = s.scalar(select(func.max(Appointment.appt_date)).where(Appointment.patient_id == pid_, Appointment.appt_date < today))
+    last_visit = last_visits(s, [p], today).get(pid_)  # vắng mặt ở ngày đã có danh sách khách đến ≠ đã khám
     next_appt = s.scalar(select(func.min(Appointment.appt_date)).where(Appointment.patient_id == pid_, Appointment.appt_date >= today))
     since = datetime.combine(last_visit, time(0)) if last_visit else datetime(2000, 1, 1)
     responses = s.execute(select(FormResponse, Assessment).join(Assessment, Assessment.response_id == FormResponse.id)
                           .where(FormResponse.patient_id == pid_).order_by(FormResponse.submitted_at.desc())).all()
-    resp_rows = [{"at": r.submitted_at, "form": r.form_code, "level": a.level, "summary": (a.summary or "")[:160]}
-                 for r, a in responses]
+    # Câu trả lời demo (nhân viên tự thử ở màn Form demo) vẫn liệt kê – mang nhãn – nhưng KHÔNG vào tóm tắt, số liệu
+    # hay bản in: không phải dữ liệu lâm sàng của thai phụ.
+    resp_rows = [{"at": r.submitted_at, "form": r.form_code, "level": a.level, "summary": (a.summary or "")[:160],
+                  "summary_full": a.summary or "", "demo": r.source == "demo"} for r, a in responses]
+    clinical = [r for r in resp_rows if not r["demo"]]
     alerts = s.execute(select(Alert, Assessment, FormResponse).join(Assessment, Alert.assessment_id == Assessment.id)
                        .join(FormResponse, Assessment.response_id == FormResponse.id)
                        .where(FormResponse.patient_id == pid_).order_by(Alert.created_at.desc())).all()
@@ -146,16 +150,18 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
 
     alert_rows = [{"id": a.id, "at": a.created_at.isoformat() if a.created_at else None, "level": a.level,
                    "form": r.form_code, "reasons": _reasons(asm), "status": STATUS_VI.get(a.status, a.status),
-                   "final_level": FINAL_LEVELS.get(a.final_level or "", ""), "note": a.note or ""}
+                   "final_level": FINAL_LEVELS.get(a.final_level or "", ""), "note": a.note or "",
+                   "demo": r.source == "demo"}
                   for a, asm, r in alerts]
-    sent = s.scalar(select(func.count()).select_from(FormToken).where(FormToken.patient_id == pid_, FormToken.created_at >= since)) or 0
-    answered = s.scalar(select(func.count()).select_from(FormToken).where(
-        FormToken.patient_id == pid_, FormToken.created_at >= since, FormToken.used_at.is_not(None))) or 0
+    real = (FormToken.patient_id == pid_, FormToken.created_at >= since,
+            ~FormToken.token.startswith(DEMO_PREFIX, autoescape=True))  # đường dẫn demo nhân viên tự thử
+    sent = s.scalar(select(func.count()).select_from(FormToken).where(*real)) or 0
+    answered = s.scalar(select(func.count()).select_from(FormToken).where(*real, FormToken.used_at.is_not(None))) or 0
     hist = history_for(s, pid_, days=90)
 
     period_bp = [v for t, v in hist.get("bp_sys", []) if t >= since]
     weights = hist.get("weight", [])
-    period_resp = [r for r in resp_rows if r["at"] >= since]
+    period_resp = [r for r in clinical if r["at"] >= since]
     n_red = sum(r["level"] == "red" for r in period_resp)
     n_yel = sum(r["level"] == "yellow" for r in period_resp)
     lines = [
@@ -179,9 +185,11 @@ def _build(s: Any, p: Patient) -> dict[str, Any]:
                     "weight": round(weights[-1][1], 1) if weights else None,
                     "reply_rate": answered / sent if sent else None, "answered": answered, "sent": sent},
         "summary_lines": lines,
-        "responses": [{**r, "at": r["at"].isoformat()} for r in resp_rows],
+        "responses": [{**{k: v for k, v in r.items() if k != "summary_full"}, "at": r["at"].isoformat()}
+                      for r in resp_rows],
+        # Bản in: MỌI lần trả lời trong giai đoạn, tóm tắt đầy đủ (bác sĩ đọc bản in không được thiếu lý do cảnh báo).
         "period_table": [{"Thời điểm": r["at"].strftime("%d/%m %H:%M"), "Form": r["form"], "Mức": r["level"],
-                          "Tóm tắt": r["summary"][:120]} for r in period_resp[:20]],
+                          "Tóm tắt": r["summary_full"]} for r in period_resp],
         "alerts": alert_rows,
         "visits": _visits(s, p, today),
         "program": program_of(s, pid_),
@@ -244,6 +252,12 @@ def record_delivery(patient_id: int, body: DeliveryIn, user: CurrentUser = Depen
         p = s.get(Patient, patient_id)
         if p is None:
             raise HTTPException(404, "Không tìm thấy thai phụ.")
+        from core.forms import PREGNANCY_MAX_WEEKS
+
+        # Gõ nhầm năm → ngày sinh trước cả khi mang thai (dự sinh − 42 tuần): không ghi, tránh dừng nhầm form thai kỳ.
+        if p.edd is not None and body.delivery_date < p.edd - timedelta(weeks=PREGNANCY_MAX_WEEKS):
+            raise HTTPException(422, f"Ngày sinh {body.delivery_date:%d/%m/%Y} trước khi bắt đầu thai kỳ "
+                                     f"(dự sinh {p.edd:%d/%m/%Y}) – kiểm tra lại ngày.")
         old = p.delivery_date
         p.delivery_date = body.delivery_date
         audit.log("record_delivery", "patient", p.code, {"old": old.isoformat() if old else None,

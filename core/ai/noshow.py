@@ -20,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.config import ROOT, TZ, Rules
-from core.models import Appointment, Arrival, Patient
+from core.models import Appointment, Arrival, NoteExtraction, Patient
 from core.textutil import word_pattern
 
 MODELS_DIR = ROOT / "models"
@@ -30,7 +30,7 @@ DOW_VI = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Th�
 FEATURE_VERSION = "noshow-patient-day-v2"
 FEATURE_COLUMNS = [*FEATURES, "appointment_id", "appt_date", "label"]
 VISIT_COLUMNS = ["appointment_id", "patient_id", "pid", "code", "appt_date", "start_time",
-                 "booking_source", "booked_at", "services", "nationality", "edd", "label"]
+                 "booking_source", "booked_at", "services", "nationality", "edd", "note_ga", "label"]
 log = logging.getLogger(__name__)
 
 
@@ -52,10 +52,15 @@ class SigmoidCalibrator:
 def load_visits(s: Session) -> pd.DataFrame:
     """Mỗi dòng = một lịch hẹn (đã gộp theo khách/ngày) kèm nhãn đến/không đến nếu có danh sách khách đến."""
     rows = s.execute(select(Appointment, Patient).join(Patient, Appointment.patient_id == Patient.id)).all()
+    # Tuổi thai GHI TẠI LẦN HẸN (đọc từ ghi chú HIS lúc nhập) – không đổi khi hồ sơ chuyển sang thai kỳ sau.
+    note_ga = {aid: w + (d or 0) / 7 for aid, w, d in s.execute(
+        select(NoteExtraction.appointment_id, NoteExtraction.ga_weeks, NoteExtraction.ga_days)
+        .where(NoteExtraction.ga_weeks.is_not(None))).all()}
     data = [{
         "appointment_id": a.id, "patient_id": p.id, "pid": p.pid, "code": p.code, "appt_date": a.appt_date,
         "start_time": a.start_time, "booking_source": a.booking_source or "", "booked_at": a.booked_at,
         "services": " | ".join(a.services or []), "nationality": p.nationality or "", "edd": p.edd,
+        "note_ga": note_ga.get(a.id),
     } for a, p in rows]
     df = pd.DataFrame(data, columns=VISIT_COLUMNS)
     if df.empty:
@@ -95,6 +100,8 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     out["svc_exam"] = svc.str.contains("khám").astype(int)
     edd = pd.to_datetime(df["edd"])
     ga = ((280 - (edd - appt).dt.days) / 7).where(edd.notna())
+    if "note_ga" in df:  # ưu tiên tuổi thai đã lưu tại lần hẹn; EDD hiện tại chỉ dùng khi không có
+        ga = pd.to_numeric(df["note_ga"], errors="coerce").fillna(ga)
     out["ga_weeks"] = ga.where((ga >= 4) & (ga <= 44))
     # lịch sử bỏ hẹn TRƯỚC ngày hẹn (không rò rỉ nhãn tương lai)
     prior_ns, prior_n, first = [], [], []

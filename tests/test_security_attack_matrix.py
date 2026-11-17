@@ -1,6 +1,6 @@
 """Bounded local security probes; synthetic fixtures, no external attack traffic.
 
-XFAIL denotes a missing control, not a fixed vulnerability. Transport mocks for
+Regression tests cover the previously missing controls. Transport mocks for
 redirect tests never connect to an external host. No shell payload is executed.
 """
 
@@ -267,7 +267,6 @@ def test_model_pickle_trust_boundary_with_a_benign_reducer(tmp_path, monkeypatch
     assert noshow.load_latest() is None  # an arbitrary object is not a usable model bundle
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="SEC-06: HTML export interpolates unescaped markup")
 def test_html_report_must_escape_untrusted_summary_text():
     from core.reports import profile_html
 
@@ -277,7 +276,6 @@ def test_html_report_must_escape_untrusted_summary_text():
     assert "&lt;script&gt;" in html
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="SEC-08: empty form consumes token and records a green assessment")
 def test_empty_form_must_not_be_recorded_as_success(review):
     from core.models import FormResponse
 
@@ -289,14 +287,12 @@ def test_empty_form_must_not_be_recorded_as_success(review):
     assert response.status_code == 422
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="SEC-09: login passwords beyond bcrypt's byte limit raise 500")
 def test_oversized_login_password_must_not_raise_server_error(review):
     with TestClient(review.client.app, raise_server_exceptions=False) as client:
         response = client.post("/api/auth/login", json={"username": "nurse", "password": "x" * 73})
     assert response.status_code in (401, 422)
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="SEC-10: Ollama follows redirects from a private host to an external host")
 def test_ollama_redirect_must_not_forward_prompts_outside_internal_network(monkeypatch):
     from core.ai.llm_client import LlmError, OllamaClient
 
@@ -330,7 +326,6 @@ def test_ollama_redirect_must_not_forward_prompts_outside_internal_network(monke
     assert not external
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="SEC-11: consent withdrawal during assessment does not prevent commit")
 def test_withdrawal_during_inflight_form_must_prevent_recording(review, monkeypatch):
     from core import alerts, consent
 
@@ -344,7 +339,8 @@ def test_withdrawal_during_inflight_form_must_prevent_recording(review, monkeypa
 
     monkeypatch.setattr(alerts, "assess_answers", delayed)
     with ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(review.client.post, f"/api/public/form/{review.normal}", json={"answers": {}})
+        future = pool.submit(review.client.post, f"/api/public/form/{review.normal}",
+                             json={"answers": {}, "free_text": "Em thay khoe"})
         try:
             assert started.wait(8), "assessment did not start"
             with review.db.session_scope() as s:

@@ -28,7 +28,8 @@ def withdraw(s: Session, patient_id: int, user_id: int | None, note: str = "") -
     p.consent_by = user_id
     cancelled = s.execute(
         update(FormSchedule)
-        .where(FormSchedule.patient_id == patient_id, FormSchedule.status == "planned")
+        # Cả lịch đã GỘP vào form chính cùng ngày (status "merged"): sót lại sẽ bị kéo vào lần xuất sau khi đồng ý lại.
+        .where(FormSchedule.patient_id == patient_id, FormSchedule.status.in_(("planned", "merged")))
         .values(status="cancelled", skip_reason="Rút đồng thuận")
     ).rowcount
     for t in s.scalars(select(FormToken).where(FormToken.patient_id == patient_id, FormToken.used_at.is_(None))):

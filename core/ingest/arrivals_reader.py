@@ -22,12 +22,20 @@ def read_arrivals(file: str | IO[bytes] | Any) -> list[tuple[str, date, time | N
     missing = {"pid", "visit_date"} - set(df.columns)
     if missing:
         raise ValueError(f"Thiếu cột: {', '.join(sorted(missing))}")
-    out = []
-    for r in df.to_dict("records"):
+    out, bad = [], []
+    for i, r in enumerate(df.to_dict("records"), start=2):  # dòng 1 là tiêu đề
+        if not any(str(v).strip() for v in r.values()):
+            continue  # dòng trống hoàn toàn
         d = parse_date(r["visit_date"], "%Y-%m-%d") or parse_date(r["visit_date"], "%d/%m/%Y")
         if d is None or not str(r["pid"]).strip():
+            bad.append(i)
             continue
         out.append((str(r["pid"]).strip(), d, parse_time(r.get("checkin_time", ""), "%H:%M")))
+    # Nhập thay CẢ NGÀY: bỏ qua im lặng dòng hỏng sẽ xóa mất lượt đến đã có của khách ở dòng đó → không nhập gì.
+    if bad:
+        shown = ", ".join(map(str, bad[:10])) + ("…" if len(bad) > 10 else "")
+        raise ValueError(f"Dòng {shown}: thiếu mã bệnh nhân hoặc ngày khám sai định dạng – không nhập file. "
+                         "Sửa file rồi tải lại.")
     return out
 
 

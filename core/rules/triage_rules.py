@@ -10,6 +10,8 @@ from core.levels import Level, max_level
 
 YES = {"có", "co", "yes", "true", "1", "x"}
 UNSURE = {"không chắc", "khong chac", "unsure", "?"}
+# Dấu hiệu nội bộ (API form công khai đặt, không phải câu hỏi): EPDS còn thiếu N câu nhưng khách có viết mô tả.
+EPDS_INCOMPLETE = "_epds_incomplete"
 
 RED_ITEMS = {
     "C1": "Ra máu âm đạo",
@@ -166,6 +168,10 @@ def triage(answers: dict[str, Any], ga_weeks: int | None, on_insulin: bool, rule
         total = sum(v or 0 for v in epds)
         if total >= th["epds_threshold"]:
             add("EPDS_TOTAL", Level.YELLOW, f"EPDS tổng {total:g} ≥ {th['epds_threshold']}")
+    # EPDS chưa đủ câu (khách chỉ viết mô tả): điểm tổng không có giá trị, có thể chưa trả lời câu 10 → gọi hỏi lại.
+    if answers.get(EPDS_INCOMPLETE):
+        add("EPDS_INCOMPLETE", Level.YELLOW,
+            f"Phần tâm trạng (EPDS) còn thiếu {int(answers[EPDS_INCOMPLETE])} câu – gọi hỏi lại, nhất là câu 10")
 
     out.level = max_level(*(f.level for f in out.findings)) if out.findings else Level.GREEN
     return out

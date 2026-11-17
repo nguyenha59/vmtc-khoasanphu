@@ -52,13 +52,13 @@ def env(tmp_path_factory) -> Any:
 
     from core import db as dbmod
 
-    dbmod._engine = None
+    dbmod._engine, dbmod._Session = None, None
     from api.main import create_app
 
     with TestClient(create_app(serve_web=True)) as c:
         yield {"client": c, "tmp": tmp, "state": {}}
 
-    dbmod._engine = None
+    dbmod._engine, dbmod._Session = None, None
     for k, v in old.items():
         if v is None:
             os.environ.pop(k, None)

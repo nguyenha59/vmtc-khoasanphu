@@ -41,21 +41,32 @@ function Emergency({ clinic, strong }: { clinic: Clinic | null; strong?: boolean
 export function PublicForm() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
+  // Mỗi đường dẫn một vòng đời form riêng: đổi token (cùng trang) → tạo lại toàn bộ dữ liệu đang nhập, kết quả, lỗi
+  // và bỏ phản hồi tải của token cũ – không bao giờ gửi mô tả của người trước vào đường dẫn của người sau.
+  return <PublicFormView key={token} token={token} />;
+}
+
+function PublicFormView({ token }: { token: string }) {
   const [def, setDef] = useState<FormDef | null>(null);
   const [error, setError] = useState<{ message: string; clinic: Clinic | null } | null>(null);
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [freeText, setFreeText] = useState("");
   const [sending, setSending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
 
   useEffect(() => {
     if (!token) { setError({ message: "Đường dẫn không hợp lệ. Vui lòng dùng đúng đường dẫn trong tin nhắn.", clinic: null }); return; }
-    call<FormDef>(`/api/public/form/${encodeURIComponent(token)}`).then(setDef)
-      .catch((e: Error & { clinic?: Clinic }) => setError({ message: e.message, clinic: e.clinic ?? null }));
+    let live = true;
+    call<FormDef>(`/api/public/form/${encodeURIComponent(token)}`).then((x) => { if (live) setDef(x); })
+      .catch((e: Error & { clinic?: Clinic }) => { if (live) setError({ message: e.message, clinic: e.clinic ?? null }); });
+    return () => { live = false; };
   }, [token]);
 
   const total = (def?.questions.length ?? 0) + (def?.epds?.items.length ?? 0);
   const answered = Object.keys(answers).length;
+  // EPDS chỉ chấm được khi đủ mọi câu (câu cuối hỏi ý nghĩ tự hại) – máy chủ cũng từ chối nếu thiếu.
+  const epdsMissing = (def?.epds?.items ?? []).filter((it) => !(it.key in answers)).length;
   const set = (k: string, v: string | number | null) => setAnswers((a) => {
     const n = { ...a };
     if (v === null || v === "") delete n[k]; else n[k] = v;
@@ -63,6 +74,7 @@ export function PublicForm() {
   });
 
   const submit = async () => {
+    setSubmitError(null);
     setSending(true);
     try {
       const r = await call<Result>(`/api/public/form/${encodeURIComponent(token)}`, {
@@ -72,7 +84,7 @@ export function PublicForm() {
       window.scrollTo({ top: 0 });
     } catch (e) {
       const err = e as Error & { clinic?: Clinic };
-      setError({ message: err.message, clinic: err.clinic ?? def?.clinic ?? null });
+      setSubmitError(err.message);
     } finally {
       setSending(false);
     }
@@ -146,7 +158,13 @@ export function PublicForm() {
                 minRows={3} maxLength={2000} value={freeText} onChange={(e) => setFreeText(e.currentTarget.value)} size="md" />
             </Paper>
 
-            <Button size="lg" radius="md" loading={sending} onClick={submit} className={classes.submit}>Gửi</Button>
+            {submitError && <Alert color="danger" icon={<IconAlertTriangle size={20} />}>{submitError}</Alert>}
+            {epdsMissing > 0 && answered > 0 && !freeText.trim() && (
+              <Text size="sm" c="warn.8" ta="center">Chị vui lòng trả lời đủ phần tâm trạng (còn {epdsMissing} câu).</Text>)}
+            {/* Có lời tự viết thì luôn gửi được (không làm mất lời nhắn); máy chủ đánh dấu EPDS chưa đủ để gọi hỏi lại. */}
+            <Button size="lg" radius="md" loading={sending}
+              disabled={(!answered && !freeText.trim()) || (epdsMissing > 0 && !freeText.trim())}
+              onClick={submit} className={classes.submit}>Gửi</Button>
             <Text size="xs" c="dimmed" ta="center" pb="xl">Thông tin được gửi tới khoa và được bảo mật.</Text>
           </Stack>
         )}

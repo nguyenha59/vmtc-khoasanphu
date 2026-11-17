@@ -24,14 +24,17 @@ from core.forms import (
     check_token,
     compute_selection,
     create_token,
+    form_link,
     is_demo_token,
     selection_for,
     snapshot_selection,
     token_form_codes,
 )
 from core.models import FormToken, Patient
+from core.repo import prenatal_link_closed
 from core.rules.form_scheduler import ga_at
 from core.rules.personalize import compose_merged
+from core.rules.triage_rules import EPDS_INCOMPLETE
 
 router = APIRouter(prefix="/api", tags=["form-demo"])  # cần đăng nhập – chỉ ở máy chủ nội bộ
 public_router = APIRouter(prefix="/api", tags=["public-form"])  # không đăng nhập – tiến trình công khai dùng riêng
@@ -67,13 +70,15 @@ def demo_token(body: DemoIn, user: CurrentUser = Depends(require("demo_form"))) 
             raise HTTPException(404, "Không tìm thấy mã thai phụ.")
         if p.consent_status != "granted":
             raise HTTPException(409, "Thai phụ chưa đồng thuận – không gửi form được. Ghi nhận đồng thuận trong Hồ sơ theo dõi.")
+        if prenatal_link_closed(body.form, p.delivery_date, p.edd, set(rules["forms"].get("postpartum_days") or {})):
+            raise HTTPException(409, "Thai phụ đã sinh – chọn form sau sinh (S1–S4).")
         # Chọn câu (có thể gọi AI) TRƯỚC khi ghi token – không giữ khóa ghi trong lúc chờ AI.
         computed = compute_selection(s, p, [body.form], rules, forms_cfg, selector_client(rules))
         t = create_token(s, p.id, body.form, rules["forms"]["token_ttl_days"], demo=True)
         s.flush()
         snapshot_selection(s, p, t, [body.form], rules, forms_cfg, computed=computed)
         audit.log("create_demo_token", "patient", body.code.strip(), {"form": body.form}, user_id=user.user_id, session=s)
-    return {"token": t, "path": f"/form?token={t}"}
+    return {"token": t, "path": f"/form?token={t}", "url": form_link(t)}
 
 
 @public_router.get("/public/form/{token}")
@@ -137,14 +142,34 @@ async def submit(token: str, body: SubmitIn) -> dict:
     for k, v in body.answers.items():  # chỉ nhận câu thuộc form, đúng kiểu
         if k in allowed and k in forms_cfg.questions:  # câu đã bỏ khỏi forms.yaml sau khi gửi link → bỏ qua
             qd = forms_cfg.questions[k]
-            if qd["type"] == "yesno" and v in YESNO:
+            if qd["type"] == "yesno" and isinstance(v, str) and v in YESNO:
                 answers[k] = v
-            elif qd["type"] == "number" and isinstance(v, int | float):
-                if not float(qd.get("min", 0)) <= float(v) <= float(qd.get("max", 999)):
+            elif qd["type"] == "number" and isinstance(v, int | float) and not isinstance(v, bool):
+                try:
+                    number = float(v)
+                except OverflowError as e:
+                    raise HTTPException(422, f"Giá trị ngoài khoảng cho phép: {qd['text']}") from e
+                if not float(qd.get("min", 0)) <= number <= float(qd.get("max", 999)):
                     raise HTTPException(422, f"Giá trị ngoài khoảng cho phép: {qd['text']}")
-                answers[k] = float(v)
-        elif k in epds_keys and isinstance(v, int) and 0 <= v < len(forms_cfg.epds["options"]):
+                answers[k] = number
+            else:
+                raise HTTPException(422, f"Câu trả lời không hợp lệ: {qd['text']}")
+        elif k in epds_keys:
+            if not isinstance(v, int) or isinstance(v, bool) or not 0 <= v < len(forms_cfg.epds["options"]):
+                raise HTTPException(422, "Câu trả lời không hợp lệ ở phần tâm trạng.")
             answers[k] = v
+
+    if not answers and not body.free_text.strip():
+        raise HTTPException(422, "Vui lòng trả lời ít nhất một câu hoặc nhập mô tả trước khi gửi.")
+    # EPDS chỉ có giá trị khi đủ 10 câu (câu 10 = ý nghĩ tự hại). Thiếu câu mà KHÔNG có lời tự viết → yêu cầu trả lời
+    # đủ, KHÔNG tiêu đường dẫn. Có lời tự viết → vẫn nhận (không bao giờ làm mất lời khách nhắn, vd "em muốn chết"),
+    # đánh dấu EPDS chưa đủ → quy tắc tối thiểu Vàng, gọi hỏi lại.
+    missing_epds = sorted(epds_keys - set(answers))
+    if missing_epds and not body.free_text.strip():
+        raise HTTPException(422, f"Vui lòng trả lời đủ {len(epds_keys)} câu phần tâm trạng "
+                                 f"(còn thiếu {len(missing_epds)} câu) trước khi gửi.")
+    if missing_epds:
+        answers[EPDS_INCOMPLETE] = len(missing_epds)
 
     def work() -> tuple[str, str]:
         # AI hỏng / sai cấu hình → None: quy tắc vẫn chạy, phần tự viết dò theo danh mục và tối thiểu mức vàng.
@@ -163,5 +188,5 @@ async def submit(token: str, body: SubmitIn) -> dict:
     try:
         level, code = await run_in_threadpool(work)
     except FormAlreadySubmitted as e:
-        raise HTTPException(409, {"message": "Form này đã được gửi trước đó. Cảm ơn chị!", "clinic": _clinic()}) from e
+        raise HTTPException(409, {"message": "Đường dẫn không còn hiệu lực hoặc form đã được gửi.", "clinic": _clinic()}) from e
     return {"level": level, "code": code, "reminder": fdef.get("reminder"), "clinic": _clinic()}

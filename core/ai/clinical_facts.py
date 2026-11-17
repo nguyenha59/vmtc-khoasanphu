@@ -9,20 +9,101 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Literal
+from functools import lru_cache
+from typing import Any, Literal
 
 from core.textutil import deaccent
 
 Subject = Literal["patient", "other"]
 Status = Literal["affirmed", "negated", "conditional", "other_site", "anatomy_only", "uncertain"]
 
-_OTHER = re.compile(
-    r"\b(?:me chong|me em|me toi|me minh|chi gai|em gai|con lon|be lon|con gai|con trai|"
-    r"ong noi|ong ngoai|ba noi|ba ngoai|chi dau|em dau|anh trai|chi ho|em ho|co em|"
-    r"ban em|hang xom|chong|bo|me)(?:\s+(?:em|toi|minh))?\b"
-)
 _SELF = re.compile(r"\b(?:em|toi|minh)\b")
+
+
+@dataclass(frozen=True)
+class _Kin:
+    """Bộ nhận "người khác" dựng từ rules.yaml `experiencer` (hàm thuần trên văn bản không dấu)."""
+
+    regex: re.Pattern[str]  # trên văn bản không dấu; nhóm rel = người thân, own = chủ sở hữu
+    accented: dict[str, frozenset[str]]  # dạng không dấu → các dạng có dấu hợp lệ
+    need_owner: frozenset[str]
+    ambiguous: frozenset[str]
+
+
+@lru_cache(maxsize=8)
+def _build_kin(standalone: tuple[str, ...], need_owner: tuple[str, ...], owners: tuple[str, ...],
+               modifiers: tuple[str, ...], ambiguous: tuple[str, ...]) -> _Kin:
+    accented: dict[str, set[str]] = {}
+    for word in (*standalone, *need_owner):
+        accented.setdefault(_plain(word), set()).add(unicodedata.normalize("NFC", word).lower())
+    rel = "|".join(re.escape(w) for w in sorted(accented, key=len, reverse=True))
+    own = "|".join(re.escape(_plain(w)) for w in owners)
+    mods = "|".join(re.escape(_plain(w)) for w in modifiers)
+    regex = re.compile(rf"\b(?P<rel>{rel})(?P<own>(?:\s+(?:{mods}))*\s+(?:{own}))?\b")
+    standalone_plain = {_plain(w) for w in standalone}
+    return _Kin(regex=regex, accented={k: frozenset(v) for k, v in accented.items()},
+                need_owner=frozenset(_plain(w) for w in need_owner) - standalone_plain,
+                ambiguous=frozenset(_plain(w) for w in ambiguous))
+
+
+# Cấu hình đang dùng cho lần đọc hiện tại (lexicon_findings / read_free_text đặt) – để danh sách người thân lấy từ
+# ĐÚNG bộ Rules nơi gọi truyền vào (rules_version được ghi cùng kết quả), không đọc lại file mỗi lần.
+_RULES: ContextVar[Any] = ContextVar("experiencer_rules", default=None)
+
+
+@contextmanager
+def using_rules(rules: Any) -> Iterator[None]:
+    """Đặt bộ Rules cho các hàm phân tích chủ ngữ trong khối `with` (None = giữ như cũ)."""
+    if rules is None:
+        yield
+        return
+    token = _RULES.set(rules)
+    try:
+        yield
+    finally:
+        _RULES.reset(token)
+
+
+def _kin() -> _Kin:
+    rules = _RULES.get()
+    if rules is None:
+        from core.config import load_rules  # muộn: tránh vòng import
+
+        rules = load_rules()
+    cfg = rules["experiencer"]
+    return _build_kin(tuple(cfg["relatives_standalone"]), tuple(cfg["relatives_need_owner"]),
+                      tuple(cfg["owner_words"]), tuple(cfg.get("owner_modifiers", [])),
+                      tuple(cfg.get("ambiguous_plain", [])))
+
+
+def _other_matches(text: str, start: int = 0, *, anchored: bool = False) -> list[re.Match[str]]:
+    """Các lần nhắc người khác trong `text` (văn bản gốc HOẶC đã bỏ dấu).
+
+    Văn bản có dấu: người thân phải đúng dấu ("còn em" không phải "con em", "mà em" không phải "má em").
+    Văn bản không dấu: bỏ các dạng trùng từ khác (`ambiguous_plain`). Người thân cần chủ sở hữu mà thiếu → bỏ.
+    """
+    kin = _kin()
+    original = unicodedata.normalize("NFC", text or "").lower()
+    plain = _plain(original)
+    aligned = len(plain) == len(original)
+    found = [m for m in ([kin.regex.match(plain, start)] if anchored else kin.regex.finditer(plain, start)) if m]
+    out = []
+    for m in found:
+        rel = m.group("rel")
+        if rel in kin.need_owner and not m.group("own"):
+            continue
+        written = original[m.start("rel"):m.end("rel")] if aligned else rel
+        if written != rel:  # có dấu → phải là một dạng có dấu của người thân
+            if written not in kin.accented[rel]:
+                continue
+        elif rel in kin.ambiguous:
+            continue
+        out.append(m)
+    return out
 _BRIDGES = {"bi", "cung", "co", "dang", "hay", "thi", "lai", "van", "hoi", "rat"}
 _SUBJECT_TIME = re.compile(r"\b(?:hom nay|hom qua|hom kia|hom truoc|tuan truoc|thang truoc|luc truoc|"
                            r"sang nay|chieu nay|toi nay|toi qua|bay gio|hien tai|luc nay)\b")
@@ -84,7 +165,7 @@ def _plain(text: str) -> str:
 def subject_before(before: str) -> Subject:
     """Explicit adjacent family subject; reporting verbs do not transfer symptoms."""
     plain = _plain(before)
-    matches = list(_OTHER.finditer(plain))
+    matches = _other_matches(before)
     if not matches:
         return "patient"
     last = matches[-1]
@@ -100,7 +181,7 @@ def subject_before(before: str) -> Subject:
 
 def has_explicit_subject(text: str) -> bool:
     plain = _plain(text)
-    return bool(_OTHER.search(plain) or _SELF.search(plain))
+    return bool(_other_matches(text) or _SELF.search(plain))
 
 
 def assertion_content_start(text: str) -> int:
@@ -112,7 +193,8 @@ def assertion_content_start(text: str) -> int:
         position = time.end()
     whitespace = re.match(r"\s*", plain[position:])
     position += whitespace.end()
-    subject = _OTHER.match(plain, position) or _SELF.match(plain, position)
+    others = _other_matches(text, position, anchored=True)
+    subject = others[0] if others else _SELF.match(plain, position)
     if subject:
         position = subject.end()
     modifiers = _BRIDGES | _NEG_BRIDGES | _NEGATORS | {"da"}
@@ -124,10 +206,15 @@ def assertion_content_start(text: str) -> int:
     return min(position, max(0, len(text) - 1))
 
 
-def _resolved(text: str) -> bool:
+def resolution_asserted(text: str) -> bool:
+    """A recovery phrase must describe the symptom, not running out of medicine."""
     plain = _plain(text)
     for match in _RESOLVED.finditer(plain):
         preceding = re.findall(r"\w+", plain[:match.start()])[-2:]
+        if match.group().endswith("het") and not re.match(
+            r"^\s*(?:(?:roi|han|a|nhe|nha)\s*)*(?:[.,;!?]|$)", plain[match.end():]
+        ):
+            continue
         if not any(t in {"chua", "khong", "ko"} for t in preceding):
             return True
     return False
@@ -175,9 +262,12 @@ def assertion_context(
         negated = True
 
     subject = subject_before(before)
-    subject_suffix = assertion_tail
-    postposed_subject = re.match(r"^\s*(?:la|cua)\s+", subject_suffix)
-    if postposed_subject and _OTHER.match(subject_suffix, postposed_subject.end()) and not _SELF.search(_plain(before)):
+    # Chủ ngữ đứng sau ("ra máu là của chị em"): dò trên câu GỐC (có dấu) để nhận đúng người thân viết có dấu;
+    # bản bỏ dấu cùng độ dài nên vị trí khớp nhau.
+    postposed_subject = re.match(
+        r"^\s*(?:(?:am dao|vung kin|cua minh|quan lot|bang ve sinh)\b\s*)?(?:(?:la|cua)\s+)+", _plain(after))
+    if (postposed_subject and _other_matches(after, postposed_subject.end(), anchored=True)
+            and not _SELF.search(_plain(before))):
         subject = "other"
     if not has_explicit_subject(scope_before):
         if previous is not None and _COORD.fullmatch(coordinated):
@@ -230,7 +320,7 @@ def assertion_context(
     if explicit_history and status != "conditional":
         # "đã hết X": xác nhận một sự kiện trước đó; "không X" chỉ phủ định.
         negated, status = False, "affirmed"
-    resolved = _resolved(resolution_tail) or pre_resolved
+    resolved = resolution_asserted(resolution_tail) or pre_resolved
     temporality = "past_resolved" if resolved else (
         "current" if _CURRENT.search(_plain(clause)) or not _PAST.search(_plain(clause)) else "unknown"
     )

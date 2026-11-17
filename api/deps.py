@@ -1,8 +1,10 @@
 """Phiên đăng nhập phía máy chủ và kiểm tra quyền theo core.security.PERMISSIONS.
 
-Cookie (ký bằng khóa phiên – `SESSION_SECRET_KEY`, hoặc khóa dẫn xuất từ APP_SECRET_KEY) chỉ chứa mã phiên ngẫu nhiên. Mỗi yêu cầu:
+Cookie ký bằng khóa phiên (`SESSION_SECRET_KEY`, hoặc khóa dẫn xuất từ APP_SECRET_KEY)
+chứa mã phiên ngẫu nhiên và dấu HMAC gắn với mật khẩu tại lúc đăng nhập. Mỗi yêu cầu:
   - phiên phải còn trong bảng user_session, chưa hết hạn, chưa bị thu hồi (đăng xuất = thu hồi thật);
   - người dùng phải còn trong users.yaml và vai trò lấy lại từ file (đổi vai trò / xóa tài khoản có hiệu lực ngay).
+  - đổi mật khẩu làm mất hiệu lực cookie cũ; cookie không chứa hash mật khẩu.
 """
 
 from __future__ import annotations
@@ -63,7 +65,11 @@ def _hash(sid: str) -> str:
     return hashlib.sha256(sid.encode()).hexdigest()
 
 
-def _sid(request: Request) -> str | None:
+def _credential_proof(password_hash: str) -> str:
+    return hmac.new(session_signing_key().encode(), ("login-credential:" + password_hash).encode(), hashlib.sha256).hexdigest()
+
+
+def _cookie_payload(request: Request) -> dict | None:
     token = request.cookies.get(COOKIE)
     if not token:
         return None
@@ -71,16 +77,26 @@ def _sid(request: Request) -> str | None:
         d = _serializer().loads(token, max_age=SESSION_HOURS * 3600)
     except (BadSignature, SignatureExpired):
         return None
-    return d.get("sid") if isinstance(d, dict) else None
+    return d if isinstance(d, dict) else None
+
+
+def _sid(request: Request) -> str | None:
+    payload = _cookie_payload(request)
+    sid = payload.get("sid") if payload is not None else None
+    return sid if isinstance(sid, str) and sid else None
 
 
 def issue_session(response: Response, user: AppUser, user_id: int) -> None:
+    current = next((u for u in load_users() if u.get("username") == user.username), None)
+    if current is None or (user.credential_hash and current.get("password_hash") != user.credential_hash):
+        raise HTTPException(401, "Tài khoản đã thay đổi. Vui lòng đăng nhập lại.")
     sid = secrets.token_urlsafe(32)
     t = now()
     with session_scope() as s:
         s.add(UserSession(sid_hash=_hash(sid), username=user.username, user_id=user_id, created_at=t,
                           expires_at=t + timedelta(hours=SESSION_HOURS)))
-    response.set_cookie(COOKIE, _serializer().dumps({"sid": sid}), max_age=SESSION_HOURS * 3600, httponly=True,
+    response.set_cookie(COOKIE, _serializer().dumps({"sid": sid, "credential": _credential_proof(current["password_hash"])}),
+                        max_age=SESSION_HOURS * 3600, httponly=True,
                         samesite="lax", secure=os.environ.get("APP_COOKIE_SECURE") == "1")
 
 
@@ -102,8 +118,9 @@ def revoke_user_sessions(username: str) -> int:
 
 
 def optional_user(request: Request) -> CurrentUser | None:
-    sid = _sid(request)
-    if not sid:
+    payload = _cookie_payload(request)
+    sid = payload.get("sid") if payload is not None else None
+    if not isinstance(sid, str) or not sid:
         return None
     with session_scope() as s:
         row = s.get(UserSession, _hash(sid))
@@ -112,6 +129,12 @@ def optional_user(request: Request) -> CurrentUser | None:
         username, user_id = row.username, row.user_id
     u = next((x for x in load_users() if x.get("username") == username), None)
     if u is None:  # tài khoản đã bị xóa khỏi users.yaml
+        revoke_user_sessions(username)
+        return None
+    proof = payload.get("credential", "")
+    if not isinstance(proof, str) or not hmac.compare_digest(proof, _credential_proof(u["password_hash"])):
+        with session_scope() as s:
+            s.execute(update(UserSession).where(UserSession.sid_hash == _hash(sid)).values(revoked_at=now()))
         return None
     return CurrentUser(AppUser(username=u["username"], name=u["name"], role=u["role"]), user_id)
 
@@ -127,6 +150,9 @@ def require(action: str) -> Callable[[CurrentUser], CurrentUser]:
 
     def dep(user: CurrentUser = Depends(current_user)) -> CurrentUser:
         if not can(user.role, action):
+            from core import audit
+
+            audit.log("access_denied", "permission", action, {"role": user.role}, user_id=user.user_id)
             raise HTTPException(status.HTTP_403_FORBIDDEN,
                                 "Vai trò của bạn không được phép thao tác này. Liên hệ quản trị nếu cần quyền.")
         return user

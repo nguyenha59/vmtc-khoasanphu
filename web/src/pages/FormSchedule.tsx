@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Checkbox, Grid, Group, Paper, Progress, SimpleGrid, Skeleton, Stack, Tabs, Text, ThemeIcon,
+  Alert, Badge, Button, Grid, Group, Paper, Progress, SimpleGrid, Skeleton, Stack, Tabs, Text, ThemeIcon,
 } from "@mantine/core";
 import {
   IconActivityHeartbeat, IconBabyCarriage, IconBan, IconBell, IconCalendarRepeat, IconDownload, IconDroplet, IconInfoCircle,
@@ -8,6 +8,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { DataTable, type Column } from "../components/DataTable";
+import { ProposalCard, type Proposal } from "../components/ProposalCard";
 import { PageHeader, SectionTitle, StatCard } from "../components/ui";
 import { api } from "../lib/api";
 import { useCan } from "../lib/auth";
@@ -25,7 +26,7 @@ type Data = {
   counts: { routine: number; m_tha: number; m_dtd: number; postpartum: number; skip: number; proposals: number;
     packs?: number; links?: number; merged?: number };
   send: Decision[]; skip: Decision[];
-  proposals: { patient_id: number; code: string; flags: string[]; modules: string[]; current: string[] }[];
+  proposals: Proposal[];
   reminders_due: number; call_list: { code: string; forms: string[]; why?: string }[];
 };
 
@@ -46,7 +47,6 @@ export function FormSchedule() {
   const can = useCan();
   const { data, isLoading } = useQuery({ queryKey: ["form-schedule"], queryFn: () => api<Data>("/api/form-schedule") });
   const [files, setFiles] = useState<string[]>([]);
-  const [insulin, setInsulin] = useState<Record<number, boolean>>({});
   const refresh = () => { qc.invalidateQueries({ queryKey: ["form-schedule"] }); qc.invalidateQueries({ queryKey: ["overview"] }); };
 
   const exp = useMutation({
@@ -59,9 +59,16 @@ export function FormSchedule() {
     onSuccess: (r) => { ok(`Đã tạo ${r.ok} tin nhắc.`); if (r.file) setFiles((f) => [...f, r.file!]); refresh(); },
     onError: (e) => fail(e),
   });
+  // Gửi đúng mã điều dưỡng đã xem – máy chủ không nhận thêm mục mới phát sinh sau khi tải trang.
   const confirmMod = useMutation({
-    mutationFn: (pid: number) => api(`/api/form-schedule/proposals/${pid}/confirm`, { method: "POST", json: { insulin: !!insulin[pid] } }),
-    onSuccess: () => { ok("Đã xác nhận module."); refresh(); }, onError: (e) => fail(e),
+    mutationFn: (v: { pid: number; codes: string[]; insulin: boolean }) =>
+      api(`/api/form-schedule/proposals/${v.pid}/confirm`, { method: "POST", json: { codes: v.codes, insulin: v.insulin } }),
+    onSuccess: () => { ok("Đã xác nhận – khách sẽ nhận form theo dõi từ lần lập lịch tới."); refresh(); }, onError: (e) => fail(e),
+  });
+  const declineMod = useMutation({
+    mutationFn: (v: { pid: number; codes: string[]; reason: string }) =>
+      api(`/api/form-schedule/proposals/${v.pid}/decline`, { method: "POST", json: { codes: v.codes, reason: v.reason } }),
+    onSuccess: () => { ok("Đã ghi không đồng ý – không đề xuất lại trong lần mang thai này."); refresh(); }, onError: (e) => fail(e),
   });
 
   if (isLoading || !data) return <Stack><Skeleton h={40} w={300} /><Skeleton h={120} radius="lg" /><Skeleton h={400} radius="lg" /></Stack>;
@@ -124,23 +131,18 @@ export function FormSchedule() {
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Paper p="lg" h="100%">
             <SectionTitle icon={<IconSparkles size={18} />}>Đề xuất bộ câu hỏi theo tình trạng (từ hồ sơ + AI)</SectionTitle>
+            <Text size="xs" c="dimmed" mb="sm">
+              Hệ thống phát hiện khách có bệnh lý nhưng chưa được theo dõi riêng. Đọc căn cứ (mở hồ sơ nếu cần), rồi
+              <b> Xác nhận</b> để khách nhận thêm form theo dõi, hoặc <b>Không đồng ý</b> kèm lý do.
+            </Text>
             {!data.proposals.length ? <Text size="sm" c="dimmed">Không có đề xuất mới.</Text> : (
               <Stack gap="sm">
                 {data.proposals.map((p) => (
-                  <Paper key={p.patient_id} p="sm" withBorder shadow="none" radius="md">
-                    <Group justify="space-between" wrap="wrap" gap="xs">
-                      <div>
-                        <Text fw={700} size="sm">{p.code}</Text>
-                        <Text size="xs" c="dimmed">Nguy cơ: {p.flags.join(", ")} → đề xuất <b>{p.modules.join(", ")}</b></Text>
-                      </div>
-                      <Group gap="sm">
-                        {p.modules.includes("M-DTD") && <Checkbox size="xs" label="Dùng insulin" checked={!!insulin[p.patient_id]}
-                          onChange={(e) => setInsulin((s) => ({ ...s, [p.patient_id]: e.currentTarget.checked }))} />}
-                        <Button size="xs" loading={confirmMod.isPending && confirmMod.variables === p.patient_id}
-                          onClick={() => confirmMod.mutate(p.patient_id)}>Xác nhận</Button>
-                      </Group>
-                    </Group>
-                  </Paper>
+                  <ProposalCard key={p.patient_id} p={p} canAct={can("form_schedule")}
+                    busy={(confirmMod.isPending && confirmMod.variables?.pid === p.patient_id)
+                      || (declineMod.isPending && declineMod.variables?.pid === p.patient_id)}
+                    onConfirm={(codes, insulin) => confirmMod.mutate({ pid: p.patient_id, codes, insulin })}
+                    onDecline={(codes, reason) => declineMod.mutate({ pid: p.patient_id, codes, reason })} />
                 ))}
               </Stack>
             )}

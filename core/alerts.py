@@ -6,8 +6,9 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import event, select, update
+from sqlalchemy import event, func, select, update
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from core import audit
 from core.ai.llm_client import LlmClient
@@ -25,12 +26,16 @@ from core.models import (
     Patient,
     VitalReading,
 )
-from core.repo import ga_on, patient_name, stage_text
+from core.repo import ga_on, patient_name, prenatal_link_closed, stage_text
 from core.rules.triage_rules import triage
 from core.security import encrypt
 
 FINAL_LEVELS = {"keep_red": "Giữ đỏ", "down_yellow": "Hạ vàng", "false_alarm": "Báo nhầm"}
 STATUS_VI = {"open": "Chưa xử lý", "called": "Đã gọi", "escalated": "Chờ bác sĩ", "closed": "Đã đóng"}
+
+
+# Số đo cùng một lần gửi form: lùi vài micro giây theo buổi để cặp tâm thu/tâm trương của mỗi buổi có mốc riêng.
+SLOT_ORDER = {"am": 2, "pm": 1}
 
 
 def history_for(s: Session, patient_id: int, days: int = 60, *, as_of: datetime | None = None) -> dict[str, list[tuple[datetime, float]]]:
@@ -55,6 +60,34 @@ class FormAlreadySubmitted(Exception):
     """Đường dẫn form đã được dùng (kể cả khi hai lần gửi đến gần như cùng lúc)."""
 
 
+SEND_LEASE = timedelta(minutes=10)  # quyền gửi giữ tối đa chừng này; quá hạn = tiến trình gửi đã dừng giữa chừng
+
+
+def claim_send(s: Session, alert_id: int, at: datetime, claim: datetime | None = None) -> datetime | None:
+    """Giành quyền gửi một cảnh báo chưa gửi (một câu UPDATE có điều kiện → chỉ một tiến trình thắng). Quyền gửi
+    quá SEND_LEASE (tiến trình chết / mất điện trước khi gửi xong) được giành lại. Trả mốc giành, None = không giành được."""
+    claim = claim or now()
+    won = s.execute(update(Alert).where(
+        Alert.id == alert_id, Alert.sent_at.is_(None),
+        Alert.send_claimed_at.is_(None) | (Alert.send_claimed_at < at - SEND_LEASE))
+        .values(send_claimed_at=claim).execution_options(synchronize_session=False)).rowcount
+    return claim if won else None
+
+
+def mark_sent(s: Session, alert_ids: list[int]) -> None:
+    """Chỉ ghi "đã gửi" SAU KHI kênh nhận tin."""
+    if alert_ids:
+        s.execute(update(Alert).where(Alert.id.in_(alert_ids), Alert.sent_at.is_(None))
+                  .values(sent_at=now(), send_claimed_at=None).execution_options(synchronize_session=False))
+
+
+def release_claim(s: Session, alert_ids: list[int], claim: datetime) -> None:
+    """Kênh lỗi: trả quyền gửi để lần sau gửi lại."""
+    if alert_ids:
+        s.execute(update(Alert).where(Alert.id.in_(alert_ids), Alert.send_claimed_at == claim)
+                  .values(send_claimed_at=None).execution_options(synchronize_session=False))
+
+
 def _send_after_commit(s: Session, alert_id: int, payload: AlertPayload, channel: AlertChannel) -> None:
     """Gửi cảnh báo SAU khi lưu xong: không giữ khóa CSDL trong lúc gọi mạng, và lỗi kênh gửi không làm mất
     câu trả lời của thai phụ (cảnh báo chưa gửi được sẽ được gửi lại bởi core.jobs)."""
@@ -62,24 +95,39 @@ def _send_after_commit(s: Session, alert_id: int, payload: AlertPayload, channel
     def _do(_session: Session) -> None:
         from core.db import session_scope
 
+        with session_scope() as s1:  # giành quyền như core.jobs → tác vụ gửi lại chạy cùng lúc không gửi trùng
+            claim = claim_send(s1, alert_id, now())
+        if claim is None:
+            return
         try:
             channel.send(payload)
         except Exception as e:  # noqa: BLE001 – mọi lỗi kênh gửi đều chỉ ghi nhật ký
+            with session_scope() as s2:
+                release_claim(s2, [alert_id], claim)
             audit.log("alert_send_failed", "alert", alert_id, {"error": type(e).__name__})
             return
         with session_scope() as s2:
-            a = s2.get(Alert, alert_id)
-            if a is not None and a.sent_at is None:
-                a.sent_at = now()
+            mark_sent(s2, [alert_id])
 
     event.listen(s, "after_commit", _do, once=True)
 
 
-def _mark_token_used(s: Session, token: str, at: datetime) -> None:
-    """Đánh dấu đã dùng bằng một câu UPDATE có điều kiện → hai lần gửi đồng thời chỉ một lần thành công."""
-    res = s.execute(update(FormToken).where(FormToken.token == token, FormToken.used_at.is_(None)).values(used_at=at))
-    if res.rowcount == 0 and s.get(FormToken, token) is not None:  # type: ignore[attr-defined]
+def _mark_token_used(s: Session, token: str, at: datetime, rules: Rules) -> None:
+    """Đánh dấu đã dùng bằng một câu UPDATE có điều kiện → hai lần gửi đồng thời chỉ một lần thành công.
+
+    Kiểm lại MỌI điều kiện hiệu lực có thể đổi trong lúc chờ AI (đồng thuận, đã ghi ngày sinh) ngay trong giao dịch
+    ghi này: câu UPDATE đã giữ khóa ghi nên không ai ghi ngày sinh chen vào giữa lúc kiểm và lúc lưu."""
+    res = s.execute(update(FormToken).where(FormToken.token == token, FormToken.used_at.is_(None),
+                                           FormToken.expires_at >= at,
+                                           FormToken.patient_id.in_(select(Patient.id).where(Patient.consent_status == "granted")))
+                    .values(used_at=at))
+    if res.rowcount == 0:  # type: ignore[attr-defined]
         raise FormAlreadySubmitted(token)
+    row = s.execute(select(FormToken.form_code, Patient.delivery_date, Patient.edd)
+                    .join(Patient, Patient.id == FormToken.patient_id).where(FormToken.token == token)).one()
+    if prenatal_link_closed(row.form_code, row.delivery_date, row.edd,
+                            set(rules["forms"].get("postpartum_days") or {})):
+        raise FormAlreadySubmitted(token)  # giao dịch bị hủy → đường dẫn không bị tiêu, không lưu câu trả lời
 
 
 def submit_response(
@@ -109,14 +157,17 @@ def submit_response(
     )
     # 2) Ghi – một giao dịch ngắn.
     if token:
-        _mark_token_used(s, token, at)
+        # API dùng thời điểm thực sau khi AI chạy xong. Script nhập dữ liệu giả lịch sử
+        # truyền submitted_at để phát lại đúng thời điểm đó; API không nhận trường này.
+        _mark_token_used(s, token, at if submitted_at is not None else now(), rules)
     resp = FormResponse(token=token, patient_id=patient.id, form_code=form_code, submitted_at=at,
                         answers=answers, free_text_enc=encrypt(free_text) if free_text else None, source=source)
     s.add(resp)
     s.flush()
-    for kind, value, _slot in result.rule.readings:
-        measured = at
-        # Nhãn AM/PM không chứng minh giờ thực đo. Không tạo timestamp tương lai.
+    for kind, value, slot in result.rule.readings:
+        # Nhãn AM/PM không chứng minh giờ thực đo → không bịa giờ, không tạo timestamp tương lai. Nhưng sys/dia của
+        # CÙNG một buổi phải ghép đúng cặp: mỗi buổi một mốc riêng cách vài micro giây (sáng trước tối).
+        measured = at - timedelta(microseconds=SLOT_ORDER.get(slot, 0))
         s.add(VitalReading(patient_id=patient.id, measured_at=measured, kind=kind, value=value,
                            source_response_id=resp.id))
     asm = Assessment(response_id=resp.id, level=result.level.code, rule_level=result.rule_level.code,
@@ -160,30 +211,51 @@ def send_yellow_digest(s: Session, channel: AlertChannel) -> int:
         .join(Assessment, Alert.assessment_id == Assessment.id)
         .join(FormResponse, Assessment.response_id == FormResponse.id)
         .join(Patient, FormResponse.patient_id == Patient.id)
-        .where(Alert.level == "yellow", Alert.sent_at.is_(None))
+        .where(Alert.level == "yellow", Alert.sent_at.is_(None), Alert.status != "closed")
     ).all()
-    payloads = [payload_for(a, p, list((asm.findings or {}).get("reasons", [])), now()) for a, asm, _r, p in rows]
+    # Giành từng cảnh báo (quyền gửi có thời hạn): gửi tay + tự động cùng lúc không gửi trùng; chỉ ghi sent_at khi
+    # kênh đã nhận → tiến trình dừng giữa chừng thì lần gom sau (sau SEND_LEASE) gửi lại.
+    claim = now()
+    payloads, claimed = [], []
+    for a, asm, _r, p in rows:
+        if claim_send(s, a.id, claim, claim) is not None:
+            claimed.append(a.id)
+            payloads.append(payload_for(a, p, list((asm.findings or {}).get("reasons", [])), claim))
+    s.commit()  # chốt quyền gửi, nhả khóa ghi trước khi chờ kênh
     if payloads:
-        channel.send_digest(payloads)
-        t = now()
-        for a, *_ in rows:
-            a.sent_at = t
+        try:
+            channel.send_digest(payloads)
+        except Exception:
+            release_claim(s, claimed, claim)
+            s.commit()  # trả lại để lần gom sau gửi
+            raise
+        mark_sent(s, claimed)
     audit.log("send_yellow_digest", "alert", None, {"count": len(payloads)}, session=s)
     return len(payloads)
 
 
 def handle_alert(s: Session, alert_id: int, user_id: int | None, *, status: str, note: str,
-                 final_level: str | None) -> None:
+                 final_level: str | None, expected_version: int | None = None) -> None:
     a = s.get(Alert, alert_id)
     assert a is not None
-    a.status = status
-    a.note = note
+    if final_level and final_level not in FINAL_LEVELS:
+        raise ValueError(final_level)
+    version = a.version or 0
+    if expected_version is not None and expected_version != version:
+        raise StaleAlert("Cảnh báo vừa được người khác cập nhật – tải lại trang rồi thao tác lại.")
+    values: dict[str, Any] = {"status": status, "note": note, "handled_by": user_id, "handled_at": now(),
+                              "version": version + 1}
     if final_level:
-        if final_level not in FINAL_LEVELS:
-            raise ValueError(final_level)
-        a.final_level = final_level
-    a.handled_by = user_id
-    a.handled_at = now()
+        values["final_level"] = final_level
+    # Khóa lạc quan theo phiên bản: chỉ ghi khi bản ghi trong CSDL vẫn như lúc người này đọc (kể cả khi trạng thái
+    # không đổi mà ghi chú vừa được người khác lưu). Màn hình cũ không được ghi đè xử trí đã lưu.
+    done = s.execute(update(Alert).where(Alert.id == alert_id, Alert.status == a.status,
+                                         func.coalesce(Alert.version, 0) == version).values(**values)
+                     .execution_options(synchronize_session=False))
+    if done.rowcount == 0:
+        raise StaleAlert("Cảnh báo vừa được người khác cập nhật – tải lại trang rồi thao tác lại.")
+    for key, value in values.items():
+        set_committed_value(a, key, value)
     audit.log("handle_alert", "alert", alert_id, {"status": status, "final_level": final_level, "note": note},
               user_id=user_id, session=s)
 
@@ -194,6 +266,10 @@ DOCTOR_DECISIONS = {"visit_today": "Hẹn khám hôm nay", "emergency": "Chuyể
 
 class HandleError(ValueError):
     """Thao tác xử trí không hợp lệ theo chính sách ca đỏ."""
+
+
+class StaleAlert(HandleError):
+    """Cảnh báo đã được người khác cập nhật sau khi người này đọc – phải tải lại (HTTP 409)."""
 
 
 def needs_downgrade_review(alert_id: int, findings: dict[str, Any], rules: Rules) -> bool:
@@ -219,7 +295,7 @@ def _pending(s: Session, alert_id: int, kind: str) -> AlertReview | None:
 
 
 def close_alert(s: Session, alert_id: int, *, user_id: int | None, role: str, final_level: str | None, note: str,
-                decision: str | None, rules: Rules) -> str:
+                decision: str | None, rules: Rules, expected_version: int | None = None) -> str:
     """Ghi xử trí và đóng theo chính sách ca đỏ. Trả trạng thái: closed | awaiting_doctor.
 
     - Đỏ + "Giữ đỏ": điều dưỡng → chuyển "Chờ bác sĩ"; bác sĩ → phải chọn quyết định (DOCTOR_DECISIONS) rồi mới đóng.
@@ -234,27 +310,34 @@ def close_alert(s: Session, alert_id: int, *, user_id: int | None, role: str, fi
     if final_level is not None and final_level not in FINAL_LEVELS:
         raise HandleError("Mức sau khi gọi không hợp lệ.")
     if a.level != "red":
-        handle_alert(s, alert_id, user_id, status="closed", note=note, final_level=final_level)
+        handle_alert(s, alert_id, user_id, status="closed", note=note, final_level=final_level,
+                     expected_version=expected_version)
+        waiting = _pending(s, alert_id, "doctor_decision")  # ca vàng đã chuyển bác sĩ: đóng = xong việc của bác sĩ
+        if waiting is not None:
+            waiting.status, waiting.note, waiting.reviewed_by, waiting.reviewed_at = "done", note, user_id, now()
         return "closed"
     if final_level is None:
         raise HandleError("Cảnh báo đỏ: chọn mức sau khi gọi (Giữ đỏ / Hạ vàng / Báo nhầm) trước khi đóng.")
     waiting = _pending(s, alert_id, "doctor_decision")
     if final_level == "keep_red":
         if role != "doctor":
-            handle_alert(s, alert_id, user_id, status="escalated", note=note, final_level=final_level)
+            handle_alert(s, alert_id, user_id, status="escalated", note=note, final_level=final_level,
+                         expected_version=expected_version)
             if waiting is None:
                 s.add(AlertReview(alert_id=alert_id, kind="doctor_decision", status="pending", created_at=now()))
             return "awaiting_doctor"
         if decision not in DOCTOR_DECISIONS:
             raise HandleError("Bác sĩ chọn quyết định xử trí: " + " / ".join(DOCTOR_DECISIONS.values()) + ".")
-        handle_alert(s, alert_id, user_id, status="closed", note=note, final_level=final_level)
+        handle_alert(s, alert_id, user_id, status="closed", note=note, final_level=final_level,
+                     expected_version=expected_version)
         row = waiting or AlertReview(alert_id=alert_id, kind="doctor_decision", created_at=now())
         row.status, row.decision, row.note, row.reviewed_by, row.reviewed_at = "done", decision, note, user_id, now()
         s.add(row)
         audit.log("doctor_decision", "alert", alert_id, {"decision": decision}, user_id=user_id, session=s)
         return "closed"
     # hạ vàng / báo nhầm
-    handle_alert(s, alert_id, user_id, status="closed", note=note, final_level=final_level)
+    handle_alert(s, alert_id, user_id, status="closed", note=note, final_level=final_level,
+                 expected_version=expected_version)
     if waiting is not None:  # bác sĩ (hoặc điều dưỡng gọi lại) hạ ca đang chờ bác sĩ
         waiting.status, waiting.reviewed_by, waiting.reviewed_at = "done", user_id, now()
     if role != "doctor":
@@ -280,10 +363,16 @@ def reopen_from_review(s: Session, review_id: int, user_id: int | None) -> int:
     r = s.get(AlertReview, review_id)
     if r is None or r.kind != "downgrade_review" or r.status != "pending":
         raise HandleError("Mục xem lại không tồn tại hoặc đã xử lý.")
-    r.status, r.outcome, r.reviewed_by, r.reviewed_at = "done", "reopen", user_id, now()
+    # Giành mục xem lại: hai bác sĩ bấm cùng lúc chỉ một người mở lại (không tạo 2 việc).
+    won = s.execute(update(AlertReview).where(AlertReview.id == review_id, AlertReview.status == "pending")
+                    .values(status="done", outcome="reopen", reviewed_by=user_id, reviewed_at=now())
+                    .execution_options(synchronize_session=False)).rowcount
+    if not won:
+        raise StaleAlert("Mục xem lại vừa được người khác xử lý – tải lại trang.")
+    s.expire(r)
     a = s.get(Alert, r.alert_id)
     assert a is not None
-    a.status = "escalated"
+    a.status, a.version = "escalated", (a.version or 0) + 1
     s.add(AlertReview(alert_id=a.id, kind="doctor_decision", status="pending", created_at=now()))
     audit.log("reopen_alert", "alert", a.id, {"from_review": review_id}, user_id=user_id, session=s)
     return a.id

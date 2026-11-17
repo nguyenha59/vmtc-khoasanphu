@@ -340,12 +340,18 @@ function AlertDetailView({ id, finalLevels, onChanged }: {
   const [allWhy, setAllWhy] = useState(false);
   const [joint, setJoint] = useState(true); // xử trí chung các cảnh báo khác của cùng thai phụ
 
+  // Bản nháp chỉ lấy từ máy chủ khi mở cảnh báo (hoặc sau khi lưu xong) – tải lại do hiện số / chuyển bác sĩ /
+  // focus cửa sổ không được xóa ghi chú đang soạn. `base` = phiên bản bản nháp dựa vào; khác CSDL → máy chủ trả 409.
+  const [initFor, setInitFor] = useState<number | null>(null);
+  const [base, setBase] = useState<number | null>(null);
   useEffect(() => {
-    if (d) {
+    if (d && initFor !== d.id) {
       setNote(d.note);
       setFinalLevel(d.final_level);
+      setBase(d.version);
+      setInitFor(d.id);
     }
-  }, [d]);
+  }, [d, initFor]);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["alert", id] });
@@ -353,12 +359,13 @@ function AlertDetailView({ id, finalLevels, onChanged }: {
   };
   const fail = (e: unknown) => notifications.show({ color: "danger", title: "Lỗi", message: (e as Error).message });
   const reveal = useMutation({
-    mutationFn: () => api<{ phone: string }>(`/api/alerts/${id}/reveal-phone`, { method: "POST" }),
-    onSuccess: (r) => { setPhone(r.phone); refresh(); }, onError: fail,
+    mutationFn: () => api<{ phone: string; version: number }>(`/api/alerts/${id}/reveal-phone`, { method: "POST" }),
+    onSuccess: (r) => { setPhone(r.phone); setBase(r.version); refresh(); }, onError: fail,
   });
   const escalate = useMutation({
-    mutationFn: () => api(`/api/alerts/${id}/escalate`, { method: "POST" }),
-    onSuccess: () => { notifications.show({ color: "ok", message: "Đã chuyển bác sĩ." }); refresh(); }, onError: fail,
+    mutationFn: () => api<{ version: number }>(`/api/alerts/${id}/escalate`, { method: "POST" }),
+    onSuccess: (r) => { notifications.show({ color: "ok", message: "Đã chuyển bác sĩ." }); setBase(r.version); refresh(); },
+    onError: fail,
   });
   const alsoIds = joint ? (d?.siblings ?? []).map((x) => x.id) : [];
   const done = (r: { status: string }) => {
@@ -366,16 +373,17 @@ function AlertDetailView({ id, finalLevels, onChanged }: {
       color: "ok", title: "Đã lưu xử trí",
       message: r.status === "awaiting_doctor" ? "Đã chuyển bác sĩ quyết định (ca giữ đỏ)." : r.status === "closed" ? "Cảnh báo đã đóng." : "Đã cập nhật.",
     });
+    setInitFor(null); // đã lưu → lấy lại bản nháp từ máy chủ
     refresh();
   };
   const save = useMutation({
     mutationFn: (close: boolean) => api<{ status: string }>(`/api/alerts/${id}/handle`, { method: "POST",
-      json: { note, final_level: finalLevel, close, also_ids: alsoIds } }),
+      json: { note, final_level: finalLevel, close, also_ids: alsoIds, version: base } }),
     onSuccess: done, onError: fail,
   });
   const decide = useMutation({
     mutationFn: (decision: string) => api<{ status: string }>(`/api/alerts/${id}/handle`, { method: "POST",
-      json: { note, final_level: "keep_red", close: true, decision, also_ids: alsoIds } }),
+      json: { note, final_level: "keep_red", close: true, decision, also_ids: alsoIds, version: base } }),
     onSuccess: done, onError: fail,
   });
 

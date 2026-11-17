@@ -195,7 +195,7 @@ def form_plan_for(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: 
                        list(p.proposed_risk_flags or []), rules)
     return build_plan(flags, list(p.risk_groups or []), ga_at(p.edd, today),
                       p.delivery_date is not None and p.delivery_date <= today,
-                      rules, forms_cfg)
+                      rules, forms_cfg, on_insulin=bool(p.on_insulin))  # cùng lịch insulin với bộ lập lịch
 
 
 def set_form_plan(p: Patient, codes: list[str], insulin: bool, rules: Rules) -> tuple[list[str], list[str]]:
@@ -243,6 +243,30 @@ def declined_codes(s: Session, patient_id: int, edd: date | None = None) -> set[
                      .where(FormPlanDecline.patient_id == patient_id)).all()
     return {c for c, d in rows if (d is None and edd is None)
             or (d is not None and edd is not None and abs((d - edd).days) <= SAME_PREGNANCY_DAYS)}
+
+
+def pending_plan_items(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: Any) -> tuple[Any, list[Any]]:
+    """(kế hoạch, mục ĐANG CHỜ điều dưỡng xác nhận): chưa xác nhận, có câu hỏi đạt chuẩn, chưa bị gỡ / từ chối
+    trong lần mang thai này. Một chỗ tính duy nhất cho màn Lịch gửi form (hiện, xác nhận, từ chối)."""
+    plan = form_plan_for(s, p, today, rules, forms_cfg)
+    declined = declined_codes(s, p.id, p.edd)
+    return plan, [i for i in plan.items if not i.confirmed and i.questions and i.code not in declined]
+
+
+def note_evidence(s: Session, patient_id: int, note_flag: str) -> dict[str, Any] | None:
+    """Căn cứ "AI đọc ghi chú lịch hẹn": ghi chú (ĐÃ CHE) gần nhất mà AI gắn cờ này, kèm ngày hẹn, độ tin cậy, mô hình
+    – để điều dưỡng đọc lại câu gốc trước khi xác nhận. Không có → None."""
+    from core.models import Appointment, NoteExtraction
+
+    rows = s.execute(select(NoteExtraction, Appointment.appt_date)
+                     .join(Appointment, NoteExtraction.appointment_id == Appointment.id)
+                     .where(Appointment.patient_id == patient_id)
+                     .order_by(Appointment.appt_date.desc(), NoteExtraction.id.desc())).all()
+    for ex, appt_date in rows:
+        if note_flag in (ex.risk_flags or []):
+            return {"note": (ex.masked_note or "")[:300], "date": appt_date.isoformat() if appt_date else None,
+                    "confidence": ex.confidence, "model": ex.model}
+    return None
 
 
 def _auto_applicable(s: Session, p: Patient, today: date, rules: Rules, forms_cfg: Any) -> tuple[list[str], set[str]]:

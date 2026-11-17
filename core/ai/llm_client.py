@@ -9,6 +9,7 @@ import logging
 import math
 import os
 import re
+import threading
 from collections.abc import Callable
 from functools import lru_cache
 from typing import Any, Protocol
@@ -23,6 +24,23 @@ from core.config import ROOT, Rules, check_provider, llm_provider, ollama_model
 INPUT_RE = re.compile(r"<<<INPUT>>>\s*(.*?)\s*<<<END>>>", re.DOTALL)
 TASK_RE = re.compile(r"<<<TASK:([\w-]+)>>>")
 log = logging.getLogger(__name__)
+
+
+class _PerThreadProvider:
+    """`last_provider` riêng từng luồng: một client dùng chung cho nhiều lần gọi song song vẫn ghi đúng model THẬT
+    đã trả lời lần gọi của chính luồng đó (luật 5), không lẫn với luồng khác."""
+
+    _tls: threading.local
+
+    @property
+    def last_provider(self) -> str | None:
+        tls = self.__dict__.get("_tls")
+        return getattr(tls, "value", None) if tls is not None else None
+
+    @last_provider.setter
+    def last_provider(self, value: str | None) -> None:
+        tls = self.__dict__.setdefault("_tls", threading.local())
+        tls.value = value
 
 
 class LlmError(Exception):
@@ -89,7 +107,9 @@ class OllamaClient:
         self._local: bool | None = None
 
     def _tags(self) -> dict[str, dict[str, Any]]:
-        r = requests.get(f"{self.url}/api/tags", timeout=3)
+        r = requests.get(f"{self.url}/api/tags", timeout=3, allow_redirects=False)
+        if 300 <= r.status_code < 400:
+            raise LlmError("Ollama chuyển hướng – chặn kết nối ra địa chỉ khác.")
         r.raise_for_status()
         data = r.json()
         if not isinstance(data, dict) or not isinstance(data.get("models"), list):
@@ -120,7 +140,10 @@ class OllamaClient:
                 f"{self.url}/api/generate",
                 json={"model": self.model, "prompt": prompt, "format": schema, "stream": False, "options": options},
                 timeout=self.timeout,
+                allow_redirects=False,
             )
+            if 300 <= r.status_code < 400:
+                raise LlmError("Ollama chuyển hướng – chặn gửi nội dung sang địa chỉ khác.")
             r.raise_for_status()
             data = r.json()
             if not isinstance(data, dict) or not isinstance(data.get("response"), str):
@@ -208,7 +231,7 @@ def strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-class OpenAIClient:
+class OpenAIClient(_PerThreadProvider):
     """Gọi OpenAI Chat Completions, ép JSON rồi kiểm lược đồ tại chỗ.
 
     Chỉ tạo qua make_client khi llm_provider() cho phép (SYNTHETIC_DATA_ONLY=1, không production).
@@ -221,7 +244,7 @@ class OpenAIClient:
             raise LlmError("Thiếu OPENAI_API_KEY trong .env.")
         self.model = os.environ.get("OPENAI_MODEL") or model or DEFAULT_OPENAI_MODEL
         self.name = f"openai:{self.model}"
-        self.last_provider: str | None = None
+        self.last_provider = None
         self.timeout = timeout
         self._no_temperature = False  # một số mô hình chỉ nhận temperature mặc định
         self.budget = _env_float("OPENAI_BUDGET_USD", 1.0)
@@ -305,7 +328,7 @@ class OpenAIClient:
         return bool(self.api_key)
 
 
-class HybridClient:
+class HybridClient(_PerThreadProvider):
     """Ưu tiên OpenAI được phép; lỗi một lần thì dùng local cho phần còn lại của client.
 
     Không thăm dò API trả phí. Quyền gửi ra ngoài được kiểm tra lại trước mỗi lần gọi.
@@ -316,8 +339,10 @@ class HybridClient:
         self.local = local
         self.primary = primary
         self.name = f"hybrid:{primary.name if primary else 'local-only'}|{local.name}"
-        self.last_provider: str | None = None
+        self.last_provider = None
         self._primary_failed = False
+        # Ollama cục bộ xử lý từng yêu cầu một: gọi song song chỉ làm các yêu cầu xếp hàng chạm timeout.
+        self._local_lock = threading.Lock()
 
     @property
     def may_send_external(self) -> bool:
@@ -343,8 +368,9 @@ class HybridClient:
             else:
                 self.last_provider = result_provider(self.primary)
                 return result
-        result = self.local.generate_json(prompt, schema, temperature, seed)
-        self.last_provider = result_provider(self.local)
+        with self._local_lock:
+            result = self.local.generate_json(prompt, schema, temperature, seed)
+            self.last_provider = result_provider(self.local)
         return result
 
     def available(self) -> bool:

@@ -12,7 +12,7 @@ from core.ai.masking import MaskResult, NerFn, mask_text
 from core.ai.note_extractor import Extraction, extract
 from core.config import HisColumns, Rules
 from core.ingest.his_reader import HisRow, standardize
-from core.ingest.validators import ValidationReport, check_columns, validate_rows
+from core.ingest.validators import ValidationReport, check_columns, check_kept_rows, validate_rows
 from core.rules.arrival import ArrivalResult, compute_arrival
 from core.rules.merge import MergedAppt, filter_departments, merge_appointments
 from core.rules.note_patterns import read_fully_by_rules
@@ -135,6 +135,9 @@ def process_his(
         return ProcessResult(report=report, rows=rows, rules_version=rules.rules_version)
 
     kept, dropped = filter_departments(rows, rules["departments_included"])
+    report.fatal += check_kept_rows(kept)  # E08 không dòng nào của khoa / E07 thiếu PID → dừng, giữ lịch đã có
+    if not report.ok:
+        return ProcessResult(report=report, rows=rows, dropped=dropped, rules_version=rules.rules_version)
     merged = merge_appointments(
         kept, rules["arrival"]["merge_conflict_minutes"], rules["arrival"].get("fasting_keywords", [])
     )

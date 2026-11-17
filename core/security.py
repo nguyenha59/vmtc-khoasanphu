@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import bcrypt
@@ -36,6 +36,7 @@ PERMISSIONS: dict[str, set[str]] = {
     "run_eval": {"admin"},
     "retrain_model": {"admin"},
     "view_noshow": {"nurse", "admin"},
+    "export_noshow_contacts": {"nurse"},
     "view_quality": {"admin", "doctor"},
     "view_config": {"nurse", "doctor", "admin"},
     "demo_form": {"nurse", "doctor", "admin"},
@@ -130,6 +131,7 @@ class AppUser:
     username: str
     name: str
     role: str
+    credential_hash: str = field(default="", repr=False)
 
 
 def users_file() -> Path:
@@ -161,10 +163,14 @@ _DUMMY_HASH = bcrypt.hashpw(b"dummy-password", bcrypt.gensalt(rounds=10))
 
 
 def authenticate(username: str, password: str, path: Path | None = None) -> AppUser | None:
+    encoded = password.encode("utf-8")
+    if len(encoded) > 72:
+        bcrypt.checkpw(b"oversized-invalid-password", _DUMMY_HASH)
+        return None
     for u in load_users(path):
         if u["username"] == username:
-            if bcrypt.checkpw(password.encode(), u["password_hash"].encode()):
-                return AppUser(username=u["username"], name=u["name"], role=u["role"])
+            if bcrypt.checkpw(encoded, u["password_hash"].encode()):
+                return AppUser(username=u["username"], name=u["name"], role=u["role"], credential_hash=u["password_hash"])
             return None
-    bcrypt.checkpw(password.encode(), _DUMMY_HASH)
+    bcrypt.checkpw(encoded, _DUMMY_HASH)
     return None

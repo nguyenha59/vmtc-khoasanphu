@@ -23,6 +23,10 @@ def _finding_name(f: Any, concepts: dict[str, Any]) -> str:
     name = concepts.get(f.concept, {}).get("name", f.concept)
     if f.concept == "HEADACHE" and f.severity == "severe":
         return f"{name} nặng / không đỡ"
+    if "override" in str(getattr(f, "source", "")):
+        who = ("người khác bị" if f.experiencer == "other" else "đã hết" if f.temporality == "past_resolved"
+               else "không có")
+        return f"{name} – AI đọc là {who}, hạ từ đỏ xuống vàng – gọi xác minh"
     if "unverified" in str(getattr(f, "source", "")):
         return f"{name} – AI nghi ngờ, cần gọi xác minh"
     if getattr(f, "assertion_status", "") == "uncertain":

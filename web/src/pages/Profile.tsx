@@ -27,8 +27,8 @@ type ProfileData = {
   delivery_date: string | null;
   metrics: { bp_mean: number | null; bp_n: number; bp_max: string | null; weight: number | null; reply_rate: number | null; answered: number; sent: number };
   summary_lines: string[];
-  responses: { at: string; form: string; level: string; summary: string }[];
-  alerts: { id: number; at: string | null; level: string; form: string; reasons: string[]; status: string; final_level: string; note: string }[];
+  responses: { at: string; form: string; level: string; summary: string; demo?: boolean }[];
+  alerts: { id: number; at: string | null; level: string; form: string; reasons: string[]; status: string; final_level: string; note: string; demo?: boolean }[];
   visits: Visit[];
   program: Program;
   history: ObHistory | null;
@@ -72,7 +72,7 @@ export function Profile() {
       )}
       {q && prof.isLoading && <Stack><Skeleton h={110} radius="lg" /><Skeleton h={120} radius="lg" /><Skeleton h={300} radius="lg" /></Stack>}
       {q && prof.isError && <Alert color="danger" title="Không mở được hồ sơ">{(prof.error as Error).message}</Alert>}
-      {prof.data && <ProfileView d={prof.data} />}
+      {prof.data && <ProfileView key={prof.data.patient_id} d={prof.data} />}
     </>
   );
 }
@@ -184,7 +184,7 @@ function ProfileView({ d }: { d: ProfileData }) {
           <Tabs.Panel value="forms" py="md">
             <DataTable rows={d.responses} empty="Chưa có câu trả lời." columns={[
               { key: "at", label: "Thời điểm", render: (r) => fmtDateTime(r.at), width: 120 },
-              { key: "form", label: "Form", width: 90, render: (r) => <Badge variant="light">{r.form}</Badge> },
+              { key: "form", label: "Form", width: 90, render: (r) => <Group gap={4} wrap="nowrap"><Badge variant="light">{r.form}</Badge>{r.demo && <Badge color="gray" variant="outline" title="Nhân viên thử ở màn Form demo – không tính vào tóm tắt, số liệu, bản in">Demo</Badge>}</Group> },
               { key: "level", label: "Mức", width: 100, render: (r) => <LevelBadge level={r.level} size="sm" /> },
               { key: "summary", label: "Tóm tắt", render: (r) => <Text size="sm" lineClamp={2}>{r.summary}</Text> },
             ]} />
@@ -192,7 +192,7 @@ function ProfileView({ d }: { d: ProfileData }) {
           <Tabs.Panel value="alerts" py="md">
             <DataTable rows={d.alerts} empty="Chưa có cảnh báo." columns={[
               { key: "at", label: "Thời điểm", render: (r) => <Text component={Link} to={`/canh-bao/${r.id}`} size="sm" c="brand.7">{fmtDateTime(r.at)}</Text> },
-              { key: "level", label: "Mức", width: 90, render: (r) => <LevelBadge level={r.level} size="sm" /> },
+              { key: "level", label: "Mức", width: 90, render: (r) => <Group gap={4} wrap="nowrap"><LevelBadge level={r.level} size="sm" />{r.demo && <Badge color="gray" variant="outline">Demo</Badge>}</Group> },
               { key: "reasons", label: "Lý do", render: (r) => <Text size="sm" lineClamp={2}>{reasonTags(r.reasons).map((t) => t.text).join(" · ") || "—"}</Text> },
               { key: "status", label: "Trạng thái", width: 110 }, { key: "final_level", label: "Mức sau gọi", width: 110 },
               { key: "note", label: "Xử trí", render: (r) => <Text size="sm" lineClamp={3}>{r.note || "—"}</Text> },

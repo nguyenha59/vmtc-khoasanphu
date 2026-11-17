@@ -1,7 +1,7 @@
 """Security review 2026-11-14: isolated synthetic data, real authentication.
 
-XFAILs are confirmed missing controls, NOT successful security checks. Remove each
-marker when its control is implemented. No demo/live database or .env key is used.
+Regression checks exercise authentication, permissions and token boundaries.
+No demo/live database or .env key is used.
 """
 
 from __future__ import annotations
@@ -163,7 +163,6 @@ def test_public_app_does_not_expose_staff_routes(review):
         assert public.get(f"/api/public/form/{review.normal}").status_code == 200
 
 
-@pytest.mark.xfail(strict=True, reason="SEC-01: password changes do not invalidate existing sessions")
 def test_password_change_must_invalidate_previous_session(review):
     login(review)
     review.users[0]["password_hash"] = bcrypt.hashpw(b"Replacement-Password!", bcrypt.gensalt(rounds=4)).decode()
@@ -171,7 +170,6 @@ def test_password_change_must_invalidate_previous_session(review):
     assert review.client.get("/api/auth/me").status_code == 401
 
 
-@pytest.mark.xfail(strict=True, reason="SEC-01: restoring a username revives its old session")
 def test_restored_account_must_not_revive_old_session(review):
     login(review)
     removed = review.users.pop(0)
@@ -182,7 +180,6 @@ def test_restored_account_must_not_revive_old_session(review):
     assert review.client.get("/api/auth/me").status_code == 401
 
 
-@pytest.mark.xfail(strict=True, reason="SEC-02: admin view_noshow also grants plaintext contact exports")
 def test_admin_must_not_export_patient_phone_numbers(review):
     login(review, "admin")
     assert review.client.get("/api/profile", params={"q": review.code}).status_code == 403
@@ -194,7 +191,6 @@ def test_admin_must_not_export_patient_phone_numbers(review):
     assert response.status_code == 403
 
 
-@pytest.mark.xfail(strict=True, reason="SEC-04: denied patient access is absent from audit_log")
 def test_denied_patient_access_must_be_audited(review):
     login(review, "admin")
     before = audit_count(review)
@@ -202,7 +198,6 @@ def test_denied_patient_access_must_be_audited(review):
     assert audit_count(review) > before
 
 
-@pytest.mark.xfail(strict=True, reason="SEC-05: a previously created demo token remains usable in production")
 def test_existing_demo_token_must_be_disabled_in_production(review, monkeypatch):
     from api.public_main import create_public_app
 

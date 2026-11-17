@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import os
+import re
 import secrets
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
+from sqlalchemy import func, select
 
 from api.deps import CurrentUser, require
 from api.util import file_response, jsonable, safe_name
@@ -21,10 +25,12 @@ from core.config import (
     load_his_columns,
     load_rules,
     ollama_model,
+    parse_hhmm,
     work_dir,
 )
 from core.db import now, session_scope
 from core.ingest.his_reader import read_raw
+from core.models import Appointment, ImportBatch
 from core.pipeline import process_his
 from core.repo import PlanView, confirm_plan, plans_for_date, save_his_result
 from core.rules.arrival import waiting_label
@@ -75,6 +81,23 @@ def _row(p: PlanView, waiting: str) -> dict:
     }
 
 
+_WORLDSMS_FILE = re.compile(r"^nhac_hen_(?:VN|NN)_(\d{4}-\d{2}-\d{2})\.xlsx$")
+
+
+def _stale_export(s: Any, d: date, path: Path, plans: list[PlanView] | None = None) -> str | None:
+    """File WorldSMS của ngày d còn đúng với lịch HIỆN TẠI không. Lịch đang có ca cần xác nhận, hoặc file tạo trước
+    lần nhập HIS mới nhất của ngày đó → file cũ (giờ hẹn / giờ đến có thể đã đổi), không đưa ra để gửi."""
+    rows = _export_rows(plans if plans is not None else plans_for_date(s, d))
+    if any(r.status == "needs_review" or (r.arrival_time is None and not r.waiting) for r in rows):
+        return "Lịch ngày này đang có ca cần xác nhận – file đã xuất trước đó không còn đúng. Xác nhận rồi xuất lại."
+    latest = s.scalar(select(func.max(ImportBatch.created_at)).join(Appointment, Appointment.batch_id == ImportBatch.id)
+                      .where(Appointment.appt_date == d))
+    made = datetime.fromtimestamp(path.stat().st_mtime, TZ).replace(tzinfo=None)
+    if latest is not None and made < latest:
+        return "File được tạo trước lần nhập HIS mới nhất của ngày này – xuất lại file mới."
+    return None
+
+
 def _export_rows(plans: list[PlanView]) -> list[ExportRow]:
     return [ExportRow(phone=p.phone, full_name=p.full_name, pid=p.pid, appt_date=p.appt_date, start_time=p.start_time,
                       arrival_time=p.arrival_time, status=p.status, nationality=p.nationality,
@@ -86,11 +109,13 @@ def list_plans(d: date | None = None, user: CurrentUser = Depends(require("uploa
     d = d or _default_date()
     rules = load_rules()
     waiting = _waiting()
+    export_dir = work_dir("exports")
     with session_scope() as s:
         plans = plans_for_date(s, d)
+        # Chỉ đưa ra file còn khớp lịch hiện tại (file cũ sau khi nhập lại HIS / còn ca cần xác nhận bị ẩn).
+        exports = sorted(p.name for p in export_dir.glob(f"*{d.isoformat()}*.xlsx")
+                         if not (_WORLDSMS_FILE.match(p.name) and _stale_export(s, d, p, plans)))             if export_dir.exists() else []
     bad = invalid_phone_rows(_export_rows(plans))
-    export_dir = work_dir("exports")
-    exports = sorted(p.name for p in export_dir.glob(f"*{d.isoformat()}*.xlsx")) if export_dir.exists() else []
     provider = llm_provider(rules)
     model = "mock"
     if provider in ("ollama", "hybrid"):
@@ -203,6 +228,11 @@ def confirm(plan_id: int, body: ConfirmIn, user: CurrentUser = Depends(require("
                 raise HTTPException(422, "Giờ đến không hợp lệ.") from e
             if t > p.start_time:
                 raise HTTPException(422, "Giờ đến phải trước hoặc bằng giờ hẹn.")
+            # Gõ nhầm "00:05" → tin nhắn hẹn khách đến nửa đêm. Không sớm hơn giờ mở cửa (rules.yaml), trừ khi
+            # chính giờ hẹn sớm hơn giờ mở cửa.
+            earliest = min(parse_hhmm(load_rules()["arrival"]["earliest_arrival"]), p.start_time)
+            if t < earliest:
+                raise HTTPException(422, f"Giờ đến không được sớm hơn {earliest:%H:%M} (giờ mở cửa khoa).")
         elif p.method != "waiting":
             raise HTTPException(422, "Cần nhập giờ đến.")
         confirm_plan(s, plan_id, t, user.user_id)
@@ -242,5 +272,10 @@ def download_export(name: str, user: CurrentUser = Depends(require("export_world
     path = work_dir("exports") / safe_name(name)
     if not path.is_file() or path.suffix != ".xlsx":
         raise HTTPException(404, "Không có file.")
+    if (m := _WORLDSMS_FILE.match(path.name)) is not None:
+        with session_scope() as s:
+            why = _stale_export(s, date.fromisoformat(m.group(1)), path)
+        if why:
+            raise HTTPException(409, why)
     audit.log("download_export", "file", path.name, user_id=user.user_id)
     return file_response(path.read_bytes(), path.name)

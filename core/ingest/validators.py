@@ -26,6 +26,8 @@ MESSAGES = {
     "E04": "Dòng {row}: giờ {value} nằm ngoài khung {lo}–{hi}.",
     "E05": "Dòng {row}: ngày hẹn {value} khác ngày đã chọn {selected}.",
     "E06": "Dòng {row}: số điện thoại '{value}' không hợp lệ – dòng sẽ vào 'Cần xác nhận'.",
+    "E07": "Dòng {rows}: thiếu mã bệnh nhân (PID) – không phân biệt được khách, không nhập file. Sửa file HIS rồi tải lại.",
+    "E08": "Không có dòng nào thuộc khoa trong file – không nhập, giữ nguyên lịch hẹn đã có. Kiểm tra lại file / cột khoa.",
 }
 
 
@@ -59,6 +61,18 @@ def check_columns(raw: pd.DataFrame, cfg: HisColumns) -> ValidationReport:
     if missing:
         rep.fatal.append(Issue("E01", MESSAGES["E01"].format(cols=", ".join(missing)), fatal=True))
     return rep
+
+
+def check_kept_rows(kept: list[HisRow]) -> list[Issue]:
+    """Sau khi lọc khoa: không còn dòng nào (E08) hoặc dòng thiếu PID (E07) → lỗi dừng, KHÔNG đụng lịch đã có.
+    PID là khóa nhận diện khách: dòng thiếu PID sẽ gộp nhầm nhiều người vào một hồ sơ."""
+    if not kept:
+        return [Issue("E08", MESSAGES["E08"], fatal=True)]
+    blank = [r.row_no for r in kept if not str(r.pid or "").strip()]
+    if blank:
+        shown = ", ".join(map(str, blank[:10])) + ("…" if len(blank) > 10 else "")
+        return [Issue("E07", MESSAGES["E07"].format(rows=shown), fatal=True)]
+    return []
 
 
 def validate_rows(rows: list[HisRow], rules: Rules, selected_date: date | None) -> ValidationReport:

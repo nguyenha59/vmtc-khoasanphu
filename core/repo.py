@@ -14,6 +14,7 @@ from core import audit
 from core.db import now
 from core.models import (
     Appointment,
+    Arrival,
     ArrivalPlan,
     ImportBatch,
     NoshowPrediction,
@@ -78,6 +79,46 @@ def patient_phone(p: Patient) -> str:
     return decrypt(p.phone_enc) or ""
 
 
+PREGNANCY_MAX_WEEKS = 42  # thai kỳ dài nhất – mốc đầu thai kỳ = ngày dự sinh − 42 tuần
+
+
+def delivered_this_pregnancy(delivery_date: date | None, edd: date | None) -> bool:
+    """Ngày sinh đã ghi thuộc LẦN MANG THAI HIỆN TẠI (không phải lần sinh trước còn sót trên hồ sơ)."""
+    if delivery_date is None:
+        return False
+    return edd is None or delivery_date >= edd - timedelta(weeks=PREGNANCY_MAX_WEEKS)
+
+
+def prenatal_link_closed(form_code: str, delivery_date: date | None, edd: date | None,
+                         postpartum_codes: set[str]) -> bool:
+    """Đường dẫn form THAI KỲ hết hiệu lực khi đã ghi ngày sinh của thai này – kể cả ngày sinh ghi lùi (đường dẫn tạo
+    sau ngày sinh vì khoa chưa biết). Form sau sinh vẫn dùng được."""
+    return form_code not in postpartum_codes and delivered_this_pregnancy(delivery_date, edd)
+
+
+def last_visits(s: Session, patients: list[Patient], before: date) -> dict[int, date]:
+    """Lần khám THỰC TẾ gần nhất trước ngày `before` theo patient.id.
+
+    Ngày có danh sách khách đến: chỉ tính khi khách có tên trong danh sách (vắng = bỏ hẹn, không phải đã khám).
+    Ngày chưa nhập danh sách: tạm coi lịch hẹn là lần khám (chưa biết đến hay không)."""
+    if not patients:
+        return {}
+    ids = [p.id for p in patients]
+    pid_to_id = {p.pid: p.id for p in patients}
+    appts = s.execute(select(Appointment.patient_id, Appointment.appt_date).distinct()
+                      .where(Appointment.patient_id.in_(ids), Appointment.appt_date < before)).all()
+    imported = set(s.scalars(select(Arrival.visit_date).distinct()
+                             .where(Arrival.visit_date.in_({d for _, d in appts}))).all()) if appts else set()
+    came = {(pid_to_id[pid], d) for pid, d in s.execute(
+        select(Arrival.pid, Arrival.visit_date).distinct()
+        .where(Arrival.pid.in_(list(pid_to_id)), Arrival.visit_date < before)).all()}
+    out: dict[int, date] = {}
+    for pid_, d in [*((x, y) for x, y in appts if y not in imported), *came]:
+        if pid_ not in out or d > out[pid_]:
+            out[pid_] = d
+    return out
+
+
 def ga_on(p: Patient, d: date) -> tuple[int, int] | None:
     """Tuần thai tại ngày d. Đã sinh (d ≥ delivery_date) → None, không còn tuần thai."""
     if p.edd is None:
@@ -132,6 +173,11 @@ def _update_patient_from_note(p: Patient, plan: PlannedAppt) -> dict[str, Any]:
             info["ga_inconsistent"] = True
         else:
             p.edd = appt_d + timedelta(days=280 - (w * 7 + (d or 0)))
+            # Ngày sinh trên hồ sơ có trước khi thai này bắt đầu → của LẦN SINH TRƯỚC: chuyển sang thai kỳ mới (bỏ
+            # ngày sinh khỏi hồ sơ; giá trị cũ ghi vào audit_log ở save_his_result) để lịch form trước sinh chạy lại.
+            if p.delivery_date is not None and not delivered_this_pregnancy(p.delivery_date, p.edd):
+                info["previous_delivery_date"] = p.delivery_date.isoformat()
+                p.delivery_date = None
     if ex and ex.ai and ex.ai.confidence >= min_confidence and ex.ai.risk_flags:
         flags = sorted(set(p.proposed_risk_flags or []) | set(ex.ai.risk_flags))
         p.proposed_risk_flags = flags
@@ -182,7 +228,9 @@ def save_his_result(
     s.flush()
     # Thay lịch của đúng những ngày có trong file (không theo ngày đang chọn trên màn hình): chọn nhầm ngày
     # thì không xóa lịch của ngày khác, tải lại cùng file thì không bị trùng hai bộ.
-    days = {plan.merged.appt_date for plan in res.planned} or {target_date}
+    if not res.planned:  # không có lịch hợp lệ (đã chặn ở pipeline E08) – không bao giờ xóa lịch đang có
+        return batch.id
+    days = {plan.merged.appt_date for plan in res.planned}
     old_ids = list(s.scalars(select(Appointment.id).where(Appointment.appt_date.in_(days))))
     moving, old_confirmed, keep_ids = _carry_over(s, old_ids, res)
     old_ids = [i for i in old_ids if i not in keep_ids]
@@ -195,6 +243,10 @@ def save_his_result(
         m = plan.merged
         p = upsert_patient(s, m.pid, m.full_name, m.phone or m.phone_raw, m.nationality)
         extra = _update_patient_from_note(p, plan)
+        if "previous_delivery_date" in extra:
+            audit.log("new_pregnancy_from_his", "patient", p.code,
+                      {"previous_delivery_date": extra["previous_delivery_date"],
+                       "edd": p.edd.isoformat() if p.edd else None}, user_id=user_id, session=s)
         a = Appointment(patient_id=p.id, appt_date=m.appt_date, start_time=m.start_time, end_time=m.end_time,
                         services=m.services, department=m.department, doctor=m.doctor,
                         note_enc=encrypt(m.note) if m.note else None, booking_source=m.booking_source,

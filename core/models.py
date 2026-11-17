@@ -163,7 +163,10 @@ class Alert(Base):
     level: Mapped[str] = mapped_column(String(8))
     status: Mapped[str] = mapped_column(String(16), default="open")  # open/called/escalated/closed
     created_at: Mapped[datetime | None] = mapped_column(DateTime)
-    sent_at: Mapped[datetime | None] = mapped_column(DateTime)  # đã gửi qua AlertChannel
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime)  # đã gửi qua AlertChannel (chỉ ghi khi gửi xong)
+    # Đang gửi: mốc một tiến trình giành quyền gửi. Quá hạn (tiến trình dừng giữa chừng) → tiến trình khác gửi lại.
+    send_claimed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    version: Mapped[int | None] = mapped_column(Integer, default=0)  # tăng mỗi lần ghi xử trí – chặn ghi đè từ màn cũ
     handled_by: Mapped[int | None] = mapped_column(Integer)
     handled_at: Mapped[datetime | None] = mapped_column(DateTime)
     note: Mapped[str | None] = mapped_column(Text)

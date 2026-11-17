@@ -79,7 +79,7 @@ export function Noshow() {
           <Grid gutter="lg">
             <Grid.Col span={{ base: 12, lg: 7 }}>
               <Paper p="lg">
-                <SectionTitle icon={<IconChartBar size={18} />} right={data.rows.length > 0 && (
+                <SectionTitle icon={<IconChartBar size={18} />} right={can("export_noshow_contacts") && data.rows.length > 0 && (
                   <Button component="a" href={`/api/noshow/call-list.xlsx?d=${data.date}`} size="xs" variant="light"
                     leftSection={<IconDownload size={14} />}>Xuất danh sách gọi / SMS</Button>)}>
                   Xếp hạng nguy cơ không đến
@@ -104,7 +104,7 @@ export function Noshow() {
             <Grid.Col span={{ base: 12, lg: 5 }}>
               <Stack gap="lg">
                 <Paper p="lg">
-                  <SectionTitle icon={<IconCalendarX size={18} />} right={data.reinvite.length > 0 && (
+                  <SectionTitle icon={<IconCalendarX size={18} />} right={can("export_noshow_contacts") && data.reinvite.length > 0 && (
                     <Button component="a" href="/api/noshow/reinvite.xlsx" size="xs" variant="light" leftSection={<IconDownload size={14} />}>Xuất file</Button>)}>
                     Mời đặt lại (bỏ hẹn {dayjs(data.yesterday).format("DD/MM")})
                   </SectionTitle>

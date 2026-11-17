@@ -14,6 +14,7 @@ import logging
 import os
 from collections.abc import Iterable
 from contextlib import asynccontextmanager
+from urllib.parse import urlsplit
 
 import bcrypt
 from fastapi import APIRouter, FastAPI, HTTPException, Request
@@ -96,8 +97,32 @@ SECURITY_HEADERS = {
 }
 
 
+def _same_origin(origin: str, target: str) -> bool:
+    def parts(value: str) -> tuple[str, str, int | None] | None:
+        try:
+            u = urlsplit(value)
+            if u.scheme not in {"http", "https"} or not u.hostname or u.username or u.password:
+                return None
+            if u.path not in {"", "/"} or u.query or u.fragment:
+                return None
+            return u.scheme, u.hostname.lower(), u.port or (443 if u.scheme == "https" else 80)
+        except ValueError:
+            return None
+
+    source = parts(origin)
+    return source is not None and source == parts(target)
+
+
 async def security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
     path = request.url.path
+    if (path.startswith("/api/") and not path.startswith("/api/public/")
+            and request.method not in {"GET", "HEAD", "OPTIONS"}):
+        origin = request.headers.get("origin")
+        target = f"{request.url.scheme}://{request.url.netloc}"
+        if ((origin is not None and not _same_origin(origin, target))
+                or (origin is None and request.headers.get("sec-fetch-site") in {"cross-site", "same-site"})):
+            return JSONResponse({"detail": "Nguồn yêu cầu không hợp lệ."}, status_code=403,
+                                headers={**SECURITY_HEADERS, "Cache-Control": "no-store"})
     if path.startswith("/api/public/"):  # phần mở ra Internet: giới hạn tần suất theo IP
         from api.throttle import public_limiter
 

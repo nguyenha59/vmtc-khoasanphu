@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 import secrets
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from core import audit
 from core.channels import record_send
@@ -17,14 +19,14 @@ from core.config import FormsConfig, Rules
 from core.db import now
 from core.models import (
     Appointment,
-    Arrival,
     FormResponse,
     FormSchedule,
     FormToken,
     Patient,
     PatientProgram,
+    QuestionSelection,
 )
-from core.repo import patient_phone
+from core.repo import PREGNANCY_MAX_WEEKS, last_visits, patient_phone, prenatal_link_closed
 from core.rules.form_scheduler import FormDecision, PatientState
 
 
@@ -46,27 +48,27 @@ def build_states(s: Session, today: date, rules: Rules | None = None) -> list[Pa
     ids = [p.id for p in patients]
     if not ids:
         return []
-    last_visit = dict(s.execute(
-        select(Appointment.patient_id, func.max(Appointment.appt_date))
-        .where(Appointment.patient_id.in_(ids), Appointment.appt_date < today)
-        .group_by(Appointment.patient_id)).all())
-    # Ưu tiên ngày thực tế có đến khám nếu có danh sách khách đến
-    pid_to_id = {p.pid: p.id for p in patients}
-    for pid, d in s.execute(select(Arrival.pid, func.max(Arrival.visit_date))
-                            .where(Arrival.pid.in_(list(pid_to_id)), Arrival.visit_date < today)
-                            .group_by(Arrival.pid)).all():
-        last_visit[pid_to_id[pid]] = d
+    # Lần khám thực tế: ngày đã có danh sách khách đến mà khách vắng = bỏ hẹn, không chặn form theo dõi tiếp.
+    last_visit = last_visits(s, list(patients), today)
     next_appt = dict(s.execute(
         select(Appointment.patient_id, func.min(Appointment.appt_date))
         .where(Appointment.patient_id.in_(ids), Appointment.appt_date >= today)
         .group_by(Appointment.patient_id)).all())
+    # "Đã gửi / đã trả lời form này" chỉ tính trong LẦN MANG THAI HIỆN TẠI (từ ngày dự sinh − 42 tuần): F5 đã gửi
+    # hoặc đã trả lời ở thai trước không được chặn F5 của thai này.
+    start = {p.id: datetime.combine(p.edd - timedelta(weeks=PREGNANCY_MAX_WEEKS), datetime.min.time())
+             for p in patients if p.edd is not None}
     sent: dict[int, list[tuple[str, date]]] = {}
     for pid_, code, d in s.execute(select(FormSchedule.patient_id, FormSchedule.form_code, FormSchedule.send_date)
                                    .where(FormSchedule.patient_id.in_(ids), FormSchedule.status == "exported")):
+        if pid_ in start and d is not None and d < start[pid_].date():
+            continue
         sent.setdefault(pid_, []).append((code, d))
     answered: dict[int, set[str]] = {}
-    for pid_, code in s.execute(select(FormResponse.patient_id, FormResponse.form_code)
-                                .where(FormResponse.patient_id.in_(ids))):
+    for pid_, code, at in s.execute(select(FormResponse.patient_id, FormResponse.form_code, FormResponse.submitted_at)
+                                    .where(FormResponse.patient_id.in_(ids))):
+        if pid_ in start and at is not None and at < start[pid_]:
+            continue
         answered.setdefault(pid_, set()).add(code)
     flags: dict[int, list[str]] = {}
     if rules is not None:  # nhóm nguy cơ chỉ cần cho module có lịch theo nhóm (vd. tiền sản giật → M-THA 3 lần/tuần)
@@ -105,6 +107,7 @@ def save_plan(s: Session, decisions: list[FormDecision], today: date, rules_vers
 
 
 DEMO_PREFIX = "demo_"
+PRENATAL_CLOSED = "Đường dẫn này dành cho giai đoạn mang thai và không còn dùng được. Khoa sẽ gửi form sau sinh."
 
 
 def is_demo_token(token: str | None) -> bool:
@@ -128,6 +131,10 @@ def token_form_codes(s: Session, t: FormToken) -> list[str]:
 
 
 def check_token(s: Session, token: str) -> tuple[FormToken | None, str | None]:
+    from core.config import is_production
+
+    if is_production() and is_demo_token(token):
+        return None, "Đường dẫn demo không dùng được trong chế độ production."
     t = s.get(FormToken, token) if token else None
     if t is None:
         return None, "Đường dẫn không hợp lệ. Vui lòng dùng đúng đường dẫn trong tin nhắn."
@@ -138,6 +145,11 @@ def check_token(s: Session, token: str) -> tuple[FormToken | None, str | None]:
     p = s.get(Patient, t.patient_id)
     if p is None or p.consent_status != "granted":
         return t, "Chị đã ngừng tham gia theo dõi qua form."
+    # Đường dẫn form THAI KỲ hết hiệu lực khi đã ghi ngày sinh của thai này (form sau sinh vẫn dùng được).
+    from core.config import load_rules
+
+    if prenatal_link_closed(t.form_code, p.delivery_date, p.edd, set(load_rules()["forms"].get("postpartum_days") or {})):
+        return t, PRENATAL_CLOSED
     return t, None
 
 
@@ -156,14 +168,73 @@ def precompute_selections(s: Session, today: date, rules: Rules, forms_cfg: Form
     Gọi trong một phiên KHÔNG ghi gì, trước phiên ghi đường dẫn – để form thai phụ gửi vào cùng lúc không bị
     "database is locked". Khóa theo (thai phụ, mã form) nên vẫn dùng được nếu kế hoạch bị lưu lại ở giữa chừng.
     """
-    out: Precomputed = {}
+    from core.ai.question_selector import ai_scores
+    from core.rules.question_select import select_questions
+
+    # 1) Đọc CSDL ở luồng này (Session không dùng chung giữa các luồng được).
+    jobs: list[tuple[tuple[int, tuple[str, ...]], list[str], Any]] = []
     for fs in s.scalars(select(FormSchedule).where(FormSchedule.send_date == today, FormSchedule.status == "planned")):
         p = s.get(Patient, fs.patient_id)
         if p is None or p.consent_status != "granted":
             continue
         codes = _form_codes_today(s, fs, today)
-        out[(p.id, tuple(codes))] = compute_selection(s, p, codes, rules, forms_cfg, selector)
-    return out
+        jobs.append(((p.id, tuple(codes)), codes, selection_context(s, p, now().date(), rules, forms_cfg)))
+    # 2) Chỉ phần gọi AI (chờ mạng) chạy song song; kết quả và chi phí như chạy lần lượt.
+    workers = ai_workers(selector, len(jobs))
+    if workers > 1:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="select-q") as pool:
+            scored = list(pool.map(lambda j: ai_scores(j[1], j[2], rules, forms_cfg, selector), jobs))
+    else:
+        scored = [ai_scores(codes, ctx, rules, forms_cfg, selector) for _, codes, ctx in jobs]
+    # 3) Chọn câu theo quy tắc + điểm AI (hàm thuần) – giống compute_selection.
+    return {key: (ai, select_questions(codes, ctx, rules, forms_cfg, ai.scores if ai.ok else None))
+            for (key, codes, ctx), ai in zip(jobs, scored, strict=True)}
+
+
+AI_PARALLEL_DEFAULT = 6
+
+
+def ai_workers(selector: Any, n_jobs: int) -> int:
+    """Số lần gọi AI cùng lúc khi chọn câu. Chỉ song song khi có thể gọi OpenAI (hybrid tự xếp hàng phần lùi về
+    Ollama); Ollama / mock / không AI → 1. Biến môi trường AI_PARALLEL_CALLS (1 = tắt song song)."""
+    from core.ai.llm_client import can_send_external
+
+    if selector is None or n_jobs <= 1 or not can_send_external(selector):
+        return 1
+    try:
+        n = int(os.environ.get("AI_PARALLEL_CALLS") or AI_PARALLEL_DEFAULT)
+    except ValueError:
+        n = AI_PARALLEL_DEFAULT
+    return max(1, min(n, n_jobs, 16))
+
+
+def _no_longer_sendable(s: Session, p: Patient | None, fs: FormSchedule | str, today: date, rules: Rules) -> str | None:
+    """Lý do KHÔNG gửi (lịch đã chuẩn bị, hoặc tin nhắc cho một mã form) – kiểm lại lúc gửi vì tình trạng có thể
+    đổi sau khi lập lịch (rút đồng thuận, ra khỏi diện theo dõi, đã sinh); None = gửi."""
+    code = fs if isinstance(fs, str) else (fs.form_code or "")
+    if p is None or p.consent_status != "granted":
+        return "Không còn đồng thuận"
+    if (rules.get("forms.eligibility") or {}).get("package_only"):
+        pr = s.scalar(select(PatientProgram).where(PatientProgram.patient_id == p.id))
+        if pr is None or not (pr.in_package or pr.override_monitoring):
+            return "Không còn trong diện theo dõi từ xa"
+    postpartum = set(rules["forms"].get("postpartum_days") or {})
+    if p.delivery_date is not None and p.delivery_date <= today and prenatal_link_closed(code, p.delivery_date, p.edd,
+                                                                                        postpartum):
+        return "Đã sinh – dừng form thai kỳ"
+    return None
+
+
+def _release_claims(s: Session, claims: list[tuple[str, int, list[int]]]) -> None:
+    """Kênh gửi lỗi: hủy đường dẫn chưa ai nhận, trả lịch về planned / merged để xuất lại."""
+    for token, main_id, merged_ids in claims:
+        s.execute(update(FormSchedule).where(FormSchedule.id == main_id, FormSchedule.token == token)
+                  .values(status="planned", token=None))
+        if merged_ids:
+            s.execute(update(FormSchedule).where(FormSchedule.id.in_(merged_ids), FormSchedule.token == token)
+                      .values(status="merged", token=None))
+        s.execute(delete(QuestionSelection).where(QuestionSelection.token == token))
+        s.execute(delete(FormToken).where(FormToken.token == token, FormToken.used_at.is_(None)))
 
 
 def export_form_sms(s: Session, today: date, rules: Rules, forms_cfg: FormsConfig, channel: SmsChannel,
@@ -176,6 +247,7 @@ def export_form_sms(s: Session, today: date, rules: Rules, forms_cfg: FormsConfi
     rows = s.scalars(select(FormSchedule).where(FormSchedule.send_date == today,
                                                 FormSchedule.status == "planned")).all()
     sms: list[SmsRow] = []
+    claims: list[tuple[str, int, list[int]]] = []  # (token, id lịch chính, id lịch gộp) – để trả lại nếu kênh lỗi
     ttl = rules["forms"]["token_ttl_days"]
     if selector is None and rows and precomputed is None:
         from core.ai.question_selector import selector_client
@@ -184,12 +256,24 @@ def export_form_sms(s: Session, today: date, rules: Rules, forms_cfg: FormsConfi
     precomputed = precomputed or {}
     for fs in rows:
         p = s.get(Patient, fs.patient_id)
-        if p is None or p.consent_status != "granted":
-            fs.status, fs.skip_reason = "cancelled", "Không còn đồng thuận"
+        why = _no_longer_sendable(s, p, fs, today, rules)
+        if why:
+            s.execute(update(FormSchedule).where(FormSchedule.id == fs.id, FormSchedule.status == "planned")
+                      .values(status="cancelled", skip_reason=why))
+            s.execute(update(FormSchedule).where(FormSchedule.patient_id == fs.patient_id,  # cả form gộp cùng ngày
+                                                 FormSchedule.send_date == today, FormSchedule.status == "merged")
+                      .values(status="cancelled", skip_reason=why))
             continue
         token = create_token(s, p.id, fs.form_code or "", ttl)
-        fs.token = token
-        fs.status = "exported"
+        s.flush()
+        # Giành lịch: chỉ MỘT lần xuất đổi được planned → exported (bấm 2 lần / 2 máy cùng lúc không tạo 2 đường dẫn).
+        won = s.execute(update(FormSchedule).where(FormSchedule.id == fs.id, FormSchedule.status == "planned")
+                        .values(status="exported", token=token).execution_options(synchronize_session=False)).rowcount
+        if not won:
+            s.delete(s.get(FormToken, token))
+            continue
+        set_committed_value(fs, "status", "exported")
+        set_committed_value(fs, "token", token)
         # Form gộp cùng ngày dùng chung đường dẫn này (1 SMS) và vẫn tính là đã gửi cho nhịp gửi lần sau.
         merged = s.scalars(select(FormSchedule).where(FormSchedule.patient_id == p.id, FormSchedule.send_date == today,
                                                       FormSchedule.status == "merged")).all()
@@ -203,7 +287,20 @@ def export_form_sms(s: Session, today: date, rules: Rules, forms_cfg: FormsConfi
         sms.append(SmsRow(phone=patient_phone(p), patient_code=p.code or "",
                           params={"P": str(name), "P1": form_link(token),
                                   "P2": (today + timedelta(days=ttl)).strftime("%d/%m/%Y")}))
-    result = channel.send_batch("gui_form", sms)
+        claims.append((token, fs.id, [m.id for m in merged]))
+    s.commit()  # chốt đường dẫn, NHẢ khóa ghi trước khi chờ kênh gửi (không chặn các thao tác ghi khác)
+    try:
+        result = channel.send_batch("gui_form", sms)
+    except Exception:
+        _release_claims(s, claims)  # kênh hỏng hẳn: chưa ai nhận đường dẫn → trả lịch về planned để xuất lại
+        s.commit()
+        raise
+    # Kênh trả kết quả từng dòng: dòng lỗi / bị chặn chưa tới thai phụ → hủy đường dẫn đó, trả lịch về planned để
+    # xuất lại (không tính "đã gửi" cho nhịp gửi). Không khớp số dòng → không đoán, giữ nguyên.
+    if len(result.rows) == len(claims):
+        failed = [c for c, r in zip(claims, result.rows, strict=True) if r.status not in ("sent", "exported")]
+        if failed:
+            _release_claims(s, failed)
     record_send(s, result)
     audit.log("export_form_sms", "date", today.isoformat(),
               {"channel": result.channel, "rows": len(sms), "ok": result.n_ok, "blocked": result.n_blocked,
@@ -212,26 +309,34 @@ def export_form_sms(s: Session, today: date, rules: Rules, forms_cfg: FormsConfi
 
 
 def due_reminders(s: Session, at: datetime, hours: int) -> list[FormToken]:
-    """Token chưa trả lời sau 48 giờ, còn hạn, chưa nhắc."""
-    return list(s.scalars(select(FormToken).where(
-        FormToken.used_at.is_(None), FormToken.reminded_at.is_(None),
-        FormToken.created_at <= at - timedelta(hours=hours), FormToken.expires_at > at)))
+    """Token chưa trả lời sau 48 giờ, còn hạn, chưa nhắc. Không gồm đường dẫn demo (nhân viên tự thử, không phải
+    thai phụ nhận) – không bao giờ thành tin nhắn gửi tới số của khách."""
+    return [t for t in s.scalars(select(FormToken).where(
+        FormToken.used_at.is_(None), FormToken.reminded_at.is_(None), ~FormToken.token.startswith(DEMO_PREFIX, autoescape=True),
+        FormToken.created_at <= at - timedelta(hours=hours), FormToken.expires_at > at)) if not is_demo_token(t.token)]
 
 
 def send_reminders(s: Session, rules: Rules, forms_cfg: FormsConfig, channel: SmsChannel,
                    user_id: int | None) -> SendResult:
     tokens = due_reminders(s, now(), rules["forms"]["no_reply_reminder_hours"])
-    sms = []
+    sms, sent_tokens = [], []
+    today = now().date()
     for t in tokens:
         p = s.get(Patient, t.patient_id)
-        if p is None or p.consent_status != "granted":
+        if _no_longer_sendable(s, p, t.form_code, today, rules):  # cùng điều kiện như lúc xuất SMS
             continue
-        t.reminded_at = now()
         name = forms_cfg.forms.get(t.form_code, {}).get("name", t.form_code)
         sms.append(SmsRow(phone=patient_phone(p), patient_code=p.code or "",
                           params={"P": f"Nhắc: {name}", "P1": form_link(t.token),
                                   "P2": t.expires_at.strftime("%d/%m/%Y")}))
+        sent_tokens.append(t)
     result = channel.send_batch("nhac_form", sms)
+    # Chỉ dòng kênh báo gửi / xuất được mới tính "đã nhắc"; lỗi / bị chặn → còn đủ điều kiện nhắc lần sau.
+    ok_rows = ([r.status in ("sent", "exported") for r in result.rows] if len(result.rows) == len(sent_tokens)
+               else [False] * len(sent_tokens))
+    for t, ok in zip(sent_tokens, ok_rows, strict=True):
+        if ok:
+            t.reminded_at = now()
     record_send(s, result)
     audit.log("send_form_reminders", "form_token", None, {"rows": len(sms)}, user_id=user_id, session=s)
     return result

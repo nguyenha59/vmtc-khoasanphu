@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import delete, select
 
 from core import audit
-from core.alerts import payload_for, send_yellow_digest
+from core.alerts import claim_send, mark_sent, payload_for, release_claim, send_yellow_digest
 from core.channels import get_alert_channel
 from core.config import load_rules
 from core.db import now, session_scope
@@ -69,23 +69,30 @@ def retry_unsent_red(at: datetime) -> int:
             .join(Assessment, Alert.assessment_id == Assessment.id)
             .join(FormResponse, Assessment.response_id == FormResponse.id)
             .join(Patient, FormResponse.patient_id == Patient.id)
-            .where(Alert.level == "red", Alert.sent_at.is_(None), Alert.status == "open",
+            # Mọi ca đỏ CHƯA ĐÓNG chưa gửi được (kể cả đã gọi / chờ bác sĩ): bác sĩ vẫn phải nhận thông báo.
+            .where(Alert.level == "red", Alert.sent_at.is_(None), Alert.status != "closed",
                    Alert.created_at <= at - RED_RETRY_AFTER)
         ).all()
         todo = [(a.id, payload_for(a, p, list((asm.findings or {}).get("reasons", [])), at)) for a, asm, p in rows]
     sent = 0
     for alert_id, payload in todo:  # mỗi cảnh báo một giao dịch ngắn, gửi mạng ngoài giao dịch
+        # Giành quyền gửi có thời hạn (core.alerts.claim_send): không gửi trùng khi chạy song song; sent_at chỉ ghi
+        # SAU khi kênh nhận tin → tiến trình dừng giữa chừng thì lần chạy sau SEND_LEASE gửi lại.
+        with session_scope() as s:
+            claim = claim_send(s, alert_id, at)
+        if claim is None:
+            continue
         try:
             channel.send(payload)
         except Exception as e:  # noqa: BLE001
+            with session_scope() as s:  # trả quyền lại để lần sau thử tiếp
+                release_claim(s, [alert_id], claim)
             audit.log("alert_send_failed", "alert", alert_id, {"error": type(e).__name__, "retry": True})
             continue
         with session_scope() as s:
-            a = s.get(Alert, alert_id)
-            if a is not None and a.sent_at is None:
-                a.sent_at = now()
-                audit.log("alert_resent", "alert", alert_id, session=s)
-                sent += 1
+            mark_sent(s, [alert_id])
+        audit.log("alert_resent", "alert", alert_id)
+        sent += 1
     return sent
 
 

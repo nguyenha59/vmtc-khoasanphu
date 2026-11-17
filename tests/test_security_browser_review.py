@@ -1,6 +1,6 @@
 """Opt-in real-browser probes against loopback only, using synthetic records.
 
-Run with RUN_SECURITY_BROWSER=1. XFAILs describe confirmed missing controls.
+Run with RUN_SECURITY_BROWSER=1 to exercise the XSS and CSRF regression checks.
 No external pages, credentials or patient data are used.
 """
 
@@ -105,7 +105,6 @@ def loopback_https(app, tmp_path, hostile_html=None):
         listener.close()
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="SEC-06: downloaded fallback HTML executes unescaped stored summary markup")
 def test_downloaded_html_executes_only_the_benign_audit_marker(review, browser, monkeypatch):
     marker = '<script>document.documentElement.dataset.auditXss="yes"</script>'
     seed_assessment(review, marker)
@@ -127,7 +126,6 @@ def test_downloaded_html_executes_only_the_benign_audit_marker(review, browser, 
     assert executed is None
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="SEC-07: same-site foreign origin can POST clinical workflow changes with a Secure cookie")
 def test_same_site_csrf_can_change_alert_status(review, browser, monkeypatch):
     from core.models import Alert
 

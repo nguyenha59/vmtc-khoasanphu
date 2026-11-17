@@ -134,7 +134,7 @@ def _window_text(mcfg: dict[str, Any]) -> str | None:
 
 
 def build_plan(flags: list[FlagFound], confirmed: list[str], ga: tuple[int, int] | None, postpartum: bool,
-               rules: Rules, forms_cfg: FormsConfig) -> FormPlan:
+               rules: Rules, forms_cfg: FormsConfig, *, on_insulin: bool = False) -> FormPlan:
     cfg = rules.get("personalization") or {}
     targets_by_flag: dict[str, list[str]] = cfg.get("flag_targets", {})
     modules_cfg: dict[str, Any] = rules["forms"]["modules"]
@@ -160,7 +160,7 @@ def build_plan(flags: list[FlagFound], confirmed: list[str], ga: tuple[int, int]
         items.append(PlanItem(code=code, name=fdef["name"], kind=kind, flags=reasons.get(code, []), questions=ok,
                               rejected=rejected, confirmed=code in confirmed,
                               active_now=not postpartum and _in_window(ga, mcfg) and bool(ok),
-                              schedule=schedule_text(code, mcfg, False, [f.flag for f in flags])
+                              schedule=schedule_text(code, mcfg, on_insulin, [f.flag for f in flags])
                               if kind == "module" or not packs_standalone_off else _pack_schedule(rules),
                               window=_window_text(mcfg)))
     stale = [c for c in confirmed if c in modules_cfg and c not in reasons]

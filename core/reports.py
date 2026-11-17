@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,23 @@ FONT_CANDIDATES = [
 
 def _font() -> Path | None:
     return next((p for p in FONT_CANDIDATES if p.exists()), None)
+
+
+LEVEL_VI = {"red": "ĐỎ", "yellow": "VÀNG", "green": "XANH"}
+
+
+def _row_texts(table: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    """(dòng tiêu đề, nội dung đầy đủ) cho mỗi dòng bảng: cột cuối là nội dung dài (vd "Tóm tắt"), các cột còn lại ghép
+    thành tiêu đề. Hàm thuần – không cắt chữ."""
+    if not table:
+        return []
+    cols = list(table[0])
+    *heads, last = cols if len(cols) > 1 else (cols + [""])
+    out = []
+    for row in table:
+        head = " · ".join(LEVEL_VI.get(str(row.get(c, "")), str(row.get(c, ""))) for c in heads)
+        out.append((head, str(row.get(last, "")) if last else ""))
+    return out
 
 
 def profile_pdf(title: str, lines: list[str], table: list[dict[str, Any]] | None = None) -> bytes | None:
@@ -35,17 +53,14 @@ def profile_pdf(title: str, lines: list[str], table: list[dict[str, Any]] | None
     for ln in lines:
         pdf.multi_cell(0, 6, ln, new_x="LMARGIN", new_y="NEXT")
     if table:
+        # Mỗi dòng in thành một đoạn ĐẦY ĐỦ, tự xuống dòng – không cắt tóm tắt lâm sàng vào ô bảng hẹp, không bỏ dòng.
         pdf.ln(3)
-        cols = list(table[0])
-        width = (pdf.w - 20) / len(cols)
         pdf.set_font("U", size=9)
-        for c in cols:
-            pdf.cell(width, 7, str(c), border=1)
-        pdf.ln()
-        for row in table[:40]:
-            for c in cols:
-                pdf.cell(width, 6, str(row[c])[:28], border=1)
-            pdf.ln()
+        for head, body in _row_texts(table):
+            pdf.multi_cell(0, 5, head, new_x="LMARGIN", new_y="NEXT")
+            if body:
+                pdf.multi_cell(0, 5, "    " + body, new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(1)
     pdf.ln(4)
     pdf.set_font("U", size=8)
     pdf.multi_cell(0, 5, new_x="LMARGIN", new_y="NEXT", text="Công cụ hỗ trợ – người quyết định cuối là điều dưỡng / bác sĩ. Dữ liệu demo là dữ liệu giả.")
@@ -53,10 +68,10 @@ def profile_pdf(title: str, lines: list[str], table: list[dict[str, Any]] | None
 
 
 def profile_html(title: str, lines: list[str], table: list[dict[str, Any]] | None = None) -> bytes:
-    body = "".join(f"<p>{ln}</p>" for ln in lines)
+    body = "".join(f"<p>{escape(str(ln))}</p>" for ln in lines)
     if table:
         body += pd.DataFrame(table).to_html(index=False)
-    return (f"<html><meta charset='utf-8'><body style='font-family:Arial'><h2>{title}</h2>{body}"
+    return (f"<html><meta charset='utf-8'><body style='font-family:Arial'><h2>{escape(str(title))}</h2>{body}"
             "<p><i>Công cụ hỗ trợ – người quyết định cuối là điều dưỡng / bác sĩ.</i></p></body></html>").encode()
 
 

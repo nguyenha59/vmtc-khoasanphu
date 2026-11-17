@@ -11,10 +11,11 @@ export function FormDemo() {
   const [form, setForm] = useState<string | null>("F6");
   const cat = useQuery({ queryKey: ["forms-catalog"], queryFn: () => api<{ forms: { code: string; name: string }[] }>("/api/forms/catalog") });
   const create = useMutation({
-    mutationFn: () => api<{ token: string; path: string }>("/api/forms/demo-token", { method: "POST", json: { code, form } }),
+    mutationFn: () => api<{ token: string; path: string; url?: string }>("/api/forms/demo-token", { method: "POST", json: { code, form } }),
     onError: (e) => fail(e, "Không tạo được đường dẫn"),
   });
-  const url = create.data ? `${window.location.origin}${create.data.path}` : "";
+  // Link theo địa chỉ form công khai (APP_BASE_URL) – mở được trên điện thoại cùng mạng; thiếu thì dùng địa chỉ trang này.
+  const url = create.data ? (create.data.url ?? `${window.location.origin}${create.data.path}`) : "";
 
   return (
     <>

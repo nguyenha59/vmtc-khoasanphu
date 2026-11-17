@@ -113,7 +113,17 @@ def _kind(d: FormDecision) -> str:
 
 
 def plan_for_patient(st: PatientState, today: date, rules: Rules) -> list[FormDecision]:
-    return merge_same_day(_plan_for_patient(st, today, rules))
+    decisions = _plan_for_patient(st, today, rules)
+    # 1 đường dẫn / thai phụ / ngày giữ cả QUA NHIỀU LẦN lập lịch: hôm nay đã xuất một đường dẫn (vd F5) thì form đến
+    # hạn thêm sau đó (vd module vừa xác nhận) chờ lần gửi tới, không tạo đường dẫn thứ hai.
+    sent_today = sorted({c for c, d in st.sent if d == today and c})
+    if sent_today:
+        for d in decisions:
+            if d.send:
+                d.send = False
+                d.skip_reason = (f"Hôm nay đã gửi đường dẫn {', '.join(sent_today)} – mỗi thai phụ 1 đường dẫn/ngày, "
+                                 "form này gửi ở lần tới")
+    return merge_same_day(decisions)
 
 
 def _plan_for_patient(st: PatientState, today: date, rules: Rules) -> list[FormDecision]:

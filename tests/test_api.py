@@ -308,6 +308,8 @@ def test_export_names_cannot_escape_folder(client):
 def test_public_form_flow(client):
     _login(client, "nurse")
     codes = client.get("/api/profile/recent").json()["codes"]
+    # Form thai kỳ F6 chỉ dùng được cho thai phụ CHƯA sinh (test_record_delivery đã ghi sinh cho codes[0]).
+    codes = [c for c in codes if client.get("/api/profile", params={"q": c}).json().get("delivery_date") is None]
     if not codes:
         pytest.skip("CSDL demo chưa có thai phụ đã đồng thuận")
     r = client.post("/api/forms/demo-token", json={"code": codes[0], "form": "F6"})

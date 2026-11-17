@@ -107,6 +107,7 @@ export type AlertDetail = AlertSummary & {
   free_text: string;
   note: string;
   final_level: string | null;
+  version: number;
   phone_masked: string;
   submitted_at: string | null;
   charts: { bp: BpSeries | null; glucose: GlucoseSeries | null };

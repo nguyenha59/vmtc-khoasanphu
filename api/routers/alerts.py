@@ -17,6 +17,7 @@ from core.alerts import (
     FINAL_LEVELS,
     STATUS_VI,
     HandleError,
+    StaleAlert,
     ack_downgrade_reviews,
     alert_rows,
     close_alert,
@@ -114,7 +115,9 @@ def _why(f: dict[str, Any], answers: dict[str, Any], questions: dict[str, Any],
                         "detail": x.get("reason") or "", "basis": "Theo dõi xu hướng EWMA so với nền của chính thai phụ",
                         "basis_codes": []})
     for x in f.get("ai", []):
-        if x.get("present") and x.get("level") in ("red", "yellow"):
+        # Phát hiện AI đã hạ (vd đọc là phủ định → present=False) nhưng vẫn ở mức vàng: vẫn phải giải thích.
+        shown = x.get("present") or "override" in str(x.get("source", ""))
+        if shown and x.get("level") in ("red", "yellow"):
             source = ("Quy tắc đọc phần tự viết" if x.get("source") == "lexicon"
                       else "Đọc tự viết, đã đối chiếu quy tắc" if "rule" in x.get("source", "")
                       else "AI đọc phần tự viết")
@@ -123,6 +126,8 @@ def _why(f: dict[str, Any], answers: dict[str, Any], questions: dict[str, Any],
                 source, title = "Cần xác minh mức độ theo cấu hình", "Đau đầu: văn bản mô tả mức nhẹ"
             if "unverified" in str(x.get("source", "")):
                 source = "AI nghi ngờ – quy tắc không thấy từ khóa, cần gọi xác minh"
+            if "override" in str(x.get("source", "")):
+                source = "AI hạ mức (đỏ tối đa còn vàng) – AI đọc khác quy tắc, gọi xác minh"
             if x.get("assertion_status") == "uncertain":
                 source = "Cần gọi xác minh – thông tin đọc/nghe được"
             out.append({"level": x["level"], "source": source, "title": title,
@@ -135,10 +140,18 @@ def _why(f: dict[str, Any], answers: dict[str, Any], questions: dict[str, Any],
     return out
 
 
+CLOSED_LIMIT = 300  # chỉ giới hạn phần lịch sử đã đóng
+
+
 @router.get("")
 def list_alerts(include_closed: bool = False, user: CurrentUser = Depends(require("view_alerts"))) -> dict:
     with session_scope() as s:
-        items = [_summary_item(*r) for r in alert_rows(s, include_closed=include_closed)[:300]]
+        rows = alert_rows(s, include_closed=include_closed)
+        # Ca CHƯA ĐÓNG luôn hiện đủ (không được giấu ca đỏ thứ 301); chỉ lịch sử đã đóng mới giới hạn.
+        active = [r for r in rows if r[0].status != "closed"]
+        closed = [r for r in rows if r[0].status == "closed"]
+        items = [_summary_item(*r) for r in active + closed[:CLOSED_LIMIT]]
+        hidden_closed = max(0, len(closed) - CLOSED_LIMIT)
         n_reviews = s.scalar(select(func.count(AlertReview.id)).where(
             AlertReview.kind == "downgrade_review", AlertReview.status == "pending")) or 0
     # Gộp theo thai phụ: số cảnh báo chưa đóng của cùng một người (giao diện hiện 1 dòng / người)
@@ -146,9 +159,10 @@ def list_alerts(include_closed: bool = False, user: CurrentUser = Depends(requir
     for i in items:
         i["patient_open"] = per_patient.get(i["code"], 0)
     rules = load_rules()
-    return {"items": items,
-            "counts": {"red": sum(1 for i in items if i["level"] == "red" and i["status"] == "open"),
-                       "yellow": sum(1 for i in items if i["level"] == "yellow" and i["status"] == "open"),
+    # Bộ đếm = số ca CHƯA ĐÓNG đang hiện (mở, đã gọi, chờ bác sĩ) – khớp với danh sách, không chỉ trạng thái "open".
+    return {"items": items, "hidden_closed": hidden_closed,
+            "counts": {"red": sum(1 for i in items if i["level"] == "red" and i["status"] != "closed"),
+                       "yellow": sum(1 for i in items if i["level"] == "yellow" and i["status"] != "closed"),
                        "awaiting_doctor": sum(1 for i in items if i["status"] == "escalated"),
                        "downgrade_reviews": n_reviews},
             "digest_times": rules["channels"]["yellow_digest_times"],
@@ -234,7 +248,7 @@ def alert_detail(alert_id: int, user: CurrentUser = Depends(require("view_alerts
             },
             "answers": answers,
             "free_text": decrypt(resp.free_text_enc) or "",
-            "note": a.note or "", "final_level": a.final_level,
+            "note": a.note or "", "final_level": a.final_level, "version": a.version or 0,
             "phone_masked": mask_phone(patient_phone(p)),
             "submitted_at": _iso(resp.submitted_at),
             "charts": series_for(history_for(s, p.id, days=45), rules),
@@ -265,8 +279,12 @@ def reveal_phone(alert_id: int, user: CurrentUser = Depends(require("reveal_phon
         phone = patient_phone(p)
         audit.log("reveal_phone", "patient", p.code, {"alert_id": alert_id}, user_id=user.user_id, session=s)
         if a.status == "open":
-            handle_alert(s, alert_id, user.user_id, status="called", note=a.note or "", final_level=None)
-    return {"phone": phone}
+            try:
+                handle_alert(s, alert_id, user.user_id, status="called", note=a.note or "", final_level=None)
+            except StaleAlert:
+                pass  # người khác vừa xử lý – vẫn hiện số (đã ghi nhật ký), không đổi trạng thái
+        version = a.version or 0
+    return {"phone": phone, "version": version}
 
 
 @router.post("/{alert_id}/escalate")
@@ -276,7 +294,8 @@ def escalate(alert_id: int, user: CurrentUser = Depends(require("handle_alerts")
         if a.status == "closed":
             raise HTTPException(409, "Cảnh báo đã đóng.")
         escalate_alert(s, alert_id, user.user_id, a.note or "")
-    return {"ok": True}
+        version = a.version or 0
+    return {"ok": True, "version": version}
 
 
 class HandleIn(BaseModel):
@@ -285,6 +304,7 @@ class HandleIn(BaseModel):
     close: bool = True
     decision: str | None = None  # bác sĩ: visit_today | emergency | monitor (bắt buộc khi đóng ca "Giữ đỏ")
     also_ids: list[int] = Field(default_factory=list, max_length=20)  # cảnh báo khác cùng thai phụ – xử trí chung
+    version: int | None = None  # phiên bản cảnh báo lúc màn hình tải; khác CSDL → 409 (không ghi đè xử trí mới hơn)
 
 
 @router.post("/{alert_id}/handle")
@@ -298,6 +318,8 @@ def handle(alert_id: int, body: HandleIn, user: CurrentUser = Depends(require("h
     try:
         with session_scope() as s:
             _a, _asm, _resp, p = _load(s, alert_id)
+            if _a.status == "closed":
+                raise HTTPException(409, "Cảnh báo đã đóng.")
             ids = [alert_id]
             for other in dict.fromkeys(body.also_ids):  # chỉ nhận cảnh báo của CÙNG thai phụ
                 o = _load(s, other)
@@ -307,14 +329,21 @@ def handle(alert_id: int, body: HandleIn, user: CurrentUser = Depends(require("h
                     ids.append(other)
             for i in ids:
                 if not body.close:
-                    handle_alert(s, i, user.user_id, status="called", note=body.note, final_level=body.final_level)
-                    results[i] = "called"
+                    # Lưu cuộc gọi không được kéo ca đang "Chờ bác sĩ" ra khỏi hàng chờ của bác sĩ.
+                    keep = "escalated" if s.get(Alert, i).status == "escalated" else "called"
+                    handle_alert(s, i, user.user_id, status=keep, note=body.note, final_level=body.final_level,
+                                 expected_version=body.version if i == alert_id else None)
+                    results[i] = keep
                 else:
                     results[i] = close_alert(s, i, user_id=user.user_id, role=user.role, final_level=body.final_level,
-                                             note=body.note, decision=body.decision, rules=rules)
+                                             note=body.note, decision=body.decision, rules=rules,
+                                             expected_version=body.version if i == alert_id else None)
+    except StaleAlert as e:
+        raise HTTPException(409, str(e)) from e
     except HandleError as e:
         raise HTTPException(422, str(e)) from e
-    status = "awaiting_doctor" if "awaiting_doctor" in results.values() else ("closed" if body.close else "called")
+    status = ("awaiting_doctor" if {"awaiting_doctor", "escalated"} & set(results.values())
+              else ("closed" if body.close else "called"))
     return {"ok": True, "status": status, "results": results}
 
 

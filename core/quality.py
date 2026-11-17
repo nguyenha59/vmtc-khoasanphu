@@ -116,3 +116,25 @@ def eval_table(s: Session) -> pd.DataFrame:
                      "Bộ dữ liệu": r.dataset, "Prompt": r.prompt_version or "—", "Quy tắc": r.rules_version,
                      "Mô hình": r.model, **{k: v for k, v in key.items()}})
     return pd.DataFrame(rows)
+
+
+def blocking_gate(s: Session) -> tuple[list[str], list[str]]:
+    """Chỉ tiêu BẮT BUỘC (eval_targets.yaml, blocking) của lần đánh giá mới nhất mỗi bộ dữ liệu.
+
+    Trả (đo được mà trượt, chưa có số liệu). Dùng trước khi kích hoạt phiên bản quy tắc mới: trượt → chặn duyệt;
+    chưa có số liệu → vẫn duyệt được nhưng ghi nhật ký (người dùng chốt 16/11/2026)."""
+    from core.ai.scorecard import load_targets, scorecard
+
+    targets = load_targets()
+    failed, unmeasured = [], []
+    for ds in ("notes", "forms", "noshow"):
+        r = latest_eval(s, ds)
+        for c in scorecard(ds, (r.metrics or {}) if r else {}, targets):
+            if not c.blocking:
+                continue
+            if c.passed is False:
+                failed.append(f"{ds}: {c.label}")
+            elif c.passed is None:
+                unmeasured.append(f"{ds}: {c.label}")
+    return failed, unmeasured
+

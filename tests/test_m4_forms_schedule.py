@@ -167,6 +167,14 @@ def _patient(s, consent="granted"):
     return p
 
 
+def _in_package(s, p):
+    from core.db import now
+    from core.models import PatientProgram
+
+    s.add(PatientProgram(patient_id=p.id, in_package=True, package_name="Gói thai sản (giả)", updated_at=now()))
+    s.flush()
+
+
 def test_withdraw_consent_stops_immediately(db, rules):
     from core import consent
     from core.config import load_forms
@@ -176,6 +184,7 @@ def test_withdraw_consent_stops_immediately(db, rules):
 
     with db.session_scope() as s:
         p = _patient(s)
+        _in_package(s, p)  # rules.yaml package_only: xuất SMS kiểm lại diện theo dõi
         save_plan(s, pf(build_states(s, TODAY), TODAY, rules), TODAY, rules.rules_version)
         assert s.scalar(select(FormSchedule).where(FormSchedule.status == "planned"))
         consent.withdraw(s, p.id, None)

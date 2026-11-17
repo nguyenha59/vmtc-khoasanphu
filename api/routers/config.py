@@ -15,7 +15,7 @@ from core import audit
 from core.config import load_his_columns, load_rules
 from core.db import session_scope
 from core.models import RuleChange, User
-from core.rule_config import RuleChangeError, approve, list_rules, propose, reject
+from core.rule_config import RuleChangeError, RuleConflict, approve, list_rules, propose, reject
 from core.security import PermissionDenied, can
 
 router = APIRouter(prefix="/api/config", tags=["config"])
@@ -87,6 +87,8 @@ def do_approve(change_id: int, user: CurrentUser = Depends(require("approve_rule
             v = approve(s, change_id, role=user.role, user_id=user.user_id, rules=load_rules())
     except PermissionDenied as e:
         raise HTTPException(403, str(e)) from e
+    except RuleConflict as e:
+        raise HTTPException(409, str(e)) from e
     except RuleChangeError as e:
         raise HTTPException(422, str(e)) from e
     return {"rules_version": v}

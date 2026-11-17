@@ -1,5 +1,5 @@
 # Cấu hình mặc định – MVP. Ngưỡng y khoa phải được bác sĩ duyệt trước khi dùng thật.
-rules_version: "0.17.2"
+rules_version: "0.20.0"
 
 departments_included: ["Phòng khám Sản phụ khoa"]   # [CẦN XÁC NHẬN tên khoa trong file HIS]
 
@@ -208,7 +208,7 @@ thresholds:                               # requires_doctor: true
   bp_yellow: {sys: 140, dia: 90}
   bp_red: {sys: 160, dia: 110}
   glucose_yellow: {fasting: 5.3, after_1h: 7.8, after_2h: 6.7}   # mmol/L, QĐ 1470/QĐ-BYT
-  epds_threshold: 13                       # đề xuất 4 theo bản tiếng Việt (Tran và cs. 2011) – chờ duyệt
+  epds_threshold: 12 # đề xuất 4 theo bản tiếng Việt (Tran và cs. 2011) – chờ duyệt
   epds_item10_red: {value: true, locked: true}
   implausible: {sys_min: 70, sys_max: 250, glu_min: 1, glu_max: 40}
   weight_jump_kg_per_week: null            # [CẦN XÁC NHẬN] khoa điền
@@ -362,6 +362,16 @@ form_cap:
   # → Vàng + "AI nghi ngờ – gọi xác minh". Vd "mắt em hơi mỏi" bị AI đọc thành Rối loạn thị giác.
   # Không áp dụng cho khái niệm khóa (SELF_HARM luôn Đỏ). Không đụng mức của câu có cấu trúc.
   ai_only_red_cap: true
+  # Ngoại lệ của ai_only_red_cap (15/11/2026, MẶC ĐỊNH TẮT – chờ bác sĩ quyết): giữ ĐỎ dù danh mục không có từ khóa khi
+  # HAI bộ đọc độc lập cùng xác nhận: AI (mọi lần chạy cùng thấy, trích dẫn có thật) + bộ đọc theo nghĩa `semantic`.
+  # Lý do: danh mục từ khóa không bao giờ đủ – bộ đo indep_v1: 18/21 ca đỏ bị hạ vàng là do ai_only_red_cap.
+  # Đo (docs/05 mục 3): bật → độ nhạy đỏ 39/62 → 51/62, báo nhầm không tăng (12 → 12), 0 ca giữ đỏ nhầm.
+  ai_only_red_keep:
+    enabled: false
+    concepts: [BLEEDING, REDUCED_FM, FLUID, DYSPNEA, SYNCOPE, CONVULSION, VISUAL, EPIGASTRIC, CHEST_PAIN, CALF,
+               CONTRACTIONS]
+    require_unanimous: true
+    require_semantic: true
   # Có các cụm này → thai phụ có thể cũng bị / đang kể lại triệu chứng của mình → không hạ.
   keep_red_markers: ["em cũng", "cả em", "mình cũng", "tôi cũng", "giống em", "bảo em", "nói em", "thấy em",
                      "em cung", "ca em", "minh cung", "toi cung", "giong em", "bao em", "noi em", "thay em"]
@@ -380,6 +390,58 @@ form_cap:
   max_leftover_tokens: 1
   info_context_phrases: ["đọc trên mạng", "trên mạng", "đọc báo", "xem trên mạng", "doc tren mang", "tren mang",
                          "doc bao"]
+
+# Lưới dự phòng khi AI không chạy (15/11/2026): nhận "người khác bị" theo cấu trúc câu
+# [người thân] (+ của / thân / ruột…) + [tôi / em / mình] + (bị) + triệu chứng, không liệt kê từng cụm.
+# Viết có dấu; code tự sinh dạng không dấu. Chỉ áp dụng khi người thân đứng LIỀN triệu chứng (chen tối đa vài từ nối).
+# [CẦN XÁC NHẬN] bác sĩ duyệt danh sách.
+experiencer:
+  # Đứng một mình đã chắc là người khác ("chồng bị sốt", "mẹ chồng bị cao huyết áp").
+  relatives_standalone: ["mẹ chồng", "bố chồng", "chị gái", "em gái", "em trai", "anh trai", "anh rể", "em rể",
+                         "chị dâu", "em dâu", "chị họ", "em họ", "anh họ", "con lớn", "bé lớn", "con gái", "con trai",
+                         "ông nội", "ông ngoại", "bà nội", "bà ngoại", "hàng xóm", "đồng nghiệp", "chồng", "bố", "mẹ"]
+  # Phải có chủ sở hữu ("bạn của tôi", "anh tôi", "dì em", "bạn thân mình") – đứng một mình dễ là xưng hô
+  # ("chị bị ra máu" có thể là thai phụ tự xưng). Không có "con", "bé", "em bé": dễ là thai nhi.
+  relatives_need_owner: ["bạn thân", "bạn gái", "bạn", "ba", "má", "anh", "chị", "cô", "dì", "chú", "bác", "cậu",
+                         "mợ", "thím", "ông", "bà"]
+  owner_words: ["tôi", "em", "mình"]
+  # Không có "cả": "chồng CẢ em bị ra máu" = cả hai cùng bị, không phải "chồng của em".
+  owner_modifiers: ["của", "thân", "ruột", "họ", "lớn", "nhỏ", "út"]
+  # Viết không dấu thì trùng từ khác ("ma" = mà, "chi" = chỉ, "co" = có, "di" = đi) → chỉ nhận khi viết có dấu.
+  ambiguous_plain: ["má", "chị", "cô", "dì"]
+
+# AI được hạ mức phần tự viết (người dùng chốt 15/11/2026, thay luật cũ "AI chỉ nâng" cho riêng phần tự viết):
+# danh mục thấy triệu chứng của thai phụ nhưng AI đọc ra người khác / đã hết / phủ định ở CÙNG chỗ trong câu.
+# Vàng → Xanh được; Đỏ → tối đa `floor_if_red` (không bao giờ Đỏ → Xanh). Không áp dụng cho câu trả lời có cấu trúc,
+# khái niệm khóa (SELF_HARM) và `exclude_concepts`. AI lỗi / không đủ phiếu → giữ mức danh mục.
+# [CẦN XÁC NHẬN] bác sĩ duyệt.
+ai_override:
+  enabled: true
+  reasons: [other_person, past_resolved, negated]
+  min_vote_share: 1.0                      # tỷ lệ lần chạy AI cùng đọc ra "không có hiệu lực" (1.0 = mọi lần)
+  min_confidence: 0.8                      # độ nhất quán chung của các lần chạy
+  floor_if_red: yellow
+  exclude_concepts: [REDUCED_FM, CONTRACTIONS]   # thai nhi dễ bị AI coi là "người khác"
+  # Câu gốc phải có dấu hiệu cho cách đọc của AI (chống AI đọc sai "sáng nay ra máu" thành "không ra máu").
+  # negated: trong CÙNG mệnh đề với triệu chứng; past_resolved: mệnh đề đó hoặc mệnh đề ngay sau;
+  # other_person: ngay trước triệu chứng (cùng mệnh đề) là một TỪ CHỈ NGƯỜI (`person_words`); chen giữa chỉ được từ nối
+  # (`not_subject_words`), từ nối danh xưng (`person_continuation`: nhà, xã, của…) và đại từ sở hữu liền sau
+  # ("cháu EM bị", "bạn của TÔI"). "mẹ em lo vì em ra máu", "leo cầu thang là hụt hơi" → không đủ dấu hiệu.
+  support:
+    person_words: ["người", "ông", "bà", "anh", "chị", "cô", "chú", "bác", "dì", "cậu", "mợ", "thím", "bạn", "con",
+                   "cháu", "chồng", "vợ", "bố", "ba", "mẹ", "má", "em gái", "em trai", "hàng xóm", "đồng nghiệp",
+                   "đứa", "thằng", "cu", "nhỏ", "giáo"]
+    person_continuation: ["nhà", "xã", "của", "lớn", "nhỏ", "gái", "trai", "họ", "thân", "ruột", "út", "cả",
+                          "nội", "ngoại", "chồng", "vợ", "dâu", "rể", "cùng", "phòng", "giáo"]
+    # Văn bản có dấu: khớp ĐÚNG DẤU. Không dấu: bỏ các từ trùng từ khác ("đâu"=đau, "đỡ"=đỏ, "hồi"=hơi, "đã"=da/dạ).
+    plain_ambiguous: ["đâu", "đỡ", "hồi", "đã", "chả"]
+    negated: ["không", "chưa", "chẳng", "chả", "ko", "hết", "đâu", "chưa từng", "không hề"]
+    past_resolved: ["hôm qua", "hôm kia", "hôm trước", "tuần trước", "tháng trước", "lúc trước", "trước đây", "hồi",
+                    "đã", "hết", "khỏi", "đỡ", "rồi"]
+    not_subject_words: ["em", "tôi", "mình", "chị", "bị", "có", "thấy", "cũng", "đang", "hay", "thì", "lại", "vẫn",
+                        "hơi", "rất", "khá", "sáng", "trưa", "chiều", "tối", "đêm", "nay", "qua", "hôm", "bây", "giờ",
+                        "lúc", "hiện", "tại", "từ", "mấy", "ngày", "hai", "ba", "dạo", "này", "tự", "nhiên", "bỗng",
+                        "và", "với", "nhưng", "mà", "còn", "nên", "vì", "do", "là", "ạ", "ơi", "bác", "sĩ"]
 
 noshow:
   call_threshold: 0.5
@@ -403,6 +465,27 @@ llm:
   # inherit = cùng chế độ với AI chính; rules = chỉ chấm theo quy tắc.
   # hybrid chỉ dùng OpenAI khi được phép; production hoặc không có key thì dùng Ollama.
   question_selector_provider: inherit
+
+# Bộ đọc thứ hai theo NGHĨA (core/ai/reader/semantic.py): embedding cục bộ qua Ollama, so trích dẫn với tên + `meaning`
+# của khái niệm (không dùng từ đồng nghĩa). Chỉ làm nhân chứng cho form_cap.ai_only_red_keep. Ngưỡng hiệu chỉnh trên
+# bộ đã lộ (v1/v2 red-team, ood_v1, tests/redteam), đo trên bộ kín (indep_v1, ood_v2) – xem docs/05 mục 3.
+semantic:
+  enabled: true
+  # ollama (mặc định, cục bộ) | hybrid / openai (API ngoài: CHỈ dữ liệu giả, SYNTHETIC_DATA_ONLY=1, cấm production)
+  # | mock (chỉ test). SEMANTIC_PROVIDER trong .env ưu tiên hơn.
+  provider: ollama
+  # Mô hình Ollama (cục bộ – bắt buộc khi dùng thật); SEMANTIC_MODEL trong .env ưu tiên hơn.
+  # So sánh 15/11/2026 (bộ kín 81 ca đỏ): qwen3-embedding:4b 66/81 nhầm 0,3% · bge-m3 61/81 0,7% ·
+  # snowflake-arctic-embed2 60/81 0,5% · embeddinggemma 49/81 · qwen3-embedding:0.6b 28/81 · OpenAI large 67/81 0,3%.
+  model: "qwen3-embedding:4b"
+  openai_model: "text-embedding-3-large"   # chỉ khi SEMANTIC_PROVIDER=hybrid/openai (dữ liệu giả)
+  # Ngưỡng độ giống nghĩa theo mô hình (thang điểm mỗi mô hình khác nhau) – chọn bằng scripts/compare_embedders.py
+  # trên bộ ĐÃ LỘ, điều kiện xác nhận nhầm chủ đề ≤ 0,5%. Mô hình không có trong bảng → `threshold`.
+  thresholds: {"qwen3-embedding:4b": 0.49, "bge-m3": 0.53, "snowflake-arctic-embed2": 0.44,
+               "text-embedding-3-large": 0.30}
+  threshold: 0.6
+  top_k: 1                                 # khái niệm AI chọn phải là khái niệm giống nghĩa NHẤT
+  prototypes: {}                           # mẫu nghĩa bác sĩ thêm theo khái niệm (tùy chọn) – KHÔNG chép câu bộ đo
 
 channels:
   sms: excel                               # excel | mock | test_api
@@ -458,3 +541,10 @@ rule_meta:
   alert_review.downgrade_sample_rate: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/04 C6 – xem lại ca đỏ bị hạ"}
   alert_review.always_review_rule_codes: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/04 C6"}
   alert_review.always_review_concepts: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/04 C6"}
+  ai_override.enabled: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/05 mục 3 – AI hạ mức phần tự viết (15/11/2026)"}
+  ai_override.min_vote_share: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/05 mục 3"}
+  ai_override.min_confidence: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/05 mục 3"}
+  ai_override.floor_if_red: {group: thresholds, editable: true, requires_doctor: true, basis: "Đỏ không bao giờ về Xanh"}
+  ai_override.exclude_concepts: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/05 mục 3"}
+  experiencer.relatives_standalone: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/05 mục 3 – người khác bị"}
+  experiencer.relatives_need_owner: {group: thresholds, editable: true, requires_doctor: true, basis: "docs/05 mục 3 – người khác bị"}

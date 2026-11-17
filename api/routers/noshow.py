@@ -117,7 +117,7 @@ def overview(d: date | None = None, user: CurrentUser = Depends(require("view_no
 
 
 @router.get("/call-list.xlsx")
-def call_list(d: date, user: CurrentUser = Depends(require("view_noshow"))):
+def call_list(d: date, user: CurrentUser = Depends(require("export_noshow_contacts"))):
     r = _compute(d)
     call = [x for x in r["rows"] if x["action"] != "—"]
     audit.log("export_noshow_call_list", "date", d.isoformat(), {"rows": len(call)}, user_id=user.user_id)
@@ -127,7 +127,7 @@ def call_list(d: date, user: CurrentUser = Depends(require("view_noshow"))):
 
 
 @router.get("/reinvite.xlsx")
-def reinvite(user: CurrentUser = Depends(require("view_noshow"))):
+def reinvite(user: CurrentUser = Depends(require("export_noshow_contacts"))):
     yesterday = _today() - timedelta(days=1)
     with session_scope() as s:
         reinv = reinvite_list(s, yesterday, load_rules())

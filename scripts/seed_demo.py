@@ -6,6 +6,7 @@ python scripts/seed_demo.py --reset
 from __future__ import annotations
 
 import argparse
+import os
 import random
 import sys
 from datetime import date, datetime, time, timedelta
@@ -20,16 +21,65 @@ from core.config import DATA_DIR, load_env, load_forms, load_rules  # noqa: E402
 
 DEPT = "Phòng khám Sản phụ khoa"
 
+# Căn cứ GIẢ cho cờ nguy cơ demo – như luồng thật (core/repo.py): cờ chỉ có khi AI đọc một ghi chú lịch hẹn.
+NOTE_EVIDENCE = {
+    "HTN": "Theo dõi THA thai kỳ, HA lần khám 142/92, dặn đo HA sáng tối tại nhà",
+    "GDM": "ĐTĐ thai kỳ, NPDH 75g dương tính, tư vấn chế độ ăn, hẹn kiểm tra đường huyết",
+}
+
+
+def seed_note_evidence(s, rules) -> int:  # type: ignore[no-untyped-def]
+    """Mỗi cờ nguy cơ demo (Patient.proposed_risk_flags) phải có căn cứ để điều dưỡng kiểm trước khi xác nhận:
+    thêm ghi chú lịch hẹn GIẢ (không tên / SĐT) vào lần hẹn gần nhất + kết quả AI đọc (NoteExtraction, model
+    `seed:synthetic`). Cờ đã có căn cứ thì bỏ qua. Trả số cờ được bổ sung."""
+    from sqlalchemy import select
+
+    from core.models import Appointment, NoteExtraction, Patient
+    from core.patients import note_evidence
+    from core.security import decrypt, encrypt
+
+    added = 0
+    for p in s.scalars(select(Patient).where(Patient.proposed_risk_flags.is_not(None))):
+        for flag in p.proposed_risk_flags or []:
+            text = NOTE_EVIDENCE.get(flag)
+            if text is None or note_evidence(s, p.id, flag) is not None:
+                continue
+            appt = s.scalar(select(Appointment).where(Appointment.patient_id == p.id)
+                            .order_by(Appointment.appt_date.desc()).limit(1))
+            if appt is None:
+                continue
+            old = decrypt(appt.note_enc) if appt.note_enc else ""
+            appt.note_enc = encrypt(f"{old} | {text}" if old else text)
+            s.add(NoteExtraction(appointment_id=appt.id, risk_flags=[flag], confidence=0.9, model="seed:synthetic",
+                                 prompt_version="seed", rules_version=rules.rules_version, masked_note=text,
+                                 votes=[], raw={"seed": True}))
+            added += 1
+    s.flush()
+    return added
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--reset", action="store_true", help="xóa data/app.db trước khi nạp")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--demo-forms", type=int, default=40, help="số câu trả lời form mẫu để tạo cảnh báo")
+    ap.add_argument("--backfill-notes", action="store_true",
+                    help="chỉ bổ sung căn cứ (ghi chú giả) cho cờ nguy cơ demo trên CSDL đang có – không nạp lại")
     args = ap.parse_args()
     load_env()
 
     from core import db as dbmod
+
+    if args.backfill_notes:
+        # Ghi chú GIẢ chỉ được thêm vào CSDL demo – không bao giờ vào hồ sơ thật (không hợp thức hóa cờ thiếu căn cứ).
+        from core.config import is_production
+
+        if is_production() or os.environ.get("SYNTHETIC_DATA_ONLY") != "1":
+            sys.exit("Từ chối: --backfill-notes chỉ chạy trên CSDL dữ liệu GIẢ (SYNTHETIC_DATA_ONLY=1, không production).")
+        dbmod.init_db()
+        with dbmod.session_scope() as s:
+            print(f"Đã bổ sung căn cứ cho {seed_note_evidence(s, load_rules())} cờ nguy cơ demo.")
+        return
 
     if args.reset:
         p = Path(dbmod.db_url().replace("sqlite:///", ""))
@@ -109,6 +159,7 @@ def main() -> None:
                                kind=r["kind"], value=float(r["value"])))
         s.flush()
         print(f"Đã nạp {len(pats)} bệnh nhân, {n_appt} lịch hẹn, {len(arrivals)} lượt đến, {len(vitals)} chỉ số.")
+        print(f"Căn cứ ghi chú cho {seed_note_evidence(s, rules)} cờ nguy cơ chờ điều dưỡng xác nhận.")
         from scripts.gen_cases import generate as gen_cases
         from scripts.gen_clinical import generate as gen_programs
 

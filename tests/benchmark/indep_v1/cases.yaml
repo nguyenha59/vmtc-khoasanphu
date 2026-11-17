@@ -1,0 +1,172 @@
+# Bộ đo ĐỘC LẬP phần tự viết – indep_v1 (15/11/2026). Dữ liệu GIẢ, viết tay.
+#
+# Viết KHÔNG nhìn danh sách từ đồng nghĩa trong rules.yaml (chỉ dùng mã + mức khái niệm), theo cách thai phụ hay viết:
+# nói vòng, không dấu, viết tắt, lẫn chuyện người khác / chuyện đã qua / câu hỏi. KHÔNG đưa câu nào vào danh mục,
+# ví dụ prompt hay test sửa lỗi – bộ này dùng để ĐO, không dùng để vá. Câu bị lộ (đã dùng để sửa) → chuyển sang bộ khác.
+#
+# expected_level = mức theo cách tính của docs/05 mục 3 trên mức khái niệm của rules.yaml:
+#   triệu chứng thai phụ đang có → mức khái niệm (nặng → level_if_severe; gò bụng ≥ 37 tuần → vàng);
+#   người khác bị / phủ định / câu giả định → xanh; đã qua → xanh (vàng nếu past_counts_yellow);
+#   thông tin đọc / nghe được, mối lo ngoài danh mục → vàng; kết hợp text_combos → đỏ.
+# [CẦN XÁC NHẬN] điều dưỡng / bác sĩ duyệt đáp án và bổ sung câu thật (đã bỏ tên, SĐT).
+version: indep_v1
+cases:
+# ---------------------------------------------------------------- novel: cách nói lạ, có dấu
+- {id: N01, group: novel, concept: BLEEDING, text: "đi vệ sinh thấy giấy dính đỏ", ga_weeks: 24, expected_level: red}
+- {id: N02, group: novel, concept: BLEEDING, text: "quần trong lấm tấm mấy đốm sẫm màu", ga_weeks: 30, expected_level: red}
+- {id: N03, group: novel, concept: BLEEDING, text: "dưới chảy ra thứ dịch màu cà phê", ga_weeks: 19, expected_level: red}
+- {id: N04, group: novel, concept: REDUCED_FM, text: "từ trưa tới giờ bé nằm yên re không động đậy", ga_weeks: 33, expected_level: red}
+- {id: N05, group: novel, concept: REDUCED_FM, text: "hôm nay con chẳng nhúc nhích mấy, em lo quá", ga_weeks: 35, expected_level: red}
+- {id: N06, group: novel, concept: VISUAL, text: "nhìn mọi thứ cứ mờ mờ như có sương", ga_weeks: 32, expected_level: red}
+- {id: N07, group: novel, concept: VISUAL, text: "mắt thấy đom đóm bay trước mặt", ga_weeks: 34, expected_level: red}
+- {id: N08, group: novel, concept: EPIGASTRIC, text: "chỗ lõm giữa ngực với bụng đau quặn", ga_weeks: 33, expected_level: red}
+- {id: N09, group: novel, concept: EPIGASTRIC, text: "đau tức ngay dưới mũi ức, ăn vào không đỡ", ga_weeks: 31, expected_level: red}
+- {id: N10, group: novel, concept: HEADACHE, text: "nhức đầu kinh khủng, uống panadol vẫn không đỡ", ga_weeks: 30, expected_level: red}
+- {id: N11, group: novel, concept: HEADACHE, text: "đầu cứ nặng trịch, hơi nhức", ga_weeks: 22, expected_level: yellow}
+- {id: N12, group: novel, concept: FLUID, text: "cứ thấy âm ướt, thay quần mấy lần vẫn ướt", ga_weeks: 34, expected_level: red}
+- {id: N13, group: novel, concept: FLUID, text: "tự dưng rỉ ra một dòng nước ấm ở dưới", ga_weeks: 36, expected_level: red}
+- {id: N14, group: novel, concept: CONTRACTIONS, text: "bụng thắt lại từng đợt, mỗi đợt cách nhau chừng chục phút", ga_weeks: 30, expected_level: red}
+- {id: N15, group: novel, concept: CONTRACTIONS, text: "bụng cứng như đá rồi lại mềm, cả buổi chiều", ga_weeks: 28, expected_level: red}
+- {id: N16, group: novel, concept: ABD_PAIN, text: "bụng dưới cứ lâm râm khó chịu", ga_weeks: 14, expected_level: yellow}
+- {id: N17, group: novel, concept: ABD_PAIN, text: "đau bụng dữ dội không đứng thẳng được", ga_weeks: 20, expected_level: red}
+- {id: N18, group: novel, concept: DYSPNEA, text: "leo mấy bậc cầu thang là hụt hơi phải dừng lại", ga_weeks: 31, expected_level: red}
+- {id: N19, group: novel, concept: DYSPNEA, text: "thở như bị ai bóp nghẹt", ga_weeks: 29, expected_level: red}
+- {id: N20, group: novel, concept: CALF, text: "bắp chân trái căng cứng, đỏ, chạm vào là đau", ga_weeks: 30, expected_level: red}
+- {id: N21, group: novel, concept: FACE_EDEMA, text: "sáng dậy mí mắt sưng húp", ga_weeks: 33, expected_level: yellow}
+- {id: N22, group: novel, concept: FACE_EDEMA, text: "ngón tay to ra, tháo nhẫn không được", ga_weeks: 34, expected_level: yellow}
+- {id: N23, group: novel, concept: FEVER, text: "người hâm hấp, đo được 38 độ 5", ga_weeks: 17, expected_level: yellow}
+- {id: N24, group: novel, concept: DYSURIA, text: "đi tiểu cứ rát như xát ớt", ga_weeks: 23, expected_level: yellow}
+- {id: N25, group: novel, concept: ITCH, text: "lòng bàn tay bàn chân ngứa điên lên, nhất là ban đêm", ga_weeks: 32, expected_level: yellow}
+- {id: N26, group: novel, concept: HYPEREMESIS, text: "ăn gì vô cũng ói hết, uống nước cũng ói", ga_weeks: 9, expected_level: yellow}
+- {id: N27, group: novel, concept: SYNCOPE, text: "đang đứng nấu cơm thì tối sầm mặt mũi rồi ngã quỵ", ga_weeks: 26, expected_level: red}
+- {id: N28, group: novel, concept: CHEST_PAIN, text: "tim đập thình thịch như trống, ngực tức", ga_weeks: 28, expected_level: red}
+- {id: N29, group: novel, concept: DIZZINESS, text: "đứng lên ngồi xuống là thấy quay cuồng", ga_weeks: 21, expected_level: yellow}
+- {id: N30, group: novel, concept: CONVULSION, text: "tay chân giật liên hồi, người cứng đờ một lúc", ga_weeks: 35, expected_level: red}
+- {id: N31, group: novel, concept: SELF_HARM, text: "nhiều lúc em nghĩ biến khỏi cuộc đời này cho xong", ga_weeks: 30, expected_level: red}
+- {id: N32, group: novel, concept: SELF_HARM, text: "thấy mình là gánh nặng, chẳng muốn tồn tại nữa", ga_weeks: 20, expected_level: red}
+# ---------------------------------------------------------------- nodiac: không dấu, viết tắt, sai chính tả
+- {id: D01, group: nodiac, concept: BLEEDING, text: "e thay ra it mau do tuoi", ga_weeks: 22, expected_level: red}
+- {id: D02, group: nodiac, concept: BLEEDING, text: "quan lot co dinh mau nau", ga_weeks: 12, expected_level: red}
+- {id: D03, group: nodiac, concept: REDUCED_FM, text: "con ko dap may tu toi qua", ga_weeks: 34, expected_level: red}
+- {id: D04, group: nodiac, concept: VISUAL, text: "mat nhin mo, thay chop chop", ga_weeks: 33, expected_level: red}
+- {id: D05, group: nodiac, concept: HEADACHE, text: "dau dau qua troi uong thuoc k bot", ga_weeks: 31, expected_level: red}
+- {id: D06, group: nodiac, concept: FLUID, text: "ra nuoc am dao nhieu, uot het quan", ga_weeks: 35, expected_level: red}
+- {id: D07, group: nodiac, concept: DYSPNEA, text: "kho tho, nam cung kho tho", ga_weeks: 30, expected_level: red}
+- {id: D08, group: nodiac, concept: ABD_PAIN, text: "dau bung lam ram tu sang", ga_weeks: 18, expected_level: yellow}
+- {id: D09, group: nodiac, concept: FEVER, text: "e bi sot 38.6 do", ga_weeks: 25, expected_level: yellow}
+- {id: D10, group: nodiac, concept: CONTRACTIONS, text: "bung go cung tung con", ga_weeks: 29, expected_level: red}
+- {id: D11, group: nodiac, concept: EPIGASTRIC, text: "dau vung thuong vi du doi", ga_weeks: 34, expected_level: red}
+- {id: D12, group: nodiac, concept: FACE_EDEMA, text: "mat sung phu len", ga_weeks: 32, expected_level: yellow}
+- {id: D13, group: teencode, concept: BLEEDING, text: "e bị ra máu nhìu lém", ga_weeks: 20, expected_level: red}
+- {id: D14, group: teencode, concept: REDUCED_FM, text: "bé hum nay hok đạp", ga_weeks: 32, expected_level: red}
+- {id: D15, group: teencode, concept: HEADACHE, text: "đau đầu wá trời, hok chịu nổi", ga_weeks: 30, expected_level: red}
+- {id: D16, group: teencode, concept: DYSPNEA, text: "thở hk nổi luôn á", ga_weeks: 31, expected_level: red}
+- {id: D17, group: teencode, concept: DYSURIA, text: "đi tè buốt wá", ga_weeks: 16, expected_level: yellow}
+- {id: D18, group: teencode, concept: SYNCOPE, text: "e vừa xỉu ngang ở chợ", ga_weeks: 27, expected_level: red}
+# ---------------------------------------------------------------- negation: phủ định → xanh
+- {id: G01, group: negation, concept: BLEEDING, text: "em không thấy ra máu gì cả", ga_weeks: 20, expected_level: green}
+- {id: G02, group: negation, concept: BLEEDING, text: "chả có tí máu nào", ga_weeks: 25, expected_level: green}
+- {id: G03, group: negation, concept: REDUCED_FM, text: "con vẫn đạp đều, không thấy giảm", ga_weeks: 33, expected_level: green}
+- {id: G04, group: negation, concept: HEADACHE, text: "em không đau đầu, không hoa mắt", ga_weeks: 30, expected_level: green}
+- {id: G05, group: negation, concept: DYSPNEA, text: "thở bình thường, không mệt", ga_weeks: 28, expected_level: green}
+- {id: G06, group: negation, concept: FLUID, text: "chưa thấy rỉ nước gì", ga_weeks: 36, expected_level: green}
+- {id: G07, group: negation, concept: FEVER, text: "em đo nhiệt độ 36 độ 8, không sốt", ga_weeks: 19, expected_level: green}
+- {id: G08, group: negation, concept: ABD_PAIN, text: "bụng không đau, chỉ hơi căng do no", ga_weeks: 22, expected_level: green}
+- {id: G09, group: negation, concept: VISUAL, text: "mắt nhìn vẫn rõ, không bị mờ", ga_weeks: 31, expected_level: green}
+- {id: G10, group: negation, concept: BLEEDING, text: "ko ra mau, ko dau bung", ga_weeks: 15, expected_level: green}
+- {id: G11, group: negation, concept: CONTRACTIONS, text: "bụng không gò, mềm bình thường", ga_weeks: 32, expected_level: green}
+- {id: G12, group: negation, concept: SYNCOPE, text: "chưa bao giờ bị ngất", ga_weeks: 24, expected_level: green}
+- {id: G13, group: negation, concept: EPIGASTRIC, text: "không đau vùng trên rốn", ga_weeks: 34, expected_level: green}
+- {id: G14, group: negation, concept: FACE_EDEMA, text: "chân tay không phù, nhẫn vẫn đeo vừa", ga_weeks: 33, expected_level: green}
+- {id: G15, group: negation, concept: DYSURIA, text: "đi tiểu bình thường không buốt", ga_weeks: 18, expected_level: green}
+- {id: G16, group: negation_tricky, concept: BLEEDING, text: "không phải không có máu, có ít máu hồng", ga_weeks: 21, expected_level: red}
+- {id: G17, group: negation_tricky, concept: REDUCED_FM, text: "không biết sao bé đạp ít hẳn", ga_weeks: 34, expected_level: red}
+- {id: G18, group: negation_tricky, concept: HEADACHE, text: "không ngủ được vì đau đầu quá", ga_weeks: 31, expected_level: red}
+- {id: G19, group: negation_tricky, concept: DYSPNEA, text: "không nằm được vì khó thở", ga_weeks: 30, expected_level: red}
+- {id: G20, group: negation_tricky, concept: BLEEDING, text: "không đau bụng nhưng ra máu", ga_weeks: 26, expected_level: red}
+# ---------------------------------------------------------------- other_person: người khác bị → xanh
+- {id: O01, group: other_person, concept: BLEEDING, text: "chị họ em bị ra máu lúc bầu", ga_weeks: 20, expected_level: green}
+- {id: O02, group: other_person, concept: DYSPNEA, text: "ông xã em dạo này hay khó thở", ga_weeks: 25, expected_level: green}
+- {id: O03, group: other_person, concept: FEVER, text: "thằng cu lớn nhà em sốt 39 độ", ga_weeks: 22, expected_level: green}
+- {id: O04, group: other_person, concept: HEADACHE, text: "mẹ đẻ em hay đau đầu kinh niên", ga_weeks: 28, expected_level: green}
+- {id: O05, group: other_person, concept: ABD_PAIN, text: "bạn cùng phòng của em bị đau bụng", ga_weeks: 17, expected_level: green}
+- {id: O06, group: other_person, concept: CALF, text: "bà nội của bé bị sưng chân", ga_weeks: 30, expected_level: green}
+- {id: O07, group: other_person, concept: FEVER, text: "nhà em mấy đứa nhỏ đang sốt", ga_weeks: 24, expected_level: green}
+- {id: O08, group: other_person, concept: DIZZINESS, text: "cô giáo của con em bị chóng mặt ngất ở lớp", ga_weeks: 21, expected_level: green}
+- {id: O09, group: other_person, concept: FEVER, text: "ba mẹ em sốt xuất huyết đang nằm viện", ga_weeks: 19, expected_level: green}
+- {id: O10, group: other_person, concept: BLEEDING, text: "đứa em dâu ra máu, phải đi viện", ga_weeks: 23, expected_level: green}
+- {id: O11, group: other_person, concept: DYSPNEA, text: "anh nhà khó thở do hen", ga_weeks: 29, expected_level: green}
+- {id: O12, group: other_person, concept: ABD_PAIN, text: "cháu gái em đau bụng cả đêm", ga_weeks: 16, expected_level: green}
+- {id: O13, group: other_person, concept: FEVER, text: "con bé nhà hàng xóm sốt cao co giật", ga_weeks: 26, expected_level: green}
+- {id: O14, group: other_person, concept: HEADACHE, text: "chong e bi dau dau", ga_weeks: 27, expected_level: green}
+- {id: O15, group: other_person, concept: ABD_PAIN, text: "ban than e bi dau bung", ga_weeks: 15, expected_level: green}
+- {id: O16, group: other_mixed, concept: FEVER, text: "con lớn sốt, giờ em cũng thấy người nóng sốt", ga_weeks: 24, expected_level: yellow}
+- {id: O17, group: other_mixed, concept: BLEEDING, text: "chồng em bảo em ra máu nhiều phải đi khám", ga_weeks: 28, expected_level: red}
+- {id: O18, group: other_mixed, concept: DYSPNEA, text: "mẹ chồng đưa em đi khám vì em khó thở", ga_weeks: 31, expected_level: red}
+- {id: O19, group: other_mixed, concept: HEADACHE, text: "chị gái em bị tiền sản giật, giờ em cũng đau đầu dữ dội", ga_weeks: 33, expected_level: red}
+- {id: O20, group: other_mixed, concept: BLEEDING, text: "mẹ em lo vì em ra máu", ga_weeks: 18, expected_level: red}
+# ---------------------------------------------------------------- past_resolved: đã qua
+- {id: P01, group: past_resolved, concept: ABD_PAIN, text: "tuần trước có đau bụng chút, giờ hết rồi", ga_weeks: 20, expected_level: green}
+- {id: P02, group: past_resolved, concept: HEADACHE, text: "hôm kia nhức đầu, ngủ một giấc là khỏi", ga_weeks: 26, expected_level: green}
+- {id: P03, group: past_resolved, concept: FEVER, text: "đầu tháng em có sốt nhẹ nhưng giờ khỏe rồi", ga_weeks: 18, expected_level: green}
+- {id: P04, group: past_resolved, concept: BLEEDING, text: "hồi 8 tuần có ra máu báo, giờ hết hẳn", ga_weeks: 16, expected_level: yellow}
+- {id: P05, group: past_resolved, concept: SYNCOPE, text: "tháng trước em bị xỉu một lần, giờ không bị nữa", ga_weeks: 27, expected_level: yellow}
+- {id: P06, group: past_resolved, concept: DIZZINESS, text: "mấy hôm trước chóng mặt, nay đỡ hẳn", ga_weeks: 22, expected_level: green}
+- {id: P07, group: past_resolved, concept: DYSURIA, text: "đợt trước bị viêm đường tiểu, uống thuốc khỏi rồi", ga_weeks: 21, expected_level: green}
+- {id: P08, group: past_resolved, concept: REDUCED_FM, text: "hôm qua bé ít đạp nhưng nay đạp lại bình thường", ga_weeks: 32, expected_level: yellow}
+- {id: P09, group: past_continuing, concept: ABD_PAIN, text: "từ hôm qua đến giờ vẫn đau bụng", ga_weeks: 21, expected_level: yellow}
+- {id: P10, group: past_continuing, concept: BLEEDING, text: "ra máu từ tối qua chưa hết", ga_weeks: 23, expected_level: red}
+- {id: P11, group: past_continuing, concept: HEADACHE, text: "đau đầu mấy ngày nay không dứt", ga_weeks: 32, expected_level: red}
+- {id: P12, group: past_continuing, concept: DYSPNEA, text: "hôm qua khó thở, nay càng nặng hơn", ga_weeks: 31, expected_level: red}
+- {id: P13, group: past_resolved, concept: FEVER, text: "sot tu tuan truoc gio het roi", ga_weeks: 19, expected_level: green}
+- {id: P14, group: past_resolved, concept: CONVULSION, text: "hồi nhỏ em bị động kinh, mấy năm nay không lên cơn", ga_weeks: 25, expected_level: yellow}
+# ---------------------------------------------------------------- severity
+- {id: S01, group: severity, concept: HEADACHE, text: "hơi nhức đầu chút xíu", ga_weeks: 24, expected_level: yellow}
+- {id: S02, group: severity, concept: HEADACHE, text: "đau đầu như muốn nổ tung", ga_weeks: 33, expected_level: red}
+- {id: S03, group: severity, concept: ABD_PAIN, text: "đau bụng nhẹ khi đi lại nhiều", ga_weeks: 25, expected_level: yellow}
+- {id: S04, group: severity, concept: ABD_PAIN, text: "đau bụng quằn quại, vã mồ hôi", ga_weeks: 27, expected_level: red}
+- {id: S05, group: severity, concept: HEADACHE, text: "nhức đầu lâm râm", ga_weeks: 20, expected_level: yellow}
+- {id: S06, group: severity, concept: ABD_PAIN, text: "đau bụng nhiều, càng lúc càng tăng", ga_weeks: 29, expected_level: red}
+# ---------------------------------------------------------------- combos (text_combos)
+- {id: C01, group: combo, concept: FACE_EDEMA, text: "mặt sưng phù và đau đầu", ga_weeks: 34, expected_level: red}
+- {id: C02, group: combo, concept: FEVER, text: "sốt kèm ra nước ở dưới", ga_weeks: 33, expected_level: red}
+- {id: C03, group: combo, concept: FEVER, text: "người sốt, bụng đau âm ỉ", ga_weeks: 27, expected_level: red}
+- {id: C04, group: combo, concept: HEADACHE, text: "nhức đầu, nhìn mờ", ga_weeks: 35, expected_level: red}
+# ---------------------------------------------------------------- term: gò bụng ≥ 37 tuần
+- {id: T01, group: term, concept: CONTRACTIONS, text: "bụng gò từng cơn", ga_weeks: 38, expected_level: yellow}
+- {id: T02, group: term, concept: CONTRACTIONS, text: "bụng gò từng cơn", ga_weeks: 32, expected_level: red}
+- {id: T03, group: term, concept: CONTRACTIONS, text: "bụng cứng lên chừng 10 phút một lần", ga_weeks: 39, expected_level: yellow}
+# ---------------------------------------------------------------- info / question / conditional
+- {id: Q01, group: info, concept: BLEEDING, text: "em đọc trên mạng thấy ra máu là nguy hiểm, có đúng không ạ", ga_weeks: 20, expected_level: yellow}
+- {id: Q02, group: info, concept: REDUCED_FM, text: "nghe người ta nói thai ít đạp là phải đi khám", ga_weeks: 30, expected_level: yellow}
+- {id: Q03, group: conditional, concept: BLEEDING, text: "nếu ra máu thì em phải làm gì ạ", ga_weeks: 18, expected_level: green}
+- {id: Q04, group: conditional, concept: FLUID, text: "lỡ vỡ ối ở nhà thì em gọi số nào", ga_weeks: 37, expected_level: green}
+- {id: Q05, group: conditional, concept: FEVER, text: "khi nào sốt thì uống thuốc gì được ạ", ga_weeks: 22, expected_level: green}
+- {id: Q06, group: info_self, concept: VISUAL, text: "cho em hỏi nhìn mờ có sao không, em đang bị nhìn mờ", ga_weeks: 33, expected_level: red}
+# ---------------------------------------------------------------- benign: không có gì đáng lo → xanh
+- {id: B01, group: benign, concept: NONE, text: "em khỏe, ăn ngủ tốt", ga_weeks: 20, expected_level: green}
+- {id: B02, group: benign, concept: NONE, text: "mọi thứ ổn ạ, cảm ơn khoa", ga_weeks: 25, expected_level: green}
+- {id: B03, group: benign, concept: REDUCED_FM, text: "bé đạp tưng bừng cả tối", ga_weeks: 31, expected_level: green}
+- {id: B04, group: benign, concept: NONE, text: "em tăng 1 ký so với tuần trước", ga_weeks: 28, expected_level: green}
+- {id: B05, group: benign, concept: NONE, text: "dạo này thèm chua", ga_weeks: 12, expected_level: green}
+- {id: B06, group: benign, concept: NONE, text: "em đi bộ mỗi chiều 30 phút", ga_weeks: 26, expected_level: green}
+- {id: B07, group: benign, concept: NONE, text: "ko co gi bat thuong a", ga_weeks: 19, expected_level: green}
+- {id: B08, group: benign, concept: BLEEDING, text: "đánh răng hay chảy máu chân răng", ga_weeks: 24, expected_level: green}
+- {id: B09, group: benign, concept: NONE, text: "em uống sắt với canxi đều", ga_weeks: 21, expected_level: green}
+- {id: B10, group: benign, concept: REDUCED_FM, text: "con máy đều, tối nào cũng đạp", ga_weeks: 34, expected_level: green}
+- {id: B11, group: benign, concept: NONE, text: "em hay buồn ngủ ban ngày", ga_weeks: 10, expected_level: green}
+- {id: B12, group: benign, concept: FLUID, text: "chảy nước mũi do cảm nhẹ", ga_weeks: 23, expected_level: green}
+- {id: B13, group: benign, concept: NONE, text: "khi nào em đi siêu âm hình thái ạ", ga_weeks: 20, expected_level: green}
+# ---------------------------------------------------------------- unmapped: mối lo ngoài danh mục → vàng
+- {id: U01, group: unmapped, concept: NONE, text: "em bị nổi mẩn đỏ khắp người", ga_weeks: 22, expected_level: yellow}
+- {id: U02, group: unmapped, concept: NONE, text: "răng đau nhức không ăn được", ga_weeks: 18, expected_level: yellow}
+- {id: U03, group: unmapped, concept: NONE, text: "em mất ngủ mấy đêm liền, người bơ phờ", ga_weeks: 29, expected_level: yellow}
+- {id: U04, group: unmapped, concept: NONE, text: "khí hư ra nhiều, mùi hôi", ga_weeks: 24, expected_level: yellow}
+- {id: U05, group: unmapped, concept: NONE, text: "em bị ngã cầu thang, đập bụng xuống", ga_weeks: 30, expected_level: yellow}
+# ---------------------------------------------------------------- multi: nhiều ý trong một câu
+- {id: M01, group: multi, concept: BLEEDING, text: "không đau bụng, không sốt, nhưng sáng nay thấy máu đỏ", ga_weeks: 25, expected_level: red}
+- {id: M02, group: multi, concept: DYSPNEA, text: "chồng sốt, em thì khó thở", ga_weeks: 30, expected_level: red}
+- {id: M03, group: multi, concept: HEADACHE, text: "hôm qua đau bụng giờ hết, nhưng nay đau đầu dữ lắm", ga_weeks: 32, expected_level: red}
+- {id: M04, group: multi, concept: FEVER, text: "em không ra máu, chỉ sốt nhẹ", ga_weeks: 20, expected_level: yellow}
+- {id: M05, group: multi, concept: REDUCED_FM, text: "bé vẫn đạp nhưng ít hơn mọi hôm nhiều", ga_weeks: 34, expected_level: red}
+- {id: M06, group: multi, concept: ABD_PAIN, text: "mẹ chồng đau lưng, em thì đau bụng lâm râm", ga_weeks: 23, expected_level: yellow}

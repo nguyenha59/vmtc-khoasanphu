@@ -60,7 +60,8 @@ def overview(user: CurrentUser = Depends(current_user)) -> dict:
         ) or 0
         n_forms = s.scalar(select(func.count(FormSchedule.id)).where(
             FormSchedule.send_date == today, FormSchedule.status == "exported")) or 0
-        n_resp = s.scalar(select(func.count(FormResponse.id)).where(FormResponse.submitted_at >= since)) or 0
+        n_resp = s.scalar(select(func.count(FormResponse.id)).where(FormResponse.submitted_at >= since,
+                                                                 FormResponse.source != "demo")) or 0
         n_open = s.scalar(select(func.count(Alert.id)).where(Alert.status == "open")) or 0
         n_red = s.scalar(select(func.count(Alert.id)).where(Alert.status == "open", Alert.level == "red")) or 0
         exported = s.scalar(select(func.count(AuditLog.id)).where(

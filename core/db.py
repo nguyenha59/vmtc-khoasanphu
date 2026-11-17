@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
 
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, create_engine, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from core.config import DATA_DIR, TZ
@@ -47,12 +47,28 @@ def get_engine(url: str | None = None) -> Engine:
 def init_db(url: str | None = None) -> Engine:
     engine = get_engine(url)
     Base.metadata.create_all(engine)
+    _add_missing_columns(engine)
     return engine
+
+
+def _add_missing_columns(engine: Engine) -> None:
+    """CSDL tạo từ phiên bản cũ: thêm các cột MỚI (luôn cho phép NULL) mà create_all không tự thêm vào bảng đã có."""
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if not insp.has_table(table.name):
+                continue
+            have = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name in have or not col.nullable:
+                    continue
+                ddl = col.type.compile(dialect=engine.dialect)
+                conn.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {ddl}'))
 
 
 @contextmanager
 def session_scope() -> Iterator[Session]:
-    if _Session is None:
+    if _Session is None or _engine is None:  # engine bị đặt lại (đổi CSDL) → phiên cũng tạo lại theo CSDL mới
         init_db()
     assert _Session is not None
     s = _Session()

@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy import select
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 
 from api.deps import CurrentUser, require
 from api.util import XLSX, file_response
@@ -25,9 +25,16 @@ from core.forms import (
     save_plan,
     send_reminders,
 )
-from core.models import Patient
-from core.patients import auto_apply_form_plans, form_plan_for
+from core.models import Appointment, Patient
+from core.patients import (
+    auto_apply_form_plans,
+    note_evidence,
+    pending_plan_items,
+    record_plan_declines,
+)
+from core.repo import stage_text
 from core.rules.form_scheduler import FormDecision, ga_text, plan_forms, schedule_text
+from core.rules.personalize import SOURCE_VI
 
 router = APIRouter(prefix="/api/form-schedule", tags=["form-schedule"])
 
@@ -145,41 +152,108 @@ def download(name: str, user: CurrentUser = Depends(require("export_form_sms")))
 
 
 def _new_items(s, p: Patient, rules, today) -> tuple[list[str], list[str]]:  # type: ignore[no-untyped-def]
-    """(nhóm nguy cơ, mã module / bộ câu MỚI cần điều dưỡng xác nhận) – tự nhận từ hồ sơ + AI (docs/04 B3b)."""
-    plan = form_plan_for(s, p, today, rules, load_forms())
-    new = [i.code for i in plan.items if not i.confirmed and i.questions]
+    """(tên nhóm nguy cơ, mã module / bộ câu đang chờ điều dưỡng xác nhận) – tự nhận từ hồ sơ + AI (docs/04 B3b)."""
+    plan, items = pending_plan_items(s, p, today, rules, load_forms())
     names = {f.flag: f.name for f in plan.flags}
-    flags = sorted({names.get(f, f) for i in plan.items if i.code in new for f in i.flags})
-    return flags, new
+    return sorted({names.get(f, f) for i in items for f in i.flags}), [i.code for i in items]
+
+
+def _evidence(s, p: Patient, flag, rules) -> list[dict]:  # type: ignore[no-untyped-def]
+    """Căn cứ của một nhóm nguy cơ: nguồn (chẩn đoán / nhóm nguy cơ / tiền sử / AI đọc ghi chú) + nội dung để kiểm.
+    Nguồn AI: kèm câu ghi chú gốc ĐÃ CHE, ngày hẹn, độ tin cậy."""
+    out = []
+    for e in flag.evidence:
+        row = {"source": e.source, "label": SOURCE_VI.get(e.source, e.source), "text": e.text}
+        if e.source == "ai_note":
+            found = note_evidence(s, p.id, e.text)
+            row["text"] = found["note"] if found and found["note"] else f"AI gắn cờ {e.text} (không còn ghi chú gốc)"
+            row |= {"date": found["date"], "confidence": found["confidence"], "model": found["model"]} if found else {}
+        out.append(row)
+    return out
+
+
+def _last_next(s, p: Patient, today) -> tuple[str | None, str | None]:  # type: ignore[no-untyped-def]
+    last = s.scalar(select(func.max(Appointment.appt_date)).where(Appointment.patient_id == p.id,
+                                                                 Appointment.appt_date < today))
+    nxt = s.scalar(select(func.min(Appointment.appt_date)).where(Appointment.patient_id == p.id,
+                                                                Appointment.appt_date >= today))
+    return (last.isoformat() if last else None), (nxt.isoformat() if nxt else None)
 
 
 def _proposals(s, rules, today) -> list[dict]:  # type: ignore[no-untyped-def]
     """Đề xuất TỰ ĐỘNG hiện mỗi ngày: thai phụ đã đồng ý có module / bộ câu hỏi mới nhận ra từ chẩn đoán ICD-10,
-    nhóm nguy cơ, tiền sử hoặc AI đọc ghi chú – chưa được điều dưỡng xác nhận."""
+    nhóm nguy cơ, tiền sử hoặc AI đọc ghi chú – chưa được điều dưỡng xác nhận, chưa bị gỡ / từ chối.
+    Mỗi đề xuất kèm hồ sơ tóm tắt và CĂN CỨ (nguồn + nội dung) để điều dưỡng kiểm trước khi xác nhận."""
+    forms_cfg = load_forms()
+    module_names = {c: str(forms_cfg.forms.get(c, {}).get("name", c)) for c in rules["forms"]["modules"]}
     out = []
     for p in s.scalars(select(Patient).where(Patient.consent_status == "granted", Patient.edd.is_not(None),
                                              Patient.delivery_date.is_(None))):
-        flags, new = _new_items(s, p, rules, today)
-        if new:
-            out.append({"patient_id": p.id, "code": p.code, "flags": flags, "modules": new,
-                        "current": list(p.risk_groups or [])})
+        plan, items = pending_plan_items(s, p, today, rules, forms_cfg)
+        if not items:
+            continue
+        flags = {f.flag: f for f in plan.flags}
+        last, nxt = _last_next(s, p, today)
+        out.append({
+            "patient_id": p.id, "code": p.code, "stage": stage_text(p, today), "last_visit": last, "next_appt": nxt,
+            "current": [module_names.get(c, c) for c in p.risk_groups or []],
+            "flags": sorted({flags[f].name for i in items for f in i.flags if f in flags}),
+            "modules": [i.code for i in items],
+            "items": [{"code": i.code, "name": i.name, "kind": i.kind, "schedule": i.schedule,
+                       "n_questions": len(i.questions),
+                       "flags": [{"flag": f, "name": flags[f].name, "evidence": _evidence(s, p, flags[f], rules)}
+                                 for f in i.flags if f in flags]} for i in items],
+        })
     return out
 
 
 class ModuleIn(BaseModel):
     insulin: bool = False
+    # Mã điều dưỡng đã xem trên màn hình. None (client cũ) = mọi mục đang chờ.
+    codes: list[str] | None = None
+
+
+class DeclineIn(BaseModel):
+    codes: list[str]
+    reason: str = Field(min_length=3, max_length=300)
+
+
+def _chosen(s, p: Patient | None, codes: list[str] | None, rules) -> list[str]:  # type: ignore[no-untyped-def]
+    """Mã đang chờ ∩ mã điều dưỡng chọn. Không còn mục nào (đề xuất đã đổi / đã xử lý) → 409 để tải lại."""
+    if p is None:
+        raise HTTPException(404, "Không tìm thấy thai phụ.")
+    pending = _new_items(s, p, rules, _today())[1]
+    chosen = pending if codes is None else [c for c in pending if c in set(codes)]
+    if not chosen:
+        raise HTTPException(409, "Đề xuất đã thay đổi hoặc đã được xử lý – tải lại trang.")
+    return chosen
 
 
 @router.post("/proposals/{patient_id}/confirm")
 def confirm_module(patient_id: int, body: ModuleIn, user: CurrentUser = Depends(require("form_schedule"))) -> dict:
+    """Điều dưỡng xác nhận ĐÚNG các mục đã xem (body.codes) – không nhận thêm mục mới phát sinh sau khi tải trang."""
     with session_scope() as s:
         p = s.get(Patient, patient_id)
         rules = load_rules()
-        mods = _new_items(s, p, rules, _today())[1] if p is not None else []
-        if p is None or not mods:
-            raise HTTPException(404, "Không có đề xuất cho thai phụ này.")
+        mods = _chosen(s, p, body.codes, rules)
         p.risk_groups = sorted(set(p.risk_groups or []) | set(mods))
         p.on_insulin = bool(body.insulin) if "M-DTD" in mods else bool(p.on_insulin)
-        audit.log("confirm_module", "patient", p.code, {"modules": p.risk_groups, "insulin": p.on_insulin},
+        audit.log("confirm_module", "patient", p.code, {"confirmed": mods, "modules": p.risk_groups,
+                                                         "insulin": p.on_insulin, "rules_version": rules.rules_version},
                   user_id=user.user_id, session=s)
-    return {"ok": True}
+    return {"ok": True, "confirmed": mods}
+
+
+@router.post("/proposals/{patient_id}/decline")
+def decline_module(patient_id: int, body: DeclineIn, user: CurrentUser = Depends(require("form_schedule"))) -> dict:
+    """Điều dưỡng không đồng ý đề xuất (kèm lý do): không đề xuất lại trong LẦN MANG THAI này (như gỡ ở Hồ sơ)."""
+    with session_scope() as s:
+        p = s.get(Patient, patient_id)
+        rules = load_rules()
+        codes = _chosen(s, p, body.codes, rules)
+        current = list(p.risk_groups or [])
+        record_plan_declines(s, p, sorted(set(current) | set(codes)), current, user.user_id, now())
+        audit.log("decline_module", "patient", p.code, {"declined": codes, "reason": body.reason.strip(),
+                                                         "rules_version": rules.rules_version},
+                  user_id=user.user_id, session=s)
+    return {"ok": True, "declined": codes}
