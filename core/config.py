@@ -99,6 +99,7 @@ class HisColumns:
     date_format: str
     time_format: str
     self_booking_prefixes: tuple[str, ...] = ()
+    booking_meta_patterns: tuple[str, ...] = ()
     vietnam_aliases: tuple[str, ...] = ("Việt Nam",)
     worldsms_columns: tuple[tuple[str, str], ...] = ()  # (tiêu đề, trường)
     worldsms_phone_format: str = "local"
@@ -133,10 +134,20 @@ def load_his_columns(path: Path | str | None = None) -> HisColumns:
         date_format=d.get("date_format", "%d/%m/%Y"),
         time_format=d.get("time_format", "%H:%M"),
         self_booking_prefixes=tuple(d.get("self_booking_prefixes", [])),
+        booking_meta_patterns=tuple(d.get("booking_meta_patterns", [])),
         vietnam_aliases=tuple(d.get("vietnam_aliases", ["Việt Nam"])),
         worldsms_columns=tuple((c["header"], c["field"]) for c in (d.get("worldsms") or {}).get("columns", [])),
         worldsms_phone_format=str((d.get("worldsms") or {}).get("phone_format", "local")),
     )
+
+
+def load_visit_services(path: Path | str | None = None) -> dict[str, Any]:
+    """Danh mục loại khám → dịch vụ → số phút đến sớm, có nguồn (config/visit_services.yaml)."""
+    p = Path(path) if path else Path(os.environ.get("APP_VISIT_SERVICES_FILE", CONFIG_DIR / "visit_services.yaml"))
+    data = _read_yaml(p)
+    if "version" not in data:
+        raise ValueError(f"{p}: thiếu version")
+    return data
 
 
 def load_clinical_reference(path: Path | str | None = None) -> dict[str, Any]:

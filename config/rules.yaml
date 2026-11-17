@@ -14,7 +14,9 @@ arrival:
   max_minutes_early: 90
   ai_rule_diff_minutes: 15
   merge_conflict_minutes: 180
-  # Đến sớm theo từng lịch (khoa xác nhận 12/11/2026): xét nghiệm 30', siêu âm 20', khám / dịch vụ khác 15'.
+  # Đến sớm theo từng lịch: xét nghiệm 30', siêu âm 20', khám / dịch vụ khác 15' – người dùng ƯỚC LƯỢNG ban đầu
+  # 12/11/2026, KHÔNG phải khoa xác nhận. File OH (từ 17/11/2026): AI ước lượng theo nguồn (config/visit_services.yaml),
+  # bảng này chỉ còn dùng cho lịch có cột Dịch vụ (dữ liệu giả dạng cũ).
   # Mỗi lịch trong ngày tính riêng (giờ hẹn − số phút của lịch đó), lấy giờ sớm nhất.
   # in_note: true → từ khóa cũng được dò trong ghi chú của lịch (bác sĩ dặn làm XN).
   early_by_service:                       # editable, requires_doctor: false
@@ -24,6 +26,9 @@ arrival:
   call_note_keywords: ["gọi", "xác nhận", "hỏi lại", "chưa rõ", "đổi lịch", "dời lịch", "?"]
   fasting_keywords: ["nhịn ăn", "nghiệm pháp", "NPDN", "đường huyết", "xét nghiệm máu", "lấy máu"]   # [CẦN XÁC NHẬN]
   late_ga_weeks: 37
+  # Thai ≥ late_ga_weeks nhưng bác sĩ đã ghi rõ giờ đến trong ghi chú (và hệ thống dùng đúng giờ đó) → không cần
+  # xác nhận lại (người dùng chốt 17/11/2026: "bác sĩ ghi đến 13h rồi còn cần xác nhận nữa").
+  late_ga_skip_if_doctor_time: true
   # Chỉ gọi AI cho ghi chú mà quy tắc chưa hiểu hết (khoa chọn 12/11/2026). Ghi chú chỉ gồm các từ dưới đây
   # (so không dấu) + tuần thai / giờ / số phút → quy tắc đã đọc đủ, không gọi AI. Có từ lạ (vd "song thai",
   # "VMC cũ", "dọa sinh non") → vẫn gọi AI. Thêm từ vào đây = bớt gọi AI; thiếu từ chỉ làm gọi AI thừa (an toàn).
@@ -32,6 +37,14 @@ arrival:
                        tieng, gio, h, g, ruoi, nua, mot, khoang, w, tuan, ngay, d, va, lam, de, dinh, ky, tai,
                        tk, tt, tuoi, hinh, theo, hen, dan, lich, doppler, phu, khoa, dk, 2d, 4d, nt, kq]
   ai_confidence_min: 0.8
+  # File OH không có cột Dịch vụ → AI đọc MỌI ghi chú để suy ra loại khám + dịch vụ (người dùng chốt 17/11/2026);
+  # ai_skip_vocabulary chỉ còn dùng khi đặt false.
+  ai_read_all_notes: true
+  # Ghi chú có viết tắt "Đang đoán" (danh mục tri thức, sheet Viết tắt) → Cần xác nhận cho tới khi khoa xác nhận nghĩa.
+  review_guessed_abbr: true
+  # "có hẹn 9h30" trong ghi chú OH = giờ hẹn dịch vụ làm trước → đến trước giờ đó bấy nhiêu phút (tiếp đón,
+  # Vinmec: đến trước 10–15 phút – VMC_DEN_TRUOC). Luôn vào Cần xác nhận (SVC_TIME).
+  service_time_lead_minutes: 10
   # Lịch hẹn trong khung này là "khám chờ" (giờ trên HIS không phải giờ thật) – khoa xác nhận 10/11/2026.
   # Không tính giờ đến; tin nhắn ghi nhãn thay cho giờ. Khung [from, to): 12:00 ≤ giờ hẹn < 13:00.
   waiting_slot: {from: "12:00", to: "13:00", label: "Khám chờ", mixed_review_minutes: 30}

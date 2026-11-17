@@ -8,7 +8,7 @@ from typing import Any
 
 from core.config import Rules, parse_hhmm
 from core.rules.merge import Slot
-from core.rules.note_patterns import find_explicit_time, find_minutes_early
+from core.rules.note_patterns import find_explicit_time, find_minutes_early, find_service_time
 from core.textutil import contains_keyword, word_pattern
 
 
@@ -28,6 +28,16 @@ class NoteAI:
     evidence: str = ""
     ga_confidence: float | None = None
     ga_grounded: bool = False
+    visit_type: str | None = None  # loại khám AI chọn trong config/visit_services.yaml
+    services: list[str] = field(default_factory=list)  # mã dịch vụ AI chọn
+    services_confidence: float | None = None
+    # AI tự ước lượng số phút đến trước theo nguồn (người dùng chốt 17/11/2026)
+    est_minutes: int | None = None
+    est_basis: list[str] = field(default_factory=list)
+    est_reason: str = ""
+    est_confidence: float | None = None
+    est_spread: int | None = None
+    est_max: int | None = None  # số lớn nhất (có nêu nguồn) trong các lần chạy
 
 
 @dataclass
@@ -42,6 +52,7 @@ class ArrivalResult:
     ai_time: time | None = None
     details: list[str] = field(default_factory=list)
     waiting: bool = False  # lịch "khám chờ": không có giờ đến, tin nhắn ghi nhãn
+    max_minutes_early: int | None = None  # trần sớm đã áp dụng (theo loại dịch vụ)
 
 
 def waiting_label(cfg: dict[str, Any]) -> str | None:
@@ -106,12 +117,21 @@ def slot_minutes_early(slot: Slot, table: list[dict[str, Any]]) -> tuple[int | N
     return best, label
 
 
-def rule_arrival(slots: list[Slot], table: list[dict[str, Any]]) -> tuple[time | None, str]:
-    """Mỗi lịch: giờ hẹn − số phút của lịch đó; lấy giờ sớm nhất. Trả (giờ, nhãn giải thích)."""
+SlotMinutes = tuple[int | None, str]
+
+
+def rule_arrival(
+    slots: list[Slot], table: list[dict[str, Any]], overrides: dict[Slot, SlotMinutes] | None = None
+) -> tuple[time | None, str]:
+    """Mỗi lịch: giờ hẹn − số phút của lịch đó; lấy giờ sớm nhất. Trả (giờ, nhãn giải thích).
+    overrides: số phút theo dịch vụ suy ra từ ghi chú (file OH không có cột Dịch vụ)."""
     best: time | None = None
     label = ""
     for slot in slots:
-        minutes, why = slot_minutes_early(slot, table)
+        if overrides and slot in overrides and not slot.service:
+            minutes, why = overrides[slot]
+        else:
+            minutes, why = slot_minutes_early(slot, table)
         if minutes is None:
             continue
         t = _shift(slot.start_time, -minutes)
@@ -139,9 +159,14 @@ def compute_arrival(
     ai: NoteAI | None,
     rules: Rules,
     slots: list[Slot] | None = None,
+    slot_minutes: dict[Slot, SlotMinutes] | None = None,
+    max_early: int | None = None,
 ) -> ArrivalResult:
-    """appt_time = giờ hẹn sớm nhất. slots = từng lịch gốc đã gộp; None → coi như một lịch."""
+    """appt_time = giờ hẹn sớm nhất. slots = từng lịch gốc đã gộp; None → coi như một lịch.
+    slot_minutes / max_early: số phút và trần sớm theo dịch vụ suy ra từ ghi chú (visit_infer)."""
     cfg = rules["arrival"]
+    if max_early is not None:
+        cfg = {**cfg, "max_minutes_early": max(int(cfg["max_minutes_early"]), int(max_early))}
     diff_max = cfg["ai_rule_diff_minutes"]
     details: list[str] = []
 
@@ -151,7 +176,7 @@ def compute_arrival(
     real = [x for x in slots if not is_waiting_slot(x.start_time, cfg)]
     if real and len(real) < len(slots):
         details.append("Bỏ qua lịch khám chờ khi tính giờ đến (còn lịch có giờ thật)")
-    candidate, rule_label = rule_arrival(real or slots, cfg["early_by_service"])
+    candidate, rule_label = rule_arrival(real or slots, cfg["early_by_service"], slot_minutes)
     rule_time: time | None = None
     rule_min: int | None = None
     if candidate is not None:
@@ -173,6 +198,7 @@ def compute_arrival(
     res = ArrivalResult(
         arrival_time=None, method="rule", rule_applied="", rule_time=rule_time,
         rule_minutes=rule_min, ai_time=ai_time, details=details,
+        max_minutes_early=int(cfg["max_minutes_early"]),
     )
 
     # 0. Khám chờ: không tính giờ đến. Ghi chú vẫn có giờ / dặn đến sớm → người kiểm tra.
@@ -199,16 +225,33 @@ def compute_arrival(
     # 1. Bác sĩ dặn trong ghi chú (regex): giờ ghi rõ "đến 7h30", hoặc khoảng "đến trước 1 tiếng".
     #    So với giờ theo quy tắc, lấy giờ sớm hơn (khoa xác nhận 12/11/2026).
     doc_label = "Giờ bác sĩ ghi rõ trong ghi chú"
+    # File OH: "có hẹn 9h30" = giờ hẹn riêng của dịch vụ làm trước (vd siêu âm) → đến trước giờ đó để tiếp đón.
+    svc_time = find_service_time(note) if slot_minutes and rx_time is None else None
+    if svc_time is not None and svc_time < appt_time:
+        lead = int(cfg.get("service_time_lead_minutes", 10))
+        t = _shift(svc_time, -lead)
+        if t >= parse_hhmm(cfg["earliest_arrival"]):
+            res.arrival_time, res.explicit_time = t, svc_time
+            res.rule_applied = (f"Ghi chú có giờ hẹn dịch vụ riêng {svc_time:%H:%M} → đến trước {lead} phút để "
+                                "tiếp đón")
+            details.append(f"Giờ hẹn trên OH là {appt_time:%H:%M} (gặp bác sĩ); ghi chú có hẹn {svc_time:%H:%M} "
+                           "cho dịch vụ làm trước → đến trước giờ đó để tiếp đón")
+            return res
     if rx_time is None:
         rx_min = find_minutes_early(note)
         if rx_min is not None:
             rx_time = _shift(appt_time, -rx_min)
             doc_label = f"Bác sĩ dặn đến trước {rx_min} phút"
     if rx_time is not None:
-        ok, why = is_valid_arrival(rx_time, appt_time, cfg)
+        # File OH: giờ bác sĩ ghi rõ được tin (người dùng 17/11/2026) – chỉ kiểm sau giờ hẹn / trước giờ mở cửa,
+        # không áp giới hạn số phút sớm (giới hạn đó để chặn AI đọc sai).
+        doc_cfg = {**cfg, "max_minutes_early": 24 * 60} if slot_minutes else cfg
+        ok, why = is_valid_arrival(rx_time, appt_time, doc_cfg)
         if ok:
             res.arrival_time, res.rule_applied = rx_time, doc_label
-            if rule_time is not None and rule_time < rx_time:
+            # File OH (slot_minutes): giờ bác sĩ ghi rõ là giờ đến (người dùng chốt 17/11/2026);
+            # dữ liệu dạng cũ: so với giờ theo dịch vụ, lấy giờ sớm hơn.
+            if rule_time is not None and rule_time < rx_time and not slot_minutes:
                 res.arrival_time = rule_time
                 res.rule_applied = f"{rule_label} (sớm hơn bác sĩ dặn {rx_time:%H:%M})"
             if ai_time is not None and _diff_minutes(ai_time, rx_time) > diff_max:

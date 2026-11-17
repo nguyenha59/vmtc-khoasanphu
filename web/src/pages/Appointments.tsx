@@ -20,6 +20,11 @@ type Plan = {
   plan_id: number; code: string; full_name: string; phone_masked: string; nationality: string; start_time: string;
   services: string[]; arrival_time: string | null; arrival_label: string; method: string; method_label: string;
   status: string; status_label: string; reasons: Reason[]; merged: boolean;
+  visit_types: string[]; planned_services: PlannedService[]; basis: string[]; fasting: boolean;
+};
+type PlannedService = { code: string; name: string; why: string; source: string };
+const WHY_VI: Record<string, string> = {
+  note: "ghi chú", visit_type: "loại khám", ga: "tuần thai", ai: "AI", service_column: "cột Dịch vụ",
 };
 type PlanList = {
   date: string; waiting_label: string; items: Plan[]; counts: { total: number; need: number; auto: number; merged: number };
@@ -56,6 +61,7 @@ function PlanCard({ p }: { p: Plan }) {
           <Text fw={700} fz="lg" lh={1.1}>{p.arrival_label}</Text>
         </Box>
       </Group>
+      {p.visit_types.length > 0 && <Text size="xs" fw={600}>{p.visit_types.join(" · ")}</Text>}
       <Text size="xs" c="dimmed" lineClamp={2}>{p.services.join(", ")}</Text>
       <Group gap={6} wrap="wrap">
         <Badge color={STATUS_COLOR[p.status]}>{p.status_label}</Badge>
@@ -176,13 +182,27 @@ export function Appointments() {
                   { key: "full_name", label: "Khách", width: 170 },
                   { key: "phone_masked", label: "SĐT", nowrap: true, render: (p) => <Text ff="monospace" size="sm">{p.phone_masked}</Text> },
                   { key: "start_time", label: "Giờ hẹn", nowrap: true },
-                  { key: "services", label: "Dịch vụ", width: 190, render: (p) => <Text size="sm" lineClamp={2}>{p.services.join(", ")}</Text> },
+                  { key: "services", label: "Loại khám · dịch vụ", width: 240, render: (p) => (
+                    <Box>
+                      {p.visit_types.length > 0 && <Text size="sm" fw={600} lineClamp={1}>{p.visit_types.join(" · ")}
+                        {p.fasting && <Badge ml={6} size="xs" color="warn" variant="light">Nhịn ăn</Badge>}</Text>}
+                      <Text size="xs" c="dimmed" lineClamp={2}>{p.services.join(", ")}</Text>
+                    </Box>) },
                   { key: "arrival_label", label: "Giờ đến", nowrap: true, render: (p) => <Text fw={700} size="sm">{p.arrival_label}</Text> },
                   { key: "method_label", label: "Cách tính", nowrap: true, width: 120, render: (p) => <MethodBadge p={p} /> },
                   { key: "status_label", label: "Trạng thái", nowrap: true, width: 150, render: (p) => <Badge color={STATUS_COLOR[p.status]}>{p.status_label}</Badge> },
                   { key: "reasons", label: "Lý do", width: 200, render: (p) => <Text size="xs" c="dimmed" lineClamp={2}>{p.reasons.map((r) => r.label).join(", ") || "—"}</Text> },
                 ]} />
             </Box>
+          </Paper>
+
+          <Paper p="lg" mb="lg">
+            <SectionTitle icon={<IconFileSpreadsheet size={18} />}>Bảng giờ đến (Excel)</SectionTitle>
+            <Group justify="space-between" wrap="wrap">
+              <Text size="sm" c="dimmed">File lịch OH kèm loại khám, dịch vụ dự kiến, giờ đến, cách tính và căn cứ (nguồn) – cho lễ tân / điều dưỡng.</Text>
+              <Button component="a" href={`/api/appointments/arrivals-xlsx?d=${d}`} variant="light" disabled={!can("export_worldsms")}
+                leftSection={<IconDownload size={16} />}>Tải bảng giờ đến</Button>
+            </Group>
           </Paper>
 
           <Paper p="lg" style={data!.counts.need ? undefined : { borderColor: "var(--mantine-color-brand-3)" }}>
@@ -261,6 +281,21 @@ function PlanDrawer({ id, d, waiting, onClose, onDone }: { id: number | null; d:
             {p.notes.map((n, i) => <Text key={i} size="xs" c="dimmed">• {n}</Text>)}
             {p.warnings.length > 0 && <Text size="xs" c="warn.8" mt={4}>Cảnh báo dòng: {p.warnings.join(", ")}</Text>}
           </Box>
+
+          {p.planned_services.length > 0 && (
+            <Box>
+              <Text size="sm" fw={600} mb={6}>Loại khám và dịch vụ dự kiến (suy ra từ ghi chú)</Text>
+              <Text size="sm">{p.visit_types.join(" · ")}{p.fasting && <Badge ml="xs" color="warn" variant="light">Cần nhịn ăn</Badge>}</Text>
+              <Stack gap={2} mt={4}>
+                {p.planned_services.map((x) => (
+                  <Text key={x.code} size="xs">• {x.name} <Text span c="dimmed">({WHY_VI[x.why] ?? x.why})</Text></Text>
+                ))}
+              </Stack>
+              {p.basis.length > 0 && (
+                <Text size="xs" c="dimmed" mt={6}>Căn cứ: {p.basis.join("; ")}</Text>
+              )}
+            </Box>
+          )}
 
           <Box>
             <Group gap={6} mb={6}><IconRobot size={16} /><Text size="sm" fw={600}>AI đọc ra</Text></Group>

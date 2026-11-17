@@ -42,6 +42,10 @@ uploads/
 # Ngoại lệ: dữ liệu giả cố định mà test cần (sinh bởi script, không phải dữ liệu thật)
 !tests/**/*.csv
 !tests/**/*.xlsx
+# Gói dữ liệu GIẢ chia sẻ (scripts/export_mock_package.py) + sổ danh mục tri thức (không có dữ liệu bệnh nhân)
+!mock-data/**/*.csv
+!mock-data/**/*.xlsx
+!knowledge/danh_muc_kham.xlsx
 
 # ===== Python =====
 .venv/

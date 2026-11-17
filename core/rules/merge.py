@@ -46,8 +46,9 @@ class MergedAppt:
 
 
 def filter_departments(rows: list[HisRow], included: list[str]) -> tuple[list[HisRow], list[HisRow]]:
-    keep = [r for r in rows if r.department in included]
-    dropped = [r for r in rows if r.department not in included]
+    """File OH không có cột khoa (đã là lịch của khoa) → dòng khoa trống được giữ."""
+    keep = [r for r in rows if r.department in included or not r.department]
+    dropped = [r for r in rows if r.department and r.department not in included]
     return keep, dropped
 
 

@@ -9,6 +9,15 @@ notes:
   - {path: arrival_accuracy_auto, label: "Giờ đến đúng trong phần tự điền", op: ">=", value: 0.90, blocking: true}
   - {path: ga_accuracy, label: "Tuần thai đúng", op: ">=", value: 0.90, blocking: false}
 
+# Ghi chú kiểu OH (file 6 cột, dịch vụ chỉ có trong ghi chú) – scripts/eval_oh_notes.py, tests/golden/oh_notes.yaml (17/11/2026).
+oh_notes:
+  # Giờ đến KHÔNG là chỉ tiêu chặn: đáp án giờ trong bộ vàng đang theo bảng ước lượng chưa có căn cứ – chờ người có
+  # chuyên môn gán lại (17/11/2026). Vẫn báo cáo arrival_accuracy_auto.
+  - {path: visit_accuracy, label: "Đúng loại khám (OH)", op: ">=", value: 0.90, blocking: true}
+  - {path: services_recall, label: "Đủ dịch vụ bắt buộc (OH)", op: ">=", value: 0.90, blocking: true}
+  - {path: review_recall, label: "Ca cần xác nhận được đưa vào Cần xác nhận", op: "==", value: 1.0, blocking: true}
+  - {path: arrival_accuracy_auto, label: "Giờ đến khớp đáp án (đáp án chưa có căn cứ)", op: ">=", value: 0.90, blocking: false}
+
 forms:
   - {path: rules_plus_ai.red_sensitivity, label: "Độ nhạy ca đỏ (form)", op: "==", value: 1.0, blocking: true}
   - {path: rules_plus_ai.under_triage, label: "Ca bị hạ mức sai (form)", op: "==", value: 0, blocking: true}

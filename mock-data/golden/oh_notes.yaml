@@ -1,0 +1,46 @@
+# Bộ vàng ghi chú kiểu OH (GIẢ – viết theo cách bác sĩ ghi tắt, không chép ghi chú thật), 17/11/2026.
+# 17/11: bác sĩ ghi giờ đến → không cần xác nhận (kể cả thai ≥ 37 tuần); "có hẹn 9h30" tự áp dụng.
+# Đáp án gán tay theo config/visit_services.yaml (số phút = số dự phòng – cần người có chuyên môn gán lại khi AI ước lượng): loại khám, dịch vụ BẮT BUỘC phải có, giờ đến đúng,
+# review = ca phải vào "Cần xác nhận". Đo bằng scripts/eval_oh_notes.py (mục tiêu ≥ 0.90 – config/eval_targets.yaml).
+version: "1.0.0"
+cases:
+  - {id: 1,  appt: "09:00", note: "dky goi thai 26w", visit: ANC_PACKAGE, services: [OGTT], arrival: "08:30", review: true}
+  - {id: 2,  appt: "14:30", note: "khí hư vàng, ngứa", visit: GYN, services: [SOI_DICH], arrival: "14:00"}
+  - {id: 3,  appt: "08:30", note: "khám thai", visit: ANC, services: [KHAM], arrival: "08:15"}
+  - {id: 4,  appt: "08:30", note: "trễ kinh 2 tuần", visit: EARLY_PREG, services: [SA_DAU_DO, BHCG], arrival: "08:00"}
+  - {id: 5,  appt: "09:00", note: "tkss mổ", visit: POSTPARTUM, services: [KHAM], arrival: "08:45"}
+  - {id: 6,  appt: "09:00", note: "lam hs mo u xo tu cung/kgm", visit: PREOP, services: [XN_TIEN_PHAU, KHAM_GAY_ME], arrival: "08:00"}
+  - {id: 7,  appt: "11:00", note: "kham moc 32 tuan", visit: ANC, services: [DOPPLER], arrival: "10:30"}
+  - {id: 8,  appt: "10:30", note: "SA 4D 32w", visit: ANC, services: [SA_4D], arrival: "10:00"}
+  - {id: 9,  appt: "11:30", note: "22w/sa hinh thai đến 9h30", visit: ANC, services: [SA_4D], arrival: "09:30"}
+  - {id: 10, appt: "12:00", note: "hs LEEP, KH tới 10h30", visit: PROCEDURE, services: [THU_THUAT], arrival: "10:30", review: true}  # 12:00 = khám chờ + giờ ghi chú
+  - {id: 11, appt: "11:00", note: "33w, đau bụng cơn, nghi chuyển dạ, SA + CTG trước", visit: PRETERM_CHECK, services: [CTG, SA_2D], arrival: "10:15"}
+  - {id: 12, appt: "08:00", note: "30w2d, 4d + khám", visit: ANC, services: [SA_4D, KHAM], arrival: "07:30"}
+  - {id: 13, appt: "09:30", note: "Thai 38w4d, CBNV", visit: ANC_PACKAGE, services: [CTG], arrival: "08:45", review: true}
+  - {id: 14, appt: "11:00", note: "40w1d/SA/CTG tới 08h30", visit: ANC, services: [CTG], arrival: "08:30"}
+  - {id: 15, appt: "08:45", note: "37w, sa, ctg, kgm đến 8h", visit: PREOP, services: [CTG, KHAM_GAY_ME], arrival: "08:00"}
+  - {id: 16, appt: "10:30", note: "38w2d đến 8h", visit: ANC, services: [CTG], arrival: "08:00"}
+  - {id: 17, appt: "14:00", note: "tk sau phá thai nội khoa 2 tuần", visit: POST_ABORTION, services: [SA_DAU_DO], arrival: "13:30"}
+  - {id: 18, appt: "09:00", note: "31w, 2d + khám", visit: ANC, services: [SA_2D], arrival: "08:30"}
+  - {id: 19, appt: "08:40", note: "16w4d", visit: ANC, services: [TRIPLE_TEST], arrival: "08:10"}
+  - {id: 20, appt: "16:00", note: "37w3d, đến 13h", visit: ANC, services: [CTG], arrival: "13:00"}
+  - {id: 21, appt: "10:00", note: "12w5d SA NT + double", visit: ANC, services: [NT, DOUBLE_TEST], arrival: "09:30"}
+  - {id: 22, appt: "09:00", note: "25w NPDN nhịn ăn", visit: ANC, services: [OGTT], arrival: "08:30"}
+  - {id: 23, appt: "15:00", note: "thai 8w, que 2 vạch", visit: EARLY_PREG, services: [SA_DAU_DO], arrival: "14:30"}
+  - {id: 24, appt: "10:00", note: "tái khám sau sinh thường 6 tuần", visit: POSTPARTUM, services: [KHAM], arrival: "09:45"}
+  - {id: 25, appt: "13:30", note: "đặt vòng, sạch kinh 5 ngày", visit: PROCEDURE, services: [THU_THUAT], arrival: "12:30"}
+  - {id: 26, appt: "08:00", note: "35w6d, XN GBS + khám", visit: ANC, services: [GBS], arrival: "07:30"}
+  - {id: 27, appt: "09:15", note: "Pap + HPV, khám phụ khoa định kỳ", visit: GYN, services: [PAP], arrival: "08:45"}
+  - {id: 28, appt: "14:00", note: "u buồng trứng, tk sau 3 tháng, SA", visit: GYN, services: [SA_2D], arrival: "13:40"}
+  - {id: 29, appt: "10:00", note: "dọa sinh non 30w, CTG", visit: PRETERM_CHECK, services: [CTG], arrival: "09:15"}
+  - {id: 30, appt: "09:00", note: "hut buong tu cung, nhin an tu toi", visit: PROCEDURE, services: [THU_THUAT], arrival: "08:00"}
+  - {id: 31, appt: "11:00", note: "20w, SA hình thái 4D", visit: ANC, services: [SA_4D], arrival: "10:40"}
+  - {id: 32, appt: "08:30", note: "khám thai 28w, đã làm NPDN", visit: ANC, services: [KHAM], arrival: "08:15"}
+  - {id: 33, appt: "15:30", note: "sau sinh 10 ngày, kiểm tra vết mổ", visit: POSTPARTUM, services: [KHAM], arrival: "15:15"}
+  - {id: 34, appt: "09:00", note: "ra huyết bất thường, SA đầu dò", visit: GYN, services: [SA_DAU_DO], arrival: "08:40"}
+  - {id: 35, appt: "10:00", note: "39w, monitor", visit: ANC, services: [CTG], arrival: "09:15", review: true}
+  - {id: 36, appt: "08:00", note: "chậm kinh, thử que mờ, βhCG", visit: EARLY_PREG, services: [BHCG], arrival: "07:30"}
+  - {id: 37, appt: "13:00", note: "làm hồ sơ mổ lấy thai 38w5d, kgm, ctg", visit: PREOP, services: [KHAM_GAY_ME, CTG], arrival: "12:00", review: true}
+  - {id: 38, appt: "10:30", note: "14w, khám thai", visit: ANC, services: [KHAM], arrival: "10:15"}
+  - {id: 39, appt: "09:45", note: "sinh thiết CTC, KH đến 9h", visit: PROCEDURE, services: [THU_THUAT], arrival: "09:00"}
+  - {id: 40, appt: "14:00", note: "viêm âm đạo tái khám", visit: GYN, services: [KHAM], arrival: "13:45"}

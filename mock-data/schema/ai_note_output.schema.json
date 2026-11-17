@@ -1,0 +1,165 @@
+{
+  "type": "object",
+  "properties": {
+    "explicit_arrival_time": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+    },
+    "minutes_early": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 120
+    },
+    "needs_fasting": {
+      "type": "boolean"
+    },
+    "ga_weeks": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 4,
+      "maximum": 42
+    },
+    "ga_days": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 6
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "GDM",
+          "HTN",
+          "PREECLAMPSIA",
+          "PRETERM_RISK",
+          "PREV_CSECTION",
+          "TWINS",
+          "OTHER"
+        ]
+      }
+    },
+    "asks_confirmation": {
+      "type": "boolean"
+    },
+    "evidence": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "visit_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "PREOP",
+        "PROCEDURE",
+        "PRETERM_CHECK",
+        "POST_ABORTION",
+        "POSTPARTUM",
+        "EARLY_PREG",
+        "ANC_PACKAGE",
+        "ANC",
+        "GYN",
+        "ULTRASOUND",
+        "OTHER",
+        null
+      ]
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "KHAM",
+          "SA_2D",
+          "SA_4D",
+          "SA_DAU_DO",
+          "DOPPLER",
+          "NT",
+          "CTG",
+          "XN_MAU",
+          "XN_NUOC_TIEU",
+          "OGTT",
+          "DOUBLE_TEST",
+          "TRIPLE_TEST",
+          "NIPT",
+          "GBS",
+          "BHCG",
+          "SOI_DICH",
+          "PAP",
+          "XN_TIEN_PHAU",
+          "KHAM_GAY_ME",
+          "THU_THUAT"
+        ]
+      }
+    },
+    "arrival_minutes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 300
+    },
+    "minutes_basis": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "VMC_DEN_TRUOC",
+          "VMC_TRUOC_GOI",
+          "VMC_SA_TAM_SOAT",
+          "VMC_MOC_4D",
+          "VMC_VAI_TRO_SA",
+          "VMC_XN_THIET_YEU",
+          "VMC_NST",
+          "VMC_CTG",
+          "VMC_MONITOR",
+          "VMC_3_THANG_CUOI",
+          "VMC_OGTT",
+          "VMC_OGTT2",
+          "VMC_GBS",
+          "VMC_GBS2",
+          "VMC_DOUBLE",
+          "VMC_BHCG",
+          "VMC_SOI_TUOI",
+          "VMC_KHAM_PK",
+          "VMC_SAU_SINH",
+          "VMC_TAI_KHAM_HUT",
+          "VMC_DOA_SINH_NON",
+          "VMC_LEEP",
+          "VMC_TIEN_PHAU",
+          "VMC_TIEN_ME_24H",
+          "VMC_PHAU_THUAT",
+          "TA_TIEN_ME",
+          "TA_TRUOC_KHAM",
+          "TA_LICH_KHAM",
+          "TA_MOC_SA"
+        ]
+      }
+    },
+    "minutes_reason": {
+      "type": "string",
+      "maxLength": 300
+    }
+  },
+  "required": [
+    "explicit_arrival_time",
+    "minutes_early",
+    "needs_fasting",
+    "ga_weeks",
+    "ga_days",
+    "risk_flags",
+    "asks_confirmation",
+    "evidence"
+  ]
+}

@@ -34,6 +34,20 @@ def find_explicit_time(note: str) -> time | None:
     return time(hh, mm)
 
 
+_SVC_TIME_RE = re.compile(r"(?<![a-z])hen\s*(?:luc\s*)?(\d{1,2})\s*(?:h|g|gio|:)\s*(\d{2})?(?![\d])")
+
+
+def find_service_time(note: str) -> time | None:
+    """Giờ hẹn riêng của một dịch vụ làm trước ghi trong ghi chú, ví dụ '21w/sa4d có hẹn 9h30'."""
+    m = _SVC_TIME_RE.search(deaccent(nfc(note)).lower())
+    if not m:
+        return None
+    hh, mm = int(m.group(1)), int(m.group(2) or 0)
+    if not (0 <= hh <= 23 and 0 <= mm <= 59):
+        return None
+    return time(hh, mm)
+
+
 def find_minutes_early(note: str) -> int | None:
     """Số phút bác sĩ dặn đến trước giờ hẹn, None nếu không có. "1h"/"2 giờ" chỉ tính là khoảng khi ≤ 3."""
     m = _EARLY_RE.search(deaccent(nfc(note)).lower())

@@ -1,0 +1,35 @@
+pid,appt_date,start_time,services,merged_rows,note,arrival_true,arrival_rule,status_rule,reasons_rule,status_ai,reasons_ai,ga_weeks,ga_days,risk_flags,nationality
+26002330,2026-11-13,07:00,Xét nghiệm Pap,1,đến trước 1 tiếng để nhịn ăn lấy máu,06:30,06:30,needs_review,NO_RULE,needs_review,NO_RULE,,,,Việt Nam
+26002365,2026-11-13,07:00,Xét nghiệm Pap,1,,06:30,06:30,auto,,auto,,,,,Việt Nam
+26000041,2026-11-13,07:15,Khám thai; Xét nghiệm máu,2,,07:00,07:00,needs_review,CONFLICT,needs_review,CONFLICT,,,,Nhật Bản
+26003149,2026-11-13,07:15,Khám phụ khoa,1,,07:00,07:00,auto,,auto,,,,,Việt Nam
+26002750,2026-11-13,07:30,Siêu âm phụ khoa,1,,07:10,07:10,auto,,auto,,,,,Việt Nam
+26003037,2026-11-13,08:15,Xét nghiệm Pap,1,,07:45,07:45,auto,,auto,,,,,Việt Nam
+26000125,2026-11-13,09:00,Xét nghiệm liên cầu B,1,SA 4D,08:30,08:30,auto,,auto,,,,,Việt Nam
+26002855,2026-11-13,09:00,Xét nghiệm Pap,1,,08:30,08:30,auto,,auto,,,,,Việt Nam
+26000076,2026-11-13,09:30,Khám thai,1,lịch SA doppler,09:15,09:15,auto,,auto,,,,,Việt Nam
+26002701,2026-11-13,09:45,Siêu âm phụ khoa,1,,09:25,09:25,auto,,auto,,,,,Việt Nam
+26001217,2026-11-13,10:15,Xét nghiệm liên cầu B,1,kham thai dinh ky,09:45,09:45,auto,,auto,,,,,Việt Nam
+26002253,2026-11-13,10:30,Siêu âm phụ khoa,1,,10:10,10:10,auto,,auto,,,,,Việt Nam
+26003135,2026-11-13,10:30,Siêu âm phụ khoa,1,,10:10,10:10,auto,,auto,,,,,Úc
+26002323,2026-11-13,10:45,Khám phụ khoa,1,,10:30,10:30,auto,,auto,,,,,Việt Nam
+26002281,2026-11-13,11:00,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam
+26002848,2026-11-13,11:00,Khám phụ khoa,1,,10:45,10:45,auto,,auto,,,,,Việt Nam
+26002113,2026-11-13,11:30,Khám phụ khoa,1,co mat luc 10g30 de SA,10:30,10:30,auto,,auto,,,,,Việt Nam
+26002407,2026-11-13,11:30,Khám phụ khoa,1,,11:15,11:15,auto,,auto,,,,,Nhật Bản
+26000391,2026-11-13,11:45,Xét nghiệm liên cầu B,1,36w ycbs kham va sieu am,11:15,11:15,auto,,auto,,36,3,,Việt Nam
+26002862,2026-11-13,12:00,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam
+26002638,2026-11-13,12:15,Khám phụ khoa,1,?,Khám chờ,Khám chờ,needs_review,CALL_NOTE,needs_review,CALL_NOTE,,,,Việt Nam
+26001238,2026-11-13,12:30,Xét nghiệm máu,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam
+26002645,2026-11-13,12:30,Siêu âm phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam
+26002120,2026-11-13,12:45,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam
+26002141,2026-11-13,12:45,Khám phụ khoa,1,,Khám chờ,Khám chờ,auto,,auto,,,,,Việt Nam
+26002344,2026-11-13,13:15,Khám phụ khoa,1,SA hinh thai,13:00,13:00,auto,,auto,,,,,Việt Nam
+26000440,2026-11-13,13:45,Khám hậu sản,1,,13:30,13:30,auto,,auto,,,,,Việt Nam
+26000594,2026-11-13,14:15,Siêu âm 2D,1,thai moi,13:55,13:55,auto,,auto,,,,,Việt Nam
+26002288,2026-11-13,14:30,Khám phụ khoa,1,,14:15,14:15,auto,,auto,,,,,Việt Nam
+26002988,2026-11-13,14:30,Xét nghiệm Pap,1,,14:00,14:00,auto,,auto,,,,,Việt Nam
+26001665,2026-11-13,14:45,Siêu âm 2D,1,,14:25,14:25,auto,,auto,,,,,Việt Nam
+26002414,2026-11-13,15:00,Xét nghiệm Pap,1,,14:30,14:30,needs_review,BAD_PHONE,needs_review,BAD_PHONE,,,,Việt Nam
+26002456,2026-11-13,15:30,Xét nghiệm Pap,1,Xét nghiệm nước tiểu,15:00,15:00,auto,,auto,,,,,Mỹ
+26002680,2026-11-13,15:30,Siêu âm phụ khoa,1,,15:10,15:10,auto,,auto,,,,,Mỹ

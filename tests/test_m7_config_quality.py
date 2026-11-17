@@ -17,10 +17,11 @@ def test_bump_minor():
 def test_doctor_approval_bumps_version_and_audits(db, tmp_rules):
     rules = load_rules(tmp_rules)
     v0 = rules.rules_version
+    before = rules.get("thresholds.epds_threshold")  # không viết cứng: ngưỡng hiện hành do rules.yaml quyết định
     with db.session_scope() as s:
         ch = propose(s, "thresholds.epds_threshold", 11, "Theo bản tiếng Việt", role="nurse", user_id=1, rules=rules)
         assert ch.status == "pending"
-        assert load_rules(tmp_rules).get("thresholds.epds_threshold") == 13  # chưa có hiệu lực
+        assert load_rules(tmp_rules).get("thresholds.epds_threshold") == before  # chưa có hiệu lực
         new_v = approve(s, ch.id, role="doctor", user_id=2, rules=rules)
     r2 = load_rules(tmp_rules)
     assert r2.get("thresholds.epds_threshold") == 11

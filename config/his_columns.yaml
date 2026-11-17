@@ -1,6 +1,16 @@
-# Ánh xạ tên cột trong file xuất từ HIS → trường chuẩn.
-# [CẦN XÁC NHẬN] Thay vế trái bằng tên cột thật khi có file mẫu đã che.
+# Ánh xạ tên cột trong file xuất → trường chuẩn. Một trường có thể có nhiều tên cột (lấy tên đầu tiên có trong file).
+# File OH THẬT (mentor xác nhận 17/11/2026) chỉ có 6 cột: HN, Patient Name, Appointment Start Date Time,
+# Appointment Resource (tên bác sĩ), Appointment Comment, Mobile – KHÔNG có Dịch vụ / Khoa / Giờ kết thúc:
+# dịch vụ suy ra từ ghi chú (config/visit_services.yaml, docs/04 A3).
+# Tên cột kiểu cũ ("Mã BN", "Họ tên"…) chỉ còn để đọc bộ dữ liệu giả cũ trong tests/golden.
 columns:
+  "HN": pid
+  "Patient Name": full_name
+  "Mobile": phone
+  "Appointment Start Date Time": appt_datetime
+  "Appointment Resource": doctor
+  "Appointment Comment": note
+  # --- dạng cũ (dữ liệu giả cũ) ---
   "Mã BN": pid
   "Họ tên": full_name
   "Điện thoại": phone
@@ -13,13 +23,23 @@ columns:
   "Bác sĩ": doctor
   "Ghi chú": note
   "Thời điểm đặt": booked_at
-required: [pid, full_name, phone, appt_date, start_time, end_time, service, department]
+# "a|b" = cần ít nhất một trong các trường.
+required: [pid, full_name, phone, "appt_datetime|appt_date", "appt_datetime|start_time", note]
 date_format: "%d/%m/%Y"
 time_format: "%H:%M"
 # Khách tự đặt lịch → ghi chú bắt đầu bằng tiền tố này (khoa xác nhận 10/11/2026).
 # File HIS không có cột "Nguồn đặt" (bỏ 12/11/2026): tiền tố được tách khỏi ghi chú khi đọc file và
 # nguồn đặt = "Autobooking"; không có tiền tố = bác sĩ hẹn (để trống).
 self_booking_prefixes: ["Autobooking"]
+# Phần thông tin đặt lịch trong ghi chú khách tự đặt (không phải nội dung khám) – cắt bỏ trước khi đọc / gửi AI:
+# kênh (DRP/MVM/OVM), cộng tác viên "CTV_<tên>_CTV001234", "ko tam ung", mã đơn "#123456". Regex, không phân biệt hoa thường.
+# Người dùng xác nhận 17/11/2026: tên CTV làm bước che dữ liệu chặn gửi AI (PII_LEFT). [CẦN XÁC NHẬN nghĩa DRP/MVM/OVM]
+booking_meta_patterns:
+  - '^(DRP|MVM|OVM)[_\s]+'
+  - 'CTV[_\s]+[^_#]*?[_\s]*CTV\d+[_\s]*'
+  - 'ko\s+tam\s+ung[_\s]*'
+  - '#\d+[_\s]*'
+
 
 # Các cách ghi quốc tịch Việt Nam trong HIS (so không dấu, không phân biệt hoa thường) → file nhac_hen_VN.
 # Quốc tịch trống cũng tính là Việt Nam.

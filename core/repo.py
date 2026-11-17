@@ -248,7 +248,7 @@ def save_his_result(
                       {"previous_delivery_date": extra["previous_delivery_date"],
                        "edd": p.edd.isoformat() if p.edd else None}, user_id=user_id, session=s)
         a = Appointment(patient_id=p.id, appt_date=m.appt_date, start_time=m.start_time, end_time=m.end_time,
-                        services=m.services, department=m.department, doctor=m.doctor,
+                        services=m.services or plan.service_names, department=m.department, doctor=m.doctor,
                         note_enc=encrypt(m.note) if m.note else None, booking_source=m.booking_source,
                         booked_at=m.booked_at, batch_id=batch.id, merged_from=m.merged_from,
                         row_warnings=m.warnings)
@@ -291,6 +291,15 @@ def save_his_result(
                 "notes": plan.arrival.details,
                 "conflict_detail": m.conflict_detail,
                 "merged_from": m.merged_from,
+                "max_minutes_early": plan.arrival.max_minutes_early,
+                "visit_types": [sp.visit_name for sp in plan.service_plans],
+                "planned_services": [
+                    {"code": x.code, "name": x.name, "why": x.why, "source": x.source}
+                    for sp in plan.service_plans for x in sp.services
+                ],
+                "fasting": any(sp.fasting for sp in plan.service_plans),
+                "basis": plan.basis,
+                "knowledge_version": next((sp.knowledge_version for sp in plan.service_plans), None),
             },
         )
         kept = old_confirmed.get((p.id, m.appt_date, m.start_time))

@@ -26,7 +26,7 @@ MESSAGES = {
     "E04": "Dòng {row}: giờ {value} nằm ngoài khung {lo}–{hi}.",
     "E05": "Dòng {row}: ngày hẹn {value} khác ngày đã chọn {selected}.",
     "E06": "Dòng {row}: số điện thoại '{value}' không hợp lệ – dòng sẽ vào 'Cần xác nhận'.",
-    "E07": "Dòng {rows}: thiếu mã bệnh nhân (PID) – không phân biệt được khách, không nhập file. Sửa file HIS rồi tải lại.",
+    "E07": "Dòng {rows}: thiếu mã bệnh nhân (HN/PID) và không phải khách tự đặt (Autobooking) – không phân biệt được khách, không nhập file. Sửa file rồi tải lại.",
     "E08": "Không có dòng nào thuộc khoa trong file – không nhập, giữ nguyên lịch hẹn đã có. Kiểm tra lại file / cột khoa.",
 }
 
@@ -89,17 +89,18 @@ def validate_rows(rows: list[HisRow], rules: Rules, selected_date: date | None) 
             return rep
 
     for r in rows:
-        if r.start_time is None or r.end_time is None:
+        # File OH không có giờ kết thúc → chỉ bắt buộc giờ bắt đầu; có giờ kết thúc mới kiểm tra E03.
+        if r.start_time is None:
             rep.row_issues.append(
                 Issue("E04", MESSAGES["E04"].format(row=r.row_no, value="(trống/sai định dạng)", lo=lo.strftime("%H:%M"), hi=hi.strftime("%H:%M")), r.row_no)
             )
         else:
-            if r.start_time >= r.end_time:
+            if r.end_time is not None and r.start_time >= r.end_time:
                 rep.row_issues.append(
                     Issue("E03", MESSAGES["E03"].format(row=r.row_no, start=r.start_time.strftime("%H:%M"), end=r.end_time.strftime("%H:%M")), r.row_no)
                 )
             for t in (r.start_time, r.end_time):
-                if t < lo or t > hi:
+                if t is not None and (t < lo or t > hi):
                     rep.row_issues.append(
                         Issue("E04", MESSAGES["E04"].format(row=r.row_no, value=t.strftime("%H:%M"), lo=lo.strftime("%H:%M"), hi=hi.strftime("%H:%M")), r.row_no)
                     )

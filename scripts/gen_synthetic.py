@@ -665,6 +665,33 @@ def to_his_frame(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
+# File OH thật (17/11/2026): 6 cột, không có Dịch vụ / Khoa → dịch vụ chỉ còn trong ghi chú, viết tắt như bác sĩ.
+OH_COLS = ["HN", "Patient Name", "Appointment Start Date Time", "Appointment Resource", "Appointment Comment", "Mobile"]
+OH_SERVICE_NOTE = {
+    SVC_EXAM: "khám thai", SVC_US2D: "SA 2D", SVC_NT: "SA NT", SVC_4D: "SA 4D", SVC_OGTT: "NPDN",
+    SVC_GBS: "XN GBS", SVC_BLOOD: "XN máu", SVC_POSTPARTUM: "tkss", "Khám phụ khoa": "khám phụ khoa",
+    "Siêu âm phụ khoa": "SA phụ khoa", "Xét nghiệm Pap": "Pap",
+}
+
+
+def to_oh_frame(rows: list[dict]) -> pd.DataFrame:
+    """Lịch của khoa theo định dạng file OH: dịch vụ ghép vào đầu ghi chú."""
+    out = []
+    for r in rows:
+        if r["department"] != DEPT:
+            continue
+        hint = OH_SERVICE_NOTE.get(r["service"], r["service"])
+        note = his_note(r)
+        out.append({
+            "HN": r["pid"], "Patient Name": r["full_name"],
+            "Appointment Start Date Time": datetime.combine(r["appt_date"], r["start_time"]),
+            "Appointment Resource": r["doctor"],
+            "Appointment Comment": f"{hint}, {note}".strip(" ,") if note else hint,
+            "Mobile": r["phone"],
+        })
+    return pd.DataFrame(out, columns=OH_COLS)
+
+
 def write_xlsx(df: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     df.astype(str).replace({"nan": "", "None": ""}).to_excel(path, index=False)
@@ -929,7 +956,7 @@ def main() -> None:
     golden.mkdir(parents=True, exist_ok=True)
     (ROOT / "tests" / "redteam").mkdir(parents=True, exist_ok=True)
     # Xóa file theo ngày của lần sinh trước để không lẫn hai thế hệ dữ liệu.
-    for folder, patterns in ((out, ["his_export_*.xlsx", "arrivals_*.xlsx"]),
+    for folder, patterns in ((out, ["his_export_*.xlsx", "his_oh_*.xlsx", "arrivals_*.xlsx"]),
                              (golden, ["his_day_*.xlsx", "expected_arrivals_*.csv", "worldsms_expected_*.xlsx"])):
         for pat in patterns:
             for f in folder.glob(pat):
@@ -1013,6 +1040,9 @@ def main() -> None:
         rng.shuffle(rows)
         his = to_his_frame(rows)
         write_xlsx(his, out / f"his_export_{d.isoformat()}.xlsx")
+        oh = to_oh_frame(rows)
+        out.joinpath(f"his_oh_{d.isoformat()}.xlsx").parent.mkdir(parents=True, exist_ok=True)
+        oh.to_excel(out / f"his_oh_{d.isoformat()}.xlsx", index=False)  # giữ kiểu ngày-giờ như file OH
         if k <= 2:
             write_xlsx(his, golden / f"his_day_{d.isoformat()}.xlsx")
             exp = [expected_for(v) for v in vs if v.rows[0]["department"] == DEPT]

@@ -11,7 +11,7 @@ from core.textutil import contains_keyword
 
 REASON_ORDER = [
     "AI_FAILED", "LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "WAITING_MIXED", "BAD_PHONE", "PII_LEFT",
-    "NO_RULE",
+    "NO_PID", "SVC_TIME", "AI_MINUTES", "ABBR_GUESS", "SERVICE_CONFIRM", "NO_RULE",
 ]
 
 REASON_LABELS = {
@@ -26,6 +26,11 @@ REASON_LABELS = {
     "BAD_PHONE": "Số điện thoại không hợp lệ",
     "PII_LEFT": "Che dữ liệu chưa sạch – không gửi AI",
     "NO_RULE": "Không quy tắc nào áp dụng được",
+    "AI_MINUTES": "AI không ước lượng được số phút đến trước có căn cứ – đang dùng số dự phòng",
+    "NO_PID": "Khách tự đặt (Autobooking) chưa có mã bệnh nhân – tìm / tạo hồ sơ",
+    "SVC_TIME": "Ghi chú có giờ hẹn riêng cho dịch vụ làm trước (vd 'có hẹn 9h30') – kiểm lại giờ đến",
+    "ABBR_GUESS": "Ghi chú có viết tắt chưa được xác nhận nghĩa (vd kgm, tkss) – xem danh mục tri thức",
+    "SERVICE_CONFIRM": "Dịch vụ suy ra theo tuần thai cần xác nhận (vd test đường huyết – nhịn ăn)",
 }
 
 
@@ -81,7 +86,10 @@ def decide(
         found = find_ga(note) if note else None
         if found:
             ga_w, ga_d = found
-    if ga_w is not None and ga_w >= cfg["late_ga_weeks"]:
+    # Bác sĩ đã ghi rõ giờ đến và hệ thống dùng đúng giờ đó → không cần gọi xác nhận vì tuần thai (người dùng 17/11/2026).
+    doctor_time = (cfg.get("late_ga_skip_if_doctor_time", False) and arrival.explicit_time is not None
+                   and arrival.arrival_time == arrival.explicit_time)
+    if ga_w is not None and ga_w >= cfg["late_ga_weeks"] and not doctor_time:
         reasons.add("LATE_GA")
     if conflict:
         reasons.add("CONFLICT")

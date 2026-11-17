@@ -78,6 +78,11 @@ def _row(p: PlanView, waiting: str) -> dict:
         "status": p.status, "status_label": STATUS_VI.get(p.status, p.status),
         "reasons": [{"code": r, "label": reason_label(r, load_rules())} for r in p.reasons],
         "merged": len(p.merged_from) > 1,
+        # File OH: loại khám + dịch vụ suy ra từ ghi chú, kèm căn cứ (config/visit_services.yaml)
+        "visit_types": p.details.get("visit_types") or [],
+        "planned_services": p.details.get("planned_services") or [],
+        "basis": p.details.get("basis") or [],
+        "fasting": bool(p.details.get("fasting")),
     }
 
 
@@ -279,3 +284,45 @@ def download_export(name: str, user: CurrentUser = Depends(require("export_world
             raise HTTPException(409, why)
     audit.log("download_export", "file", path.name, user_id=user.user_id)
     return file_response(path.read_bytes(), path.name)
+
+
+@router.get("/arrivals-xlsx")
+def arrivals_xlsx(d: date, user: CurrentUser = Depends(require("export_worldsms"))):
+    """Bảng giờ đến của một ngày (file OH + loại khám, dịch vụ, giờ đến, căn cứ) cho lễ tân / điều dưỡng."""
+    import io
+
+    import pandas as pd
+
+    rules = load_rules()
+    with session_scope() as s:
+        plans = plans_for_date(s, d)
+    rows = []
+    for p in plans:
+        det = p.details or {}
+        mins = ""
+        if p.arrival_time is not None:
+            mins = (p.start_time.hour * 60 + p.start_time.minute) - (p.arrival_time.hour * 60 + p.arrival_time.minute)
+        rows.append({
+            "HN": p.pid, "Họ tên": p.full_name, "SĐT": mask_phone(p.phone),
+            "Giờ hẹn (gặp bác sĩ)": p.start_time.strftime("%H:%M"),
+            "Ghi chú (đã che)": p.masked_note or "",
+            "Loại khám": " · ".join(det.get("visit_types") or []),
+            "Dịch vụ dự kiến": ", ".join(p.services),
+            "Đến trước (phút)": mins,
+            "Giờ đến": p.arrival_time.strftime("%H:%M") if p.arrival_time else (_waiting() if p.method == "waiting" else ""),
+            "Trạng thái": STATUS_VI.get(p.status, p.status),
+            "Lý do cần xác nhận": "; ".join(reason_label(r, rules) for r in p.reasons),
+            "Nhịn ăn": "Có" if det.get("fasting") else "",
+            "Cách tính": "\n".join([det.get("rule_applied") or "", *(det.get("notes") or [])]).strip(),
+            "Căn cứ (nguồn)": "\n".join(det.get("basis") or []),
+            "Phiên bản danh mục": det.get("knowledge_version") or "",
+        })
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as w:
+        pd.DataFrame(rows).to_excel(w, index=False, sheet_name="Giờ đến")
+        ws = w.book["Giờ đến"]
+        ws.freeze_panes = "A2"
+        for col, width in zip("ABCDEFGHIJKLMNO", (12, 22, 14, 12, 40, 26, 40, 10, 10, 14, 45, 8, 60, 60, 10), strict=True):
+            ws.column_dimensions[col].width = width
+    audit.log("download_arrivals_xlsx", "date", d.isoformat(), {"rows": len(rows)}, user_id=user.user_id)
+    return file_response(buf.getvalue(), f"gio_den_{d.isoformat()}.xlsx")

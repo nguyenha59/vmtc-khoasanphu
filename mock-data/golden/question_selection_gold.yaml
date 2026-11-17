@@ -1,0 +1,94 @@
+# Bộ đáp án đo độ chính xác chọn câu hỏi cá nhân hóa (docs/13). DỮ LIỆU GIẢ – không phải thai phụ thật.
+# Bác sĩ điền: must_ask = câu PHẢI hỏi thai phụ này lần này; should_not_ask = câu không nên hỏi (thừa / không hợp tuần thai).
+# Để trống → script chỉ đo an toàn (giữ câu bắt buộc), độ ổn định, độ dài; chưa đo được độ chính xác.
+# status: draft (chưa bác sĩ duyệt) | approved. Chỉ ca approved được tính vào độ chính xác.
+version: "qs-gold-0.1"
+cases:
+  - id: QS01
+    note: "Song thai 30 tuần, chưa có triệu chứng"
+    form: F5
+    ga: [30, 0]
+    flags: [TWINS]
+    confirmed: [P-SINHNON]
+    flagged_answers: {}
+    recent_concepts: []
+    must_ask: []
+    should_not_ask: []
+    status: draft
+  - id: QS02
+    note: "Tăng huyết áp thai kỳ 33 tuần, lần trước trả lời Không chắc phù mặt"
+    form: F6
+    ga: [33, 0]
+    flags: [HTN]
+    confirmed: [M-THA]
+    flagged_answers: {C7: "Không chắc"}
+    recent_concepts: []
+    must_ask: []
+    should_not_ask: []
+    status: draft
+  - id: QS03
+    note: "Vết mổ cũ 29 tuần, lần trước tự viết 'hay đau bụng dưới'"
+    form: F5
+    ga: [29, 2]
+    flags: [PREV_CSECTION]
+    confirmed: [P-VETMO]
+    flagged_answers: {}
+    recent_concepts: [ABD_PAIN]
+    must_ask: []
+    should_not_ask: []
+    status: draft
+  - id: QS04
+    note: "Thai 9 tuần nguy cơ thấp"
+    form: F1
+    ga: [9, 0]
+    flags: []
+    confirmed: []
+    flagged_answers: {}
+    recent_concepts: []
+    must_ask: []
+    should_not_ask: []
+    status: draft
+  - id: QS05
+    note: "Đái tháo đường thai kỳ 25 tuần dùng insulin, lần trước trả lời Có hạ đường huyết"
+    form: F4
+    ga: [25, 0]
+    flags: [GDM]
+    confirmed: [M-DTD]
+    flagged_answers: {HYPO: "Có"}
+    recent_concepts: []
+    must_ask: []
+    should_not_ask: []
+    status: draft
+  - id: QS06
+    note: "Nguy cơ sinh non 24 tuần + nhiễm khuẩn tiết niệu, lần trước tự viết 'tiểu buốt'"
+    form: F4
+    ga: [24, 3]
+    flags: [PRETERM_RISK, UTI]
+    confirmed: [P-SINHNON, P-TIEUNIEU]
+    flagged_answers: {}
+    recent_concepts: [DYSURIA]
+    must_ask: []
+    should_not_ask: []
+    status: draft
+  - id: QS07
+    note: "Tiền sử tiền sản giật, 21 tuần"
+    form: F3
+    ga: [21, 0]
+    flags: [PREV_PREECLAMPSIA]
+    confirmed: [P-TSG]
+    flagged_answers: {}
+    recent_concepts: []
+    must_ask: []
+    should_not_ask: []
+    status: draft
+  - id: QS08
+    note: "Thiếu máu 28 tuần (chưa có bộ câu đạt chuẩn), lần trước tự viết 'mệt, khó thở khi leo cầu thang'"
+    form: F5
+    ga: [28, 0]
+    flags: [ANEMIA]
+    confirmed: []
+    flagged_answers: {}
+    recent_concepts: [DYSPNEA]
+    must_ask: []
+    should_not_ask: []
+    status: draft

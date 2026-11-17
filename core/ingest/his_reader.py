@@ -44,10 +44,29 @@ def read_raw(file: str | IO[bytes] | Any) -> pd.DataFrame:
     return df
 
 
+def present_fields(raw: pd.DataFrame, cfg: HisColumns) -> dict[str, str]:
+    """Trường chuẩn → tên cột trong file (một trường nhiều tên cột: lấy tên đầu tiên có trong file)."""
+    cols = {str(c).strip() for c in raw.columns}
+    out: dict[str, str] = {}
+    for col, fld in cfg.columns.items():
+        if col in cols and fld not in out:
+            out[fld] = col
+    return out
+
+
 def missing_columns(raw: pd.DataFrame, cfg: HisColumns) -> list[str]:
-    """Trả tên cột gốc (trong file HIS) của các trường bắt buộc bị thiếu."""
-    reverse = {v: k for k, v in cfg.columns.items()}
-    return [reverse.get(f, f) for f in cfg.required if reverse.get(f, f) not in raw.columns]
+    """Tên cột gốc của các trường bắt buộc bị thiếu. Mục "a|b" = cần một trong các trường."""
+    present = present_fields(raw, cfg)
+    missing: list[str] = []
+    for item in cfg.required:
+        fields = item.split("|")
+        if any(f in present for f in fields):
+            continue
+        names = [c for c, f in cfg.columns.items() if f == fields[0]] or [fields[0]]
+        label = " / ".join(names)
+        if label not in missing:
+            missing.append(label)
+    return missing
 
 
 def _clean(v: Any) -> str:
@@ -81,11 +100,16 @@ def parse_time(v: Any, fmt: str) -> time | None:
     return None
 
 
+def _has_clock(v: Any) -> bool:
+    return bool(re.search(r"\d{1,2}:\d{2}", _clean(v)))
+
+
 def parse_datetime(v: Any, date_fmt: str, time_fmt: str) -> datetime | None:
     s = _clean(v)
     if not s:
         return None
-    for f in (f"{date_fmt} {time_fmt}", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", date_fmt):
+    for f in (f"{date_fmt} {time_fmt}", f"{date_fmt} %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
+              "%d/%m/%Y %I:%M:%S %p", "%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y %H:%M", date_fmt):
         try:
             return datetime.strptime(s, f)
         except ValueError:
@@ -97,18 +121,37 @@ def split_self_booking(note: str, prefixes: tuple[str, ...]) -> tuple[str, bool]
     """Tách tiền tố 'khách tự đặt' (ví dụ "Autobooking") khỏi ghi chú. Trả (ghi chú còn lại, có tự đặt)."""
     found = False
     for pfx in prefixes:
-        pattern = re.compile(rf"(?<!\w){re.escape(pfx)}(?!\w)[\s:;,.\-|]*", re.IGNORECASE)
+        # File OH: "Autobooking_DRP_..." – dấu "_" cũng là ranh giới.
+        pattern = re.compile(rf"(?<![^\W_]){re.escape(pfx)}(?![^\W_])[\s:;,.\-|_]*", re.IGNORECASE)
         note, k = pattern.subn(" ", note)
         found = found or k > 0
     return re.sub(r"\s+", " ", note).strip(" ;,.-|"), found
 
 
+def strip_booking_meta(note: str, patterns: tuple[str, ...]) -> str:
+    """Bỏ thông tin đặt lịch (kênh, cộng tác viên, mã đơn) khỏi ghi chú khách tự đặt – chỉ giữ nội dung khám."""
+    for pat in patterns:
+        note = re.sub(pat, " ", note, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", note.replace("_", " ")).strip(" ;,.-|")
+
+
 def standardize(raw: pd.DataFrame, cfg: HisColumns) -> list[HisRow]:
-    df = raw.rename(columns=cfg.columns)
+    present = present_fields(raw, cfg)
     rows: list[HisRow] = []
-    for i, r in enumerate(df.to_dict("records")):
+    for i, rec in enumerate(raw.to_dict("records")):
+        r = {fld: rec.get(col) for fld, col in present.items()}
+        # File OH: ngày + giờ hẹn chung một ô ("Appointment Start Date Time").
+        appt_dt = parse_datetime(r.get("appt_datetime"), cfg.date_format, cfg.time_format)
+        if appt_dt is not None and _has_clock(r.get("appt_datetime")):
+            appt_date: date | None = appt_dt.date()
+            start: time | None = appt_dt.time().replace(second=0, microsecond=0)
+        else:
+            appt_date = parse_date(r.get("appt_date"), cfg.date_format)
+            start = parse_time(r.get("start_time"), cfg.time_format)
         phone_raw = _clean(r.get("phone"))
         note, self_booked = split_self_booking(_clean(r.get("note")), cfg.self_booking_prefixes)
+        if self_booked:
+            note = strip_booking_meta(note, cfg.booking_meta_patterns)
         source = _clean(r.get("booking_source")) or ("Autobooking" if self_booked else "")
         rows.append(
             HisRow(
@@ -118,8 +161,8 @@ def standardize(raw: pd.DataFrame, cfg: HisColumns) -> list[HisRow]:
                 phone=normalize_phone(phone_raw),
                 phone_raw=phone_raw,
                 nationality=_clean(r.get("nationality")) or "Việt Nam",
-                appt_date=parse_date(r.get("appt_date"), cfg.date_format),
-                start_time=parse_time(r.get("start_time"), cfg.time_format),
+                appt_date=appt_date,
+                start_time=start,
                 end_time=parse_time(r.get("end_time"), cfg.time_format),
                 service=_clean(r.get("service")),
                 department=_clean(r.get("department")),

@@ -716,3 +716,43 @@ def test_reupload_same_day_keeps_visit_results_and_confirmed_times(client):
         assert s.query(VisitResult).filter(VisitResult.data_enc == "x").count() == 1
     again = next(x for x in client.get("/api/appointments", params={"d": d}).json()["items"] if x["code"] == it["code"])
     assert again["status"] == "confirmed" and again["arrival_time"] == it["arrival_time"]
+
+
+def test_upload_oh_format_shows_services_and_arrival_sheet(client):
+    """File OH 6 cột (giống file xuất thật) → loại khám, dịch vụ, căn cứ trên màn hình + tải bảng giờ đến Excel."""
+    import io
+    from datetime import date as _date
+    from datetime import datetime as _dt
+    from datetime import timedelta as _td
+
+    import pandas as pd
+
+    _login(client, "nurse")
+    d = _date.today() + _td(days=3)
+    rows = [("11:00", "Thai 39w6d/SA/CTG tới 08h30"), ("08:30", "Autobooking_MVM_ko tam ung_#1_Chậm kinh"),
+            ("11:30", "21w/sa4d có hẹn 9h30"), ("09:00", "tái khám sau sinh thường")]
+    df = pd.DataFrame([{"HN": f"OHT{i}", "Patient Name": f"Khách Giả {i}",
+                        "Appointment Start Date Time": _dt(d.year, d.month, d.day, int(t[:2]), int(t[3:])),
+                        "Appointment Resource": "BS Giả", "Appointment Comment": n, "Mobile": f"09010000{i:02d}"}
+                       for i, (t, n) in enumerate(rows, start=1)])
+    buf = io.BytesIO()
+    df.to_excel(buf, index=False)
+    r = client.post("/api/appointments/upload", data={"d": d.isoformat(), "use_ai": "false"},
+                    files={"file": ("oh.xlsx", buf.getvalue(),
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})
+    assert r.status_code == 200 and r.json().get("ok"), r.text
+    items = client.get(f"/api/appointments?d={d.isoformat()}").json()["items"]
+    assert len(items) == 4
+    ctg = next(x for x in items if x["start_time"] == "11:00")
+    assert ctg["arrival_time"] == "08:30" and ctg["visit_types"] == ["Khám thai định kỳ"]
+    assert any("CTG" in s for s in ctg["services"]) and ctg["basis"]
+    svc = next(x for x in items if x["start_time"] == "11:30")
+    assert svc["arrival_time"] == "09:20"  # "có hẹn 9h30" → đến trước 10' tiếp đón
+    det = client.get(f"/api/appointments/plan/{ctg['plan_id']}?d={d.isoformat()}").json()
+    assert det["planned_services"] and det["notes"]
+    before = _audit_count("download_arrivals_xlsx")
+    x = client.get(f"/api/appointments/arrivals-xlsx?d={d.isoformat()}")
+    assert x.status_code == 200 and x.content[:2] == b"PK"
+    sheet = pd.read_excel(io.BytesIO(x.content), dtype=str)
+    assert {"Loại khám", "Giờ đến", "Căn cứ (nguồn)"} <= set(sheet.columns) and len(sheet) == 4
+    assert _audit_count("download_arrivals_xlsx") == before + 1
