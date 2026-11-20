@@ -212,10 +212,25 @@ def _carry_over(s: Session, old_ids: list[int], res: ProcessResult) -> tuple[
     confirmed = {}
     for pl, a in s.execute(select(ArrivalPlan, Appointment).join(Appointment, ArrivalPlan.appointment_id == Appointment.id)
                            .where(Appointment.id.in_(old_ids), ArrivalPlan.status == "confirmed")):
+        note = decrypt(a.note_enc) if a.note_enc else ""
         confirmed[(a.patient_id, a.appt_date, a.start_time)] = (pl.arrival_time, pl.method, pl.confirmed_by,
-                                                                 pl.confirmed_at)
+                                                                 pl.confirmed_at,
+                                                                 plan_fingerprint(pl.proposed_time, pl.method,
+                                                                                  pl.details or {}, note))
     s.flush()
     return moving, confirmed, keep_ids
+
+
+def plan_fingerprint(proposed: time | None, method: str | None, details: dict[str, Any], note: str) -> tuple:
+    """"Dấu vân tay" của kết quả tính mà điều dưỡng đã xác nhận: ghi chú, giờ đến tính ra (cả bản 2), dịch vụ tính giờ,
+    nhịn ăn, khám chờ. Tải lại file mà dấu vân tay đổi (vd khoa sửa số phút trong danh mục) → xác nhận cũ hết hiệu lực
+    (rà soát 18/11/2026: ca đã xác nhận giữ giờ cũ, khách đến muộn hơn mức cần)."""
+    codes = sorted(x.get("code", "") for x in details.get("planned_services") or [] if not x.get("conditional"))
+    # Không so method: xác nhận một lịch khám chờ bằng giờ cụ thể đổi method thành "manual" – so method thì lần tải
+    # lại nào cũng thấy "khác". Giờ tính ra (proposed = None với khám chờ) đã đủ phân biệt.
+    del method
+    return (" ".join((note or "").split()).lower(), _t(proposed), details.get("arrival_alt"), tuple(codes),
+            bool(details.get("fasting")))
 
 
 def save_his_result(
@@ -241,7 +256,14 @@ def save_his_result(
         s.execute(delete(Appointment).where(Appointment.id.in_(old_ids)))
     for plan in res.planned:
         m = plan.merged
-        p = upsert_patient(s, m.pid, m.full_name, m.phone or m.phone_raw, m.nationality)
+        nat = m.nationality
+        if m.nationality_guessed:
+            # Đoán theo tên không ghi đè quốc tịch CỤ THỂ đã có từ cột Quốc tịch thật (khác "Việt Nam" mặc định / nhãn đoán)
+            existing = s.scalar(select(Patient).where(Patient.pid == m.pid))
+            stored = (existing.nationality or "") if existing is not None else ""
+            if stored and stored not in ("Việt Nam", m.nationality) and "(theo tên)" not in stored:
+                nat = stored
+        p = upsert_patient(s, m.pid, m.full_name, m.phone or m.phone_raw, nat)
         extra = _update_patient_from_note(p, plan)
         if "previous_delivery_date" in extra:
             audit.log("new_pregnancy_from_his", "patient", p.code,
@@ -292,21 +314,40 @@ def save_his_result(
                 "conflict_detail": m.conflict_detail,
                 "merged_from": m.merged_from,
                 "max_minutes_early": plan.arrival.max_minutes_early,
+                "arrival_alt": _t(plan.arrival.alt_time),
                 "visit_types": [sp.visit_name for sp in plan.service_plans],
                 "planned_services": [
-                    {"code": x.code, "name": x.name, "why": x.why, "source": x.source}
+                    {"code": x.code, "name": x.name, "why": x.why, "source": x.source, "conditional": x.conditional}
                     for sp in plan.service_plans for x in sp.services
                 ],
+                "maybe_services": plan.maybe_names,
                 "fasting": any(sp.fasting for sp in plan.service_plans),
                 "basis": plan.basis,
                 "knowledge_version": next((sp.knowledge_version for sp in plan.service_plans), None),
             },
         )
         kept = old_confirmed.get((p.id, m.appt_date, m.start_time))
-        if kept is not None:  # điều dưỡng đã xác nhận giờ đến cho đúng lịch này → giữ, ghi rõ trong chi tiết
-            ap.arrival_time, ap.method, ap.confirmed_by, ap.confirmed_at = kept
-            ap.status = "confirmed"
-            ap.details = {**(ap.details or {}), "kept_confirmation": True}
+        if kept is not None:
+            old_time, old_method, by, at, old_fp = kept
+            new_fp = plan_fingerprint(ap.proposed_time, ap.method, ap.details or {}, m.note or "")
+            if old_fp[2] is None:  # xác nhận trước khi có "bản 2" (chưa lưu arrival_alt) → không so bản 2
+                new_fp = (*new_fp[:2], None, *new_fp[3:])
+            if old_fp == new_fp:  # kết quả tính y hệt lần đã xác nhận → giữ xác nhận
+                ap.arrival_time, ap.method, ap.confirmed_by, ap.confirmed_at = old_time, old_method, by, at
+                ap.status = "confirmed"
+                ap.details = {**(ap.details or {}), "kept_confirmation": True}
+            else:  # tính lại ra kết quả khác → cần xác nhận lại, hiện cả giờ cũ và giờ mới
+                old_s = _t(old_time) or "khám chờ"
+                new_s = _t(ap.proposed_time) or "khám chờ"
+                msg = f"Lần trước đã xác nhận {old_s} – nay tính lại ra {new_s} (giờ / dịch vụ đã đổi) – xác nhận lại"
+                ap.status = "needs_review"
+                ap.reasons = ["RECHECK", *[r for r in (ap.reasons or []) if r != "RECHECK"]]
+                det = dict(ap.details or {})
+                det["previous_confirmed"] = _t(old_time)
+                det["notes"] = [msg, *(det.get("notes") or [])]
+                ap.details = det
+                audit.log("confirmation_invalidated", "appointment", a.id,
+                          {"old": _t(old_time), "new": _t(ap.proposed_time)}, user_id=user_id, session=s)
         s.add(ap)
     audit.log("upload_his", "import_batch", batch.id,
               {"file": file_name, "rows": len(res.rows), "planned": len(res.planned),
@@ -327,6 +368,7 @@ def _ai_dict(ai: Any) -> dict[str, Any] | None:
         "needs_fasting": ai.needs_fasting, "ga_weeks": ai.ga_weeks, "ga_days": ai.ga_days,
         "risk_flags": ai.risk_flags, "asks_confirmation": ai.asks_confirmation, "evidence": ai.evidence,
         "ga_confidence": ai.ga_confidence, "ga_grounded": ai.ga_grounded,
+        "visit_type": getattr(ai, "visit_type", None), "services": list(getattr(ai, "services", []) or []),
     }
 
 

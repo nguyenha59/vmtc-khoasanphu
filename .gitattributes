@@ -1,0 +1,2 @@
+# Bản chụp nguồn được kiểm bằng SHA-256 → giữ nguyên từng byte, không đổi xuống dòng LF/CRLF
+knowledge/sources/snapshots/** -text

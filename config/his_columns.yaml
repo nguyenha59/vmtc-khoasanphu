@@ -45,6 +45,18 @@ booking_meta_patterns:
 # Quốc tịch trống cũng tính là Việt Nam.
 vietnam_aliases: ["Việt Nam", "Vietnam", "Viet Nam", "VN", "VNM", "Vietnamese", "Người Việt"]
 
+# File OH không có cột Quốc tịch → suy từ TÊN bệnh nhân để tách file WorldSMS Việt Nam / nước ngoài (người dùng
+# chốt 17/11/2026). Tên có dấu tiếng Việt hoặc họ Việt (so không dấu, từ đầu tên) → Việt Nam; còn lại → nước ngoài.
+# Họ dễ trùng tên nước ngoài (Kim, Lý, Lâm…) mà tên không dấu và không có tên đệm Việt → nước ngoài.
+# [CẦN XÁC NHẬN] khoa rà danh sách; tên khó đoán vẫn hiển thị để điều dưỡng sửa trên màn hình.
+nationality_from_name: true
+foreign_label: "Nước ngoài (theo tên)"
+vietnam_surnames: [nguyen, tran, le, pham, hoang, huynh, phan, vu, vo, dang, bui, do, ho, ngo, duong, ly, dinh, trinh,
+                   mai, ta, truong, dao, doan, luong, lam, cao, ha, luu, kieu, chu, tang, la, quach, tieu, ton, thai,
+                   thach, vuong, khuc, kim, ma, au, giang, mac, nghiem, phung, quan, tong, trieu, van, vi, lai, lo]
+vietnam_ambiguous_surnames: [kim, ly, lam, ma, la, ha, lo, giang, van, quan, mai]
+vietnam_middle_names: [thi, van, ngoc, thu, minh, thanh, hong, kim, bao, phuong, dieu, thuy, quynh, my, huu, duc, anh]
+
 # File nhắc hẹn WorldSMS. Ý nghĩa P–P6 khoa xác nhận 12/11/2026.
 # [CẦN XÁC NHẬN] tiêu đề cột SĐT và thứ tự cột theo file mẫu WorldSMS – chỉ cần sửa ở đây, không sửa code.
 worldsms:
@@ -57,4 +69,9 @@ worldsms:
     - {header: "P4", field: month}
     - {header: "P5", field: year}
     - {header: "P6", field: arrival_time}
-  phone_format: local          # local = 0912345678 · intl = 84912345678
+    # P7 (rà soát 18/11/2026): câu dặn nhịn ăn – chỉ điền cho ca có nhịn ăn (ghi chú ghi / dịch vụ ghi rõ cần nhịn ăn).
+    # [CẦN XÁC NHẬN] mẫu tin WorldSMS phải có tham số P7.
+    - {header: "P7", field: fasting_note}
+  phone_format: local
+  # Nguồn: VMC_OGTT "nhịn đói 8 tiếng", VMC_LEEP "nhịn ăn ít nhất 8 giờ". [CẦN XÁC NHẬN] câu chữ với khoa.
+  fasting_note_text: "Vui lòng nhịn ăn ít nhất 8 tiếng trước giờ đến (được uống nước lọc)."          # local = 0912345678 · intl = 84912345678

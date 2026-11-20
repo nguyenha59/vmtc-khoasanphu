@@ -118,8 +118,8 @@ def main() -> None:
     schema = ["# Schema dữ liệu – Trợ lý lịch hẹn & theo dõi thai kỳ", "",
               "Sinh tự động bởi `scripts/export_mock_package.py`.", "", oh_schema_md(), db_schema_md(),
               "## 3. Kết quả AI đọc ghi chú (JSON)", "",
-              "Xem `schema/ai_note_output.schema.json`. AI chỉ được chọn mã trong danh mục (enum); số phút đến trước phải "
-              "kèm mã nguồn đã kiểm (`minutes_basis`).", "", knowledge_md()]
+              "Xem `schema/ai_note_output.schema.json`. AI chỉ được chọn mã loại khám / dịch vụ trong danh mục (enum); AI "
+              "không đặt số phút – code tự tính từ thời gian tối thiểu có nguồn trong danh mục.", "", knowledge_md()]
     (OUT / "SCHEMA.md").write_text("\n".join(schema), encoding="utf-8")
     print(f"Đã đóng gói {OUT}")
 

@@ -1,6 +1,6 @@
 """Khi nào báo ĐỎ (rà soát 15/11/2026): mọi mức đỏ phải có căn cứ (nguồn y khoa) và giải thích được (dữ liệu nào).
 
-Kèm các câu thai phụ hay viết mà trước đây bị đọc nhầm (docs/10 P12) và quyết định P01 / P03 / P04 / P09 của người dùng.
+Kèm các câu thai phụ hay viết mà trước đây bị đọc nhầm (knowledge/sources/y-khoa.md P12) và quyết định P01 / P03 / P04 / P09 của người dùng.
 """
 
 from __future__ import annotations

@@ -1,9 +1,10 @@
-"""Gợi ý câu trích từ trang nguồn để người duyệt chọn (docs/17). KHÔNG tự duyệt.
+"""Gợi ý câu trích từ trang nguồn để người duyệt chọn (knowledge/README.md). KHÔNG tự duyệt.
 
 Chạy: python scripts/knowledge_fetch_quotes.py knowledge/danh_muc_kham.xlsx [--codes VMC_SA_11_DIEU,TA_3_MOC] [--all]
 - Mặc định: các nguồn cấp A/B chưa có trích dẫn nào.
-- Tải trang (chỉ link công khai, không gửi dữ liệu bệnh nhân), tách câu, giữ câu có thông tin dùng cho xếp lịch
-  (phút, giờ, tiếng, nhịn, tuần, trước khi, kéo dài…), thêm vào sheet 'Trích dẫn' với Trạng thái 'Chờ duyệt'.
+- Tải trang (chỉ link công khai, không gửi dữ liệu bệnh nhân), LƯU BẢN CHỤP (knowledge/sources/snapshots/), tách câu, giữ câu có thông tin dùng cho xếp lịch
+  (phút, giờ, tiếng, nhịn, tuần, trước khi, kéo dài…), thêm vào sheet 'Trích dẫn' với Trạng thái 'Chờ duyệt'
+  kèm 'Bản chụp' + 'SHA-256' (câu lấy từ đúng bản chụp đó).
 - Người duyệt: mở trang gốc đối chiếu → đổi 'Chờ duyệt' thành 'Đã duyệt' (hoặc 'Loại'), điền 'Dịch vụ áp dụng',
   đổi 'Đã kiểm trang gốc' của nguồn thành 'Có' → chạy knowledge_import.py.
 """
@@ -11,33 +12,23 @@ Chạy: python scripts/knowledge_fetch_quotes.py knowledge/danh_muc_kham.xlsx [-
 from __future__ import annotations
 
 import argparse
-import html
 import re
 import sys
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from core import knowledge_sources as ks  # noqa: E402
+from core.config import TZ  # noqa: E402
+from core.knowledge import default_know_dir  # noqa: E402
 from core.textutil import deaccent  # noqa: E402
 
 CUES = ["phut", "gio", "tieng", "nhin", "tuan", "truoc khi", "keo dai", "toi thieu", "mat khoang", "dao dong",
         "den truoc", "buoi sang", "lay mau", "uong"]
-UA = {"User-Agent": "Mozilla/5.0 (compatible; knowledge-quote-helper)"}
-
-
-def page_text(url: str) -> str:
-    r = requests.get(url, headers=UA, timeout=30)
-    r.raise_for_status()
-    raw = re.sub(r"(?is)<(script|style|nav|footer|header).*?</\1>", " ", r.text)
-    txt = html.unescape(re.sub(r"(?s)<[^>]+>", "\n", raw))
-    return re.sub(r"[ \t]+", " ", txt)
-
-
 def candidate_sentences(text: str, limit: int = 15) -> list[str]:
     out: list[str] = []
     for line in text.split("\n"):
@@ -71,13 +62,18 @@ def main() -> int:
         if not wanted and (tier not in ("A", "B") or not url or (code in have and not args.all)):
             continue
         try:
-            sents = candidate_sentences(page_text(url))
+            snap = ks.snapshot_source(default_know_dir(), code, url, datetime.now(TZ))
         except Exception as e:  # noqa: BLE001
             print(f"  ✗ {code}: không tải được ({type(e).__name__})")
             continue
-        print(f"  • {code}: {len(sents)} câu gợi ý")
+        text = ks.read_snapshot(default_know_dir(), snap.path)
+        if text is None:
+            print(f"  ✗ {code}: {snap.path} là PDF chưa trích được chữ – không gợi ý câu")
+            continue
+        sents = candidate_sentences(text)
+        print(f"  • {code}: {len(sents)} câu gợi ý (bản chụp {snap.path})")
         rows += [{"Mã nguồn": code, "Dịch vụ áp dụng": "", "Câu trích nguyên văn": t, "Trạng thái": "Chờ duyệt",
-                  "Ngày truy cập": date.today().isoformat()} for t in sents]
+                  "Ngày truy cập": snap.accessed[:10], "Bản chụp": snap.path, "SHA-256": snap.sha256} for t in sents]
     if not rows:
         print("Không có câu mới.")
         return 0

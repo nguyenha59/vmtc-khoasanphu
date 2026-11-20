@@ -19,6 +19,8 @@ from typing import Any
 
 from core.ai.clinical_facts import using_rules
 from core.ai.consistency import run_votes
+from core.ai.injection import REVIEW_NOTE as INJECTION_NOTE
+from core.ai.injection import injection_signals
 from core.ai.llm_client import LlmClient, render_prompt
 from core.ai.masking import NerFn, mask_fragment, mask_text
 from core.ai.reader.concerns import covered_brushing_concern as _covered_brushing_concern  # noqa: F401
@@ -143,10 +145,13 @@ def _reconcile_all(reading: FormReading, lex: list[dict[str, Any]], res: VoteRes
                    ga_weeks: int | None, rules: Rules) -> dict[str, dict[str, Any]]:
     """Bước 4a: gộp đa số các lần chạy AI, rồi đối chiếu từng khái niệm danh mục theo bảng RECONCILE."""
     merged = _majority_merge(res.runs)
+    # Câu giống lệnh điều khiển máy (prompt injection) → không cho AI hạ mức ở form này (core/ai/injection.py).
+    injected = bool(reading.raw.get("prompt_injection"))
     for f in lex:
         ai = merged.get(f["concept"])
         override = (ai_override(f, res.runs, res.n_total, ai_ok=reading.ok, confidence=reading.confidence,
-                                text=text, ga_weeks=ga_weeks, rules=rules) if ai is not None else None)
+                                text=text, ga_weeks=ga_weeks, rules=rules)
+                    if ai is not None and not injected else None)
         pair = Pair(concept=f["concept"], lex=f, ai=ai, override=override, llm_ran=bool(res.runs), text=text,
                     locked=bool(rules["symptom_concepts"][f["concept"]].get("locked")))
         _rule, chosen, conflict = reconcile(pair)
@@ -238,6 +243,10 @@ def _read_free_text(text: str, ga_weeks: int | None, client: LlmClient | None, r
     if not mask.ok:
         reading.raw["llm_status"] = "mask_failed"
     res = _ask_ai(reading, client, mask.text, text, ga_weeks, rules) if client is not None and mask.ok else VoteResult()
+    injection = injection_signals(text, rules)  # sau _ask_ai (hàm đó đặt lại reading.raw)
+    if injection:
+        reading.raw["prompt_injection"] = injection
+        reading.conflicts.append(INJECTION_NOTE)
 
     # 4. đối chiếu + mức từng phát hiện
     merged = _reconcile_all(reading, lex, res, text, ga_weeks, rules)

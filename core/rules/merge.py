@@ -39,6 +39,7 @@ class MergedAppt:
     conflict_detail: str = ""
     warnings: list[str] = field(default_factory=list)
     slots: list[Slot] = field(default_factory=list)
+    nationality_guessed: bool = False
 
     @property
     def is_merged(self) -> bool:
@@ -114,6 +115,7 @@ def merge_appointments(
                 conflict_detail=detail,
                 warnings=sorted({w for r in grp for w in r.warnings}),
                 slots=[Slot(r.start_time, r.service, r.note) for r in grp if r.start_time is not None],
+                nationality_guessed=first.nationality_guessed,
             )
         )
     merged.sort(key=lambda m: (m.start_time, m.pid))

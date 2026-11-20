@@ -747,7 +747,7 @@ def test_upload_oh_format_shows_services_and_arrival_sheet(client):
     assert ctg["arrival_time"] == "08:30" and ctg["visit_types"] == ["Khám thai định kỳ"]
     assert any("CTG" in s for s in ctg["services"]) and ctg["basis"]
     svc = next(x for x in items if x["start_time"] == "11:30")
-    assert svc["arrival_time"] == "09:20"  # "có hẹn 9h30" → đến trước 10' tiếp đón
+    assert svc["arrival_time"] == "09:30"  # "có hẹn 9h30" = giờ bác sĩ ghi
     det = client.get(f"/api/appointments/plan/{ctg['plan_id']}?d={d.isoformat()}").json()
     assert det["planned_services"] and det["notes"]
     before = _audit_count("download_arrivals_xlsx")
@@ -756,3 +756,67 @@ def test_upload_oh_format_shows_services_and_arrival_sheet(client):
     sheet = pd.read_excel(io.BytesIO(x.content), dtype=str)
     assert {"Loại khám", "Giờ đến", "Căn cứ (nguồn)"} <= set(sheet.columns) and len(sheet) == 4
     assert _audit_count("download_arrivals_xlsx") == before + 1
+
+
+def test_reupload_after_catalog_change_invalidates_confirmation(client, monkeypatch):
+    """Rà soát 18/11/2026: đã xác nhận rồi khoa đổi số phút siêu âm → tải lại phải quay về 'Cần xác nhận lại',
+    hiện giờ cũ → giờ mới; không bao giờ giữ giờ cũ lặng lẽ."""
+    import io
+    from datetime import date as _date
+    from datetime import datetime as _dt
+    from datetime import timedelta as _td
+
+    import pandas as pd
+
+    import core.config as cfg
+
+    _login(client, "nurse")
+    d = _date.today() + _td(days=3)
+    while d.weekday() >= 5:
+        d += _td(days=1)
+    rows = [{"HN": "77001", "Patient Name": "Khách Thử Một", "Appointment Start Date Time": _dt.combine(d, _dt.min.time()) + _td(hours=10),
+             "Appointment Resource": "BS A", "Appointment Comment": "31w, 2d + khám", "Mobile": "0900770011"},
+            {"HN": "77002", "Patient Name": "Khách Thử Hai", "Appointment Start Date Time": _dt.combine(d, _dt.min.time()) + _td(hours=11),
+             "Appointment Resource": "BS A", "Appointment Comment": "tái khám sau sinh thường", "Mobile": "0900770022"}]
+    buf = io.BytesIO()
+    pd.DataFrame(rows).to_excel(buf, index=False)
+    up = lambda: client.post("/api/appointments/upload", data={"d": d.isoformat(), "use_ai": "false"},  # noqa: E731
+                             files={"file": ("oh.xlsx", buf.getvalue(), "application/vnd.ms-excel")})
+    assert up().json()["ok"]
+    items = {x["code"]: x for x in client.get("/api/appointments", params={"d": d.isoformat()}).json()["items"]}
+    for it in items.values():
+        r = client.post(f"/api/appointments/plan/{it['plan_id']}/confirm", json={"d": d.isoformat(), "arrival_time": it["arrival_time"]})
+        assert r.status_code == 200, r.text
+    sa = next(x for x in items.values() if x["start_time"] == "10:00")
+    assert sa["arrival_time"] == "09:25"
+
+    orig = cfg.load_visit_services
+
+    def changed(*a, **k):  # khoa đổi SA 2D 20' → 30'
+        c = orig(*a, **{**k, "copy_data": True})
+        c["services"]["SA_2D"]["min_minutes"] = 30
+        return c
+
+    monkeypatch.setattr(cfg, "load_visit_services", changed)
+    import core.pipeline as pl
+    import core.rules.visit_infer as vi
+    monkeypatch.setattr(pl, "load_visit_services", changed, raising=False)
+    monkeypatch.setattr(vi, "load_visit_services", changed, raising=False)
+    assert up().json()["ok"]
+    after = {x["start_time"]: x for x in client.get("/api/appointments", params={"d": d.isoformat()}).json()["items"]}
+    a = after["10:00"]
+    assert a["status"] == "needs_review" and a["arrival_time"] == "09:15"
+    assert any(r["code"] == "RECHECK" for r in a["reasons"])
+    det = client.get(f"/api/appointments/plan/{a['plan_id']}", params={"d": d.isoformat()}).json()
+    assert any("09:25" in n and "09:15" in n for n in det["notes"])
+    assert after["11:00"]["status"] == "confirmed"  # ca không đổi kết quả → giữ xác nhận
+
+
+def test_fingerprint_ignores_manual_method_on_waiting() -> None:
+    from datetime import time as _time
+
+    from core.repo import plan_fingerprint
+
+    det = {"planned_services": [{"code": "KHAM"}], "fasting": False, "arrival_alt": None}
+    assert plan_fingerprint(None, "manual", det, "khám chờ") == plan_fingerprint(None, "waiting", det, "khám chờ")
+    assert plan_fingerprint(_time(9), "rule", det, "a") != plan_fingerprint(_time(9, 15), "rule", det, "a")

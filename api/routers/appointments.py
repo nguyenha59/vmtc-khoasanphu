@@ -83,10 +83,24 @@ def _row(p: PlanView, waiting: str) -> dict:
         "planned_services": p.details.get("planned_services") or [],
         "basis": p.details.get("basis") or [],
         "fasting": bool(p.details.get("fasting")),
+        "maybe_services": p.details.get("maybe_services") or [],
     }
 
 
-_WORLDSMS_FILE = re.compile(r"^nhac_hen_(?:VN|NN)_(\d{4}-\d{2}-\d{2})\.xlsx$")
+_WORLDSMS_FILE = re.compile(r"^nhac_hen_(?:VN|NN)_(\d{4}-\d{2}-\d{2})(?:_ban2_chi_dich_vu)?\.xlsx$")
+BAN2_SUFFIX = "_ban2_chi_dich_vu"
+
+
+def arrival_for(p: PlanView, mode: str = "full") -> Any:
+    """Giờ đến theo bản. Bản 2 (services_only): bỏ 15' tiếp đón khi có dịch vụ tính giờ (người dùng 18/11/2026).
+    Ca đã xác nhận / điều dưỡng tự sửa / khám chờ / chỉ khám → như bản 1. Bản 2 không bao giờ sớm hơn bản 1."""
+    arr = p.arrival_time
+    alt = (p.details or {}).get("arrival_alt")
+    if (mode == "services_only" and alt and arr is not None
+            and p.method not in ("manual", "waiting") and p.status != "confirmed"):
+        t = parse_hhmm(alt)
+        return t if t >= arr else arr
+    return arr
 
 
 def _stale_export(s: Any, d: date, path: Path, plans: list[PlanView] | None = None) -> str | None:
@@ -103,10 +117,11 @@ def _stale_export(s: Any, d: date, path: Path, plans: list[PlanView] | None = No
     return None
 
 
-def _export_rows(plans: list[PlanView]) -> list[ExportRow]:
+def _export_rows(plans: list[PlanView], mode: str = "full") -> list[ExportRow]:
     return [ExportRow(phone=p.phone, full_name=p.full_name, pid=p.pid, appt_date=p.appt_date, start_time=p.start_time,
-                      arrival_time=p.arrival_time, status=p.status, nationality=p.nationality,
-                      waiting=p.method == "waiting" and p.arrival_time is None) for p in plans]
+                      arrival_time=arrival_for(p, mode), status=p.status, nationality=p.nationality,
+                      waiting=p.method == "waiting" and p.arrival_time is None,
+                      fasting=bool((p.details or {}).get("fasting"))) for p in plans]
 
 
 @router.get("")
@@ -141,6 +156,40 @@ def list_plans(d: date | None = None, user: CurrentUser = Depends(require("uploa
     }
 
 
+RISK_VI = {"GDM": "đái tháo đường thai kỳ", "HTN": "tăng huyết áp", "PREECLAMPSIA": "tiền sản giật",
+           "PRETERM_RISK": "dọa sinh non", "PREV_CSECTION": "vết mổ cũ", "TWINS": "song thai", "OTHER": "nguy cơ khác"}
+
+
+def ai_summary(ai: dict | None) -> list[str]:
+    """Kết quả AI đọc ghi chú → câu tiếng Việt cho điều dưỡng (không hiện JSON)."""
+    if not ai:
+        return []
+    from core.config import load_visit_services
+
+    cat = load_visit_services()
+    out: list[str] = []
+    vt = ai.get("visit_type")
+    if vt and vt in cat["visit_types"] and vt != "OTHER":
+        out.append(f"Loại khám: {cat['visit_types'][vt]['name']}")
+    svcs = [cat["services"][c]["name"] for c in ai.get("services") or [] if c in cat["services"]]
+    if svcs:
+        out.append("Dịch vụ: " + ", ".join(svcs))
+    if ai.get("ga_weeks"):
+        out.append(f"Tuần thai: {ai['ga_weeks']} tuần" + (f" {ai['ga_days']} ngày" if ai.get("ga_days") else ""))
+    if ai.get("explicit_arrival_time"):
+        out.append(f"Giờ đến bác sĩ ghi: {ai['explicit_arrival_time']}")
+    elif ai.get("minutes_early"):
+        out.append(f"Bác sĩ dặn đến trước {ai['minutes_early']} phút")
+    if ai.get("needs_fasting"):
+        out.append("Có dặn nhịn ăn")
+    risks = [RISK_VI.get(r, r) for r in ai.get("risk_flags") or []]
+    if risks:
+        out.append("Nguy cơ ghi trong ghi chú: " + ", ".join(risks))
+    if ai.get("asks_confirmation"):
+        out.append("Ghi chú yêu cầu gọi / xác nhận lại")
+    return out or ["AI không thấy thông tin gì thêm ngoài ghi chú"]
+
+
 @router.get("/plan/{plan_id}")
 def plan_detail(plan_id: int, d: date, user: CurrentUser = Depends(require("upload_his"))) -> dict:
     waiting = _waiting()
@@ -156,7 +205,8 @@ def plan_detail(plan_id: int, d: date, user: CurrentUser = Depends(require("uplo
         "rule_applied": p.details.get("rule_applied") or "", "notes": p.details.get("notes", []),
         "ai_status": p.details.get("ai_status"),
         "ai_status_label": AI_STATUS_LABELS.get(p.details.get("ai_status") or "", "Không gọi AI."),
-        "warnings": p.warnings, "ai": jsonable(ex.get("ai")), "confidence": ex.get("confidence"),
+        "warnings": p.warnings, "ai": jsonable(ex.get("ai")), "ai_summary": ai_summary(ex.get("ai")),
+        "confidence": ex.get("confidence"),
         "model": ex.get("model"), "prompt_version": ex.get("prompt_version"), "ga_inconsistent": bool(ex.get("ga_inconsistent")),
         "default_time": (p.arrival_time or p.start_time).strftime("%H:%M"),
     }
@@ -209,7 +259,7 @@ async def upload(d: date = Form(...), use_ai: bool = Form(True), sample: str | N
     with session_scope() as s:
         save_his_result(s, res, fname, d, user.user_id)
     return {"ok": True, "report": report, "warning": warning,
-            "message": f"Đã xử lý {len(res.rows)} dòng → {len(res.planned)} lịch hẹn; bỏ {len(res.dropped)} dòng khác khoa; "
+            "message": f"Đã xử lý {len(res.rows)} dòng → {len(res.planned)} lịch hẹn; bỏ {len(res.dropped)} dòng khác khoa / ngoài thai kỳ – phụ khoa (vd IVF); "
                        f"tự điền {res.auto_rate:.0%}."}
 
 
@@ -261,8 +311,12 @@ def export(d: date, user: CurrentUser = Depends(require("export_worldsms"))) -> 
         plans = plans_for_date(s, d)
     try:
         hc = load_his_columns()
-        exports = build_exports(_export_rows(plans), d, _waiting(), columns=hc.worldsms_columns,
-                                phone_format=hc.worldsms_phone_format, vn_aliases=hc.vietnam_aliases)
+        kw = dict(columns=hc.worldsms_columns, phone_format=hc.worldsms_phone_format,
+                  vn_aliases=hc.vietnam_aliases, fasting_text=hc.worldsms_fasting_text)
+        exports = build_exports(_export_rows(plans), d, _waiting(), **kw)
+        # Bản 2: giờ đến chỉ trừ thời gian dịch vụ (không cộng 15' tiếp đón) – người dùng so sánh 2 cách (18/11/2026)
+        ban2 = build_exports(_export_rows(plans, "services_only"), d, _waiting(), **kw)
+        exports.update({k.replace(".xlsx", f"{BAN2_SUFFIX}.xlsx"): v for k, v in ban2.items()})
     except ExportLocked as e:
         raise HTTPException(409, str(e)) from e
     paths = write_exports(exports, work_dir("exports"))
@@ -287,11 +341,13 @@ def download_export(name: str, user: CurrentUser = Depends(require("export_world
 
 
 @router.get("/arrivals-xlsx")
-def arrivals_xlsx(d: date, user: CurrentUser = Depends(require("export_worldsms"))):
-    """Bảng giờ đến của một ngày (file OH + loại khám, dịch vụ, giờ đến, căn cứ) cho lễ tân / điều dưỡng."""
+def arrivals_xlsx(d: date, mode: str = "full", user: CurrentUser = Depends(require("export_worldsms"))):
+    """Bảng giờ đến của một ngày (file OH + loại khám, dịch vụ, giờ đến, căn cứ) cho lễ tân / điều dưỡng.
+    mode=full: giờ hẹn − (tiếp đón + dịch vụ). mode=services_only: ca có dịch vụ tính giờ chỉ trừ thời gian dịch vụ."""
     import io
 
     import pandas as pd
+
 
     rules = load_rules()
     with session_scope() as s:
@@ -299,19 +355,22 @@ def arrivals_xlsx(d: date, user: CurrentUser = Depends(require("export_worldsms"
     rows = []
     for p in plans:
         det = p.details or {}
+        arr = arrival_for(p, mode)
         mins = ""
-        if p.arrival_time is not None:
-            mins = (p.start_time.hour * 60 + p.start_time.minute) - (p.arrival_time.hour * 60 + p.arrival_time.minute)
+        if arr is not None:
+            mins = (p.start_time.hour * 60 + p.start_time.minute) - (arr.hour * 60 + arr.minute)
         rows.append({
             "HN": p.pid, "Họ tên": p.full_name, "SĐT": mask_phone(p.phone),
             "Giờ hẹn (gặp bác sĩ)": p.start_time.strftime("%H:%M"),
             "Ghi chú (đã che)": p.masked_note or "",
             "Loại khám": " · ".join(det.get("visit_types") or []),
             "Dịch vụ dự kiến": ", ".join(p.services),
+            "Có thể cần (nếu chưa làm)": ", ".join(det.get("maybe_services") or []),
             "Đến trước (phút)": mins,
-            "Giờ đến": p.arrival_time.strftime("%H:%M") if p.arrival_time else (_waiting() if p.method == "waiting" else ""),
+            "Giờ đến": arr.strftime("%H:%M") if arr else (_waiting() if p.method == "waiting" else ""),
             "Trạng thái": STATUS_VI.get(p.status, p.status),
-            "Lý do cần xác nhận": "; ".join(reason_label(r, rules) for r in p.reasons),
+            "Lý do cần xác nhận": (("Đã xử lý – " if p.status == "confirmed" and p.reasons else "")
+                                   + "; ".join(reason_label(r, rules) for r in p.reasons)),
             "Nhịn ăn": "Có" if det.get("fasting") else "",
             "Cách tính": "\n".join([det.get("rule_applied") or "", *(det.get("notes") or [])]).strip(),
             "Căn cứ (nguồn)": "\n".join(det.get("basis") or []),
@@ -322,7 +381,9 @@ def arrivals_xlsx(d: date, user: CurrentUser = Depends(require("export_worldsms"
         pd.DataFrame(rows).to_excel(w, index=False, sheet_name="Giờ đến")
         ws = w.book["Giờ đến"]
         ws.freeze_panes = "A2"
-        for col, width in zip("ABCDEFGHIJKLMNO", (12, 22, 14, 12, 40, 26, 40, 10, 10, 14, 45, 8, 60, 60, 10), strict=True):
+        for col, width in zip("ABCDEFGHIJKLMNOP", (12, 22, 14, 12, 40, 26, 40, 30, 10, 10, 14, 45, 8, 60, 60, 10),
+                              strict=True):
             ws.column_dimensions[col].width = width
-    audit.log("download_arrivals_xlsx", "date", d.isoformat(), {"rows": len(rows)}, user_id=user.user_id)
-    return file_response(buf.getvalue(), f"gio_den_{d.isoformat()}.xlsx")
+    audit.log("download_arrivals_xlsx", "date", d.isoformat(), {"rows": len(rows), "mode": mode}, user_id=user.user_id)
+    suffix = "_chi_dich_vu" if mode == "services_only" else "_tiep_don_dich_vu"
+    return file_response(buf.getvalue(), f"gio_den_{d.isoformat()}{suffix}.xlsx")

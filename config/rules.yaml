@@ -1,7 +1,21 @@
 # Cấu hình mặc định – MVP. Ngưỡng y khoa phải được bác sĩ duyệt trước khi dùng thật.
-rules_version: "0.20.0"
+rules_version: "0.23.0"
 
 departments_included: ["Phòng khám Sản phụ khoa"]   # [CẦN XÁC NHẬN tên khoa trong file HIS]
+# Chỉ xếp lịch thai kỳ + phụ khoa (người dùng chốt 17/11/2026). File OH không có cột khoa → dòng có ghi chú thuộc
+# dịch vụ khoa khác bị BỎ khỏi lịch hẹn (như dòng khác khoa), TRỪ khi ghi chú có tuần thai / nói về thai kỳ
+# (vd "thai IVF 20w" vẫn là khám thai). So không dấu, nguyên từ. Khách có nhiều lịch: bỏ dòng khoa khác trước khi gộp.
+scope:
+  # Rà soát 18/11/2026: CHỈ bỏ dòng có thủ thuật hỗ trợ sinh sản rõ ràng; từ chung chung (IVF, hiếm muộn…) → giữ lịch
+  # + Cần xác nhận (SCOPE_CHECK) – tránh bỏ sót thai IVF đang ra máu.
+  exclude_keywords: ["IUI", "ICSI", "bơm tinh trùng", "chuyển phôi", "trữ phôi", "trữ đông phôi", "chọc hút trứng",
+                     "kích trứng", "kích thích buồng trứng", "tinh dịch đồ", "nam khoa", "trữ trứng"]
+  check_keywords: ["IVF", "thụ tinh ống nghiệm", "thụ tinh nhân tạo", "hiếm muộn", "vô sinh", "hỗ trợ sinh sản"]
+  keep_if_urgent_keywords: ["ra máu", "ra huyết", "ra nước", "rỉ ối", "đau bụng", "chuyển dạ"]
+  keep_if_pregnancy_keywords: ["thai", "bầu", "mang thai", "khám thai", "sau sinh", "tkss", "hậu sản", "chuyển dạ"]
+  # Ghi chú phụ khoa chỉ nhắc tiền sử hiếm muộn / IVF vẫn giữ (rà soát 18/11/2026).
+  keep_if_gyn_keywords: ["tiền sử", "ts", "phụ khoa", "khí hư", "viêm", "u xơ", "u buồng trứng", "kinh nguyệt",
+                         "rong kinh", "pap", "hpv", "soi tươi", "ngứa", "đau bụng"]
 
 clinic:
   name: "Phòng khám Sản phụ khoa"
@@ -11,6 +25,24 @@ clinic:
 arrival:
   valid_hours: {from: "06:00", to: "20:00"}
   earliest_arrival: "06:30"
+  # Phòng khám Sản – Vinmec Times City (người dùng chốt 17/11/2026). Giờ làm việc (vinmec.com/huong-dan-khach-hang/
+  # gio-lam-viec-tai-cac-benh-vien-da-khoa-quoc-te-vinmec): T2–T6 08:00–12:00, 13:00–17:00; T7 08:00–12:00; CN nghỉ.
+  # File OH: giờ đến sớm nhất = giờ mở cửa − 15' tiếp đón (Vinmec: đến trước 10–15'). Giờ TÍNH RA sớm hơn → đẩy về
+  # mức này + Cần xác nhận (OPEN_TIME); giờ BÁC SĨ GHI sớm hơn → giữ giờ bác sĩ + Cần xác nhận.
+  clinic_hours: {open: "08:00", close: "17:00", saturday_close: "12:00", sunday: closed}
+  clinic_earliest_arrival: "07:45"
+  # Giờ tính ra sớm hơn mức trên ≤ số phút này → tự đẩy về, không cần xác nhận. 0 = luôn cần xác nhận
+  # (người dùng chốt 17/11/2026: "8h làm thì cần xác nhận chứ").
+  clinic_open_review_gap: 0
+  # Giờ bác sĩ ghi ít hơn (tiếp đón + tối thiểu các dịch vụ) từ số phút này trở lên → Cần xác nhận; ít hơn → theo
+  # giờ bác sĩ (người dùng chốt 17/11/2026: "ít hơn 15' thì theo giờ bác sĩ").
+  doctor_time_short_review: 15
+  # Nghi chuyển dạ / dấu hiệu cấp cứu (visit_services.yaml visit_flow.urgent_*) → Cần xác nhận + lời dặn này.
+  urgent_advice: "⚠ Nếu khách đang đau bụng từng cơn, ra máu hoặc ra nước → vào cấp cứu sản ngay, không chờ giờ hẹn"
+  # Ưu tiên ghi chú bác sĩ; chỉ mâu thuẫn lớn mới Cần xác nhận (người dùng chốt 17/11/2026). Dịch vụ suy ra
+  # (ghi chú không ghi) và khám thai thiếu tuần thai chỉ hiện thông tin, không bắt xác nhận.
+  review_inferred_services: false
+  review_missing_ga: false
   max_minutes_early: 90
   ai_rule_diff_minutes: 15
   merge_conflict_minutes: 180
@@ -25,10 +57,10 @@ arrival:
     - {keywords: ["*"], minutes: 15}
   call_note_keywords: ["gọi", "xác nhận", "hỏi lại", "chưa rõ", "đổi lịch", "dời lịch", "?"]
   fasting_keywords: ["nhịn ăn", "nghiệm pháp", "NPDN", "đường huyết", "xét nghiệm máu", "lấy máu"]   # [CẦN XÁC NHẬN]
-  late_ga_weeks: 37
-  # Thai ≥ late_ga_weeks nhưng bác sĩ đã ghi rõ giờ đến trong ghi chú (và hệ thống dùng đúng giờ đó) → không cần
-  # xác nhận lại (người dùng chốt 17/11/2026: "bác sĩ ghi đến 13h rồi còn cần xác nhận nữa").
-  late_ga_skip_if_doctor_time: true
+  late_ga_weeks: 37   # người dùng chốt 17/11/2026: từ 37 tuần (thai đủ tháng) → Cần xác nhận
+  # Thai ≥ late_ga_weeks LUÔN cần xác nhận lại, kể cả khi bác sĩ đã ghi giờ đến (người dùng chốt 17/11/2026:
+  # "37 tuần mà có giờ ghi bác sĩ vẫn cần xác nhận lại"). true = bỏ qua khi có giờ bác sĩ ghi.
+  late_ga_skip_if_doctor_time: false
   # Chỉ gọi AI cho ghi chú mà quy tắc chưa hiểu hết (khoa chọn 12/11/2026). Ghi chú chỉ gồm các từ dưới đây
   # (so không dấu) + tuần thai / giờ / số phút → quy tắc đã đọc đủ, không gọi AI. Có từ lạ (vd "song thai",
   # "VMC cũ", "dọa sinh non") → vẫn gọi AI. Thêm từ vào đây = bớt gọi AI; thiếu từ chỉ làm gọi AI thừa (an toàn).
@@ -40,11 +72,11 @@ arrival:
   # File OH không có cột Dịch vụ → AI đọc MỌI ghi chú để suy ra loại khám + dịch vụ (người dùng chốt 17/11/2026);
   # ai_skip_vocabulary chỉ còn dùng khi đặt false.
   ai_read_all_notes: true
+  # Tối ưu tốc độ (người dùng 17/11/2026): quy tắc đã đọc rõ ghi chú (loại khám + dịch vụ / giờ bác sĩ ghi) → không
+  # gọi AI. AI chỉ đọc ghi chú mơ hồ.
+  ai_skip_when_rules_clear: true
   # Ghi chú có viết tắt "Đang đoán" (danh mục tri thức, sheet Viết tắt) → Cần xác nhận cho tới khi khoa xác nhận nghĩa.
   review_guessed_abbr: true
-  # "có hẹn 9h30" trong ghi chú OH = giờ hẹn dịch vụ làm trước → đến trước giờ đó bấy nhiêu phút (tiếp đón,
-  # Vinmec: đến trước 10–15 phút – VMC_DEN_TRUOC). Luôn vào Cần xác nhận (SVC_TIME).
-  service_time_lead_minutes: 10
   # Lịch hẹn trong khung này là "khám chờ" (giờ trên HIS không phải giờ thật) – khoa xác nhận 10/11/2026.
   # Không tính giờ đến; tin nhắn ghi nhãn thay cho giờ. Khung [from, to): 12:00 ≤ giờ hẹn < 13:00.
   waiting_slot: {from: "12:00", to: "13:00", label: "Khám chờ", mixed_review_minutes: 30}
@@ -68,6 +100,20 @@ privacy:
     - {label: "Chất gây nghiện", keywords: ["ma túy", "nghiện", "cai nghiện", "methadone"]}
     - {label: "Yêu cầu giữ kín", keywords: ["giữ bí mật", "không muốn chồng biết", "không cho chồng biết",
                                              "giấu gia đình", "không báo người nhà", "giấu chồng", "bảo mật"]}
+  # Câu giống LỆNH điều khiển máy trong phần thai phụ tự viết (prompt injection, rà soát bảo mật 20/11/2026).
+  # Gặp → không cho AI hạ mức (ai_override) ở form đó + chuyển người xem. Không đổi mức của quy tắc (chỉ thêm xem lại).
+  # Biểu thức chính quy, so trên chữ KHÔNG DẤU, chữ thường. Chỉ mẫu đặc trưng, tránh câu đời thường ("bỏ qua bữa sáng").
+  prompt_injection:
+    enabled: true
+    patterns:
+      - '\b(bo qua|phot lo|lo di|quen di|khong can theo)\b.{0,25}\b(huong dan|chi dan|lenh|quy tac|luat|chi thi|yeu cau tren|prompt)\b'
+      - '\b(ignore|disregard|forget|override)\b.{0,25}\b(instruction|instructions|rule|rules|prompt|above|previous)\b'
+      - '\b(system prompt|developer message|jailbreak|you are now|act as)\b'
+      - '\b(ban la|may la|hay dong vai)\b.{0,15}\b(ai|tro ly|chatbot|mo hinh|gpt|he thong)\b'
+      - '\b(tra ve|xuat ra|in ra|output|return)\b.{0,20}\b(json|findings|unmapped|xanh|green|khong co trieu chung|khong co phat hien)\b'
+      - '\b(danh gia|xep|cham|phan loai)\b.{0,15}\b(la |muc )?(xanh|green)\b'
+      - '\b(dung|khong duoc|dung co|dung bao)\b.{0,10}\b(canh bao|bao dong|alert)\b.{0,15}\b(ai|ai ca|bac si|khoa)\b'
+      - '(<<<|>>>|```|\{\s*"findings"|"concept"\s*:|\bassistant\s*:|\bsystem\s*:|\buser\s*:)'
 
 forms:
   # Ai được theo dõi từ xa (gửi form): package_only = chỉ khách theo gói thai sản + ca bác sĩ chỉ định ngoài gói
@@ -178,6 +224,7 @@ personalization:
     rule_scores: {carry_over: 1.0, concept: 0.8, condition: 0.7, base: 0.1}
     recent_answer_days: 30                 # câu trả lời / phần tự viết trong N ngày gần nhất mới dùng để hỏi lại
     ai_runs: 3                             # AI chấm 3 lần, lấy trung vị (tự nhất quán)
+    ai_runs_local: 1                       # AI trên máy (Ollama, xử lý từng yêu cầu) chấm 1 lần – tối ưu tốc độ gửi form
     ai_temperature: 0.3
     ai_max_spread: 0.3                     # điểm một câu lệch > 0.3 giữa các lần → bỏ điểm AI câu đó
     ai_min_confidence: 0.6                 # AI tự báo tin cậy < 0.6 → bỏ toàn bộ điểm AI, dùng quy tắc
@@ -249,7 +296,7 @@ text_combos:
   - {code: TXT_FEVER_PLUS, all: [FEVER], any_of: [ABD_PAIN, FLUID], level: red, reason: "Sốt kèm đau bụng / ra nước (phần tự viết)", basis: [S1]}
 
 # Căn cứ của từng mức ĐỎ – hiện ở mục "Vì sao ca này khẩn" (mọi cảnh báo đỏ phải chỉ ra được: dữ liệu nào → quy tắc nào → nguồn nào).
-# Mã nguồn xem docs/10 mục 1. Khái niệm tự viết lấy nguồn từ "(S…)" cuối `meaning`.
+# Mã nguồn xem knowledge/sources/y-khoa.md mục 1. Khái niệm tự viết lấy nguồn từ "(S…)" cuối `meaning`.
 red_basis:
   sources:
     S1: "WHO PCPNC 2015 – dấu hiệu nguy hiểm khi mang thai"
@@ -261,7 +308,7 @@ red_basis:
     EPDS: "Thang EPDS bản tiếng Việt (Tran và cs. 2011)"
     NHCH: "Ngân hàng câu hỏi 0.9 – “Không chắc” ≠ “Không”"
     KHOA: "Quy tắc của khoa (chờ bác sĩ xác nhận)"
-  # Khái niệm có nguồn khác với "(S…)" trong meaning (docs/10 mục 3: gò bụng không nằm trong S1–S3).
+  # Khái niệm có nguồn khác với "(S…)" trong meaning (knowledge/sources/y-khoa.md mục 3: gò bụng không nằm trong S1–S3).
   concepts:
     CONTRACTIONS: [KHOA]
   rules:
@@ -468,7 +515,7 @@ llm:
   provider: ollama                         # ollama | hybrid | mock | openai (API ngoài: CHỈ dữ liệu giả)
   model: "qwen2.5:7b-instruct"
   openai_model: "gpt-4.1-mini"             # OPENAI_MODEL trong .env ưu tiên hơn
-  consistency_runs_note: 5
+  consistency_runs_note: 3            # 5 → 3 (17/11/2026): AI không còn tính số phút; ghi chú không có giờ chỉ 1 lần (economy_mode)
   consistency_runs_form: 3
   temperature: 0.7
   economy_mode: true

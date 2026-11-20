@@ -119,7 +119,7 @@ python -m uvicorn api.public_main:app --host 127.0.0.1 --port 8001 --proxy-heade
 ```
 
 Trong `.env`: `APP_ENV=production`, `APP_COOKIE_SECURE=1`, `APP_BASE_URL=https://<địa chỉ công khai>`.
-Máy chủ từ chối khởi động nếu còn mật khẩu demo hoặc chưa bật HTTPS – **đổi mật khẩu trong `config/users.yaml` trước khi dùng**.
+Máy chủ từ chối khởi động nếu còn mật khẩu demo hoặc chưa bật HTTPS – **đổi mật khẩu trước khi dùng**: `python scripts/set_password.py <tên đăng nhập>` (gõ ẩn, ≥ 12 ký tự, bcrypt cost 12, thu hồi phiên cũ); tạo tài khoản mới thêm `--name "…" --role nurse|doctor|admin`.
 
 Trước khi dùng thật cần phòng khám xác nhận: tên cột file HIS và mẫu WorldSMS, ngưỡng cảnh báo và mốc form (bác sĩ duyệt), kênh Teams nhận cảnh báo, máy chạy mô hình ngôn ngữ.
 

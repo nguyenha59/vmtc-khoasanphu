@@ -47,6 +47,26 @@ class LlmError(Exception):
     pass
 
 
+def egress_problems(prompt: str) -> list[str]:
+    """Lớp chặn cuối trước khi văn bản rời tiến trình (luật 4): prompt còn dãy số dài (SĐT / CCCD / CMND) hay email
+    nghĩa là một chỗ gọi đã quên che hoặc che sót. Nơi gọi vẫn phải qua core/ai/masking.py; đây chỉ là lưới an toàn."""
+    from core.ai.masking import EMAIL_RE, LONG_NUMBER_RE
+
+    out = []
+    if LONG_NUMBER_RE.search(prompt):
+        out.append("dãy số ≥ 9 chữ số (SĐT / CCCD)")
+    if EMAIL_RE.search(prompt):
+        out.append("email")
+    return out
+
+
+def guard_egress(prompt: str) -> None:
+    problems = egress_problems(prompt)
+    if problems:
+        log.warning("Chặn gửi mô hình: prompt còn %s", ", ".join(problems))
+        raise LlmError("Chặn gửi mô hình: văn bản còn " + ", ".join(problems) + " – kiểm tra bước che dữ liệu")
+
+
 class LlmClient(Protocol):
     name: str
 
@@ -128,6 +148,7 @@ class OllamaClient:
     def generate_json(
         self, prompt: str, schema: dict[str, Any], temperature: float, seed: int | None
     ) -> dict[str, Any]:
+        guard_egress(prompt)
         if self._local is None:
             self._local = self._check_local()
         if not self._local:
@@ -261,6 +282,7 @@ class OpenAIClient(_PerThreadProvider):
         self, prompt: str, schema: dict[str, Any], temperature: float, seed: int | None
     ) -> dict[str, Any]:
         self.last_provider = None
+        guard_egress(prompt)
         system = (
             "Bạn là trợ lý đọc văn bản y khoa tiếng Việt cho phòng khám sản. Chỉ trả về MỘT đối tượng JSON "
             "đúng lược đồ sau, không thêm chữ nào khác:\n" + json.dumps(schema, ensure_ascii=False)
@@ -393,6 +415,12 @@ def local_only_client(client: LlmClient | None) -> LlmClient | None:
 
 def result_provider(client: LlmClient) -> str:
     return getattr(client, "last_provider", None) or client.name
+
+
+def real_model(models: list[str], client: LlmClient) -> str:
+    """Tên model THẬT đã trả lời các lần chạy (CLAUDE.md: lưu model thật, không lưu tên cấu hình "hybrid:…|…").
+    Không lần nào trả lời → tên client. Cắt 64 ký tự cho cột `model`."""
+    return "+".join(dict.fromkeys(m for m in models if m))[:64] or client.name[:64]
 
 
 # ---------------------------------------------------------------- Mock

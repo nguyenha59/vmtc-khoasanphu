@@ -1,9 +1,10 @@
-"""Quy trình nạp danh mục tri thức khám: Excel ↔ YAML, kiểm tra, phê duyệt, viết tắt chưa xác nhận (docs/17)."""
+"""Quy trình nạp danh mục tri thức khám: Excel ↔ YAML, kiểm tra, phê duyệt, viết tắt chưa xác nhận (knowledge/README.md)."""
 
 from __future__ import annotations
 
 import copy
 import os
+import shutil
 import subprocess
 import sys
 from datetime import date, time
@@ -37,7 +38,7 @@ def test_round_trip_is_lossless(cat: dict, tmp_path: Path) -> None:
 @pytest.mark.parametrize(("mutate", "needle"), [
     (lambda c: c["facts"].append({"services": ["CTG"], "source": "HB_GOI_27", "quote": "x"}), "chưa kiểm trang gốc"),
     (lambda c: c["abbreviations"].append({"term": "zz", "maps_to": ["KHONG_CO"], "status": "guess"}), "không tồn tại"),
-    (lambda c: c["services"]["CTG"].update(min_source="UOC_LUONG"), "nguồn đã kiểm"),
+    (lambda c: c["services"]["CTG"].update(min_source="UOC_LUONG"), "đã kiểm trang gốc"),
     (lambda c: c["services"]["KHAM"].update(minutes_early=500), "giới hạn an toàn"),
     (lambda c: c["visit_types"]["ANC"]["services"].append("KHONG_CO"), "không tồn tại"),
 ])
@@ -52,7 +53,10 @@ def _run_import(x: Path, tmp: Path, apply: bool) -> subprocess.CompletedProcess:
     target = tmp / "visit_services.yaml"
     if not target.exists():
         target.write_text((ROOT / "config" / "visit_services.yaml").read_text(encoding="utf-8"), encoding="utf-8")
-    env = {**os.environ, "APP_VISIT_SERVICES_FILE": str(target), "APP_KNOWLEDGE_DIR": str(tmp / "knowledge"),
+    snaps = tmp / "knowledge" / "sources" / "snapshots"
+    if not snaps.exists():  # câu trích được kiểm nguyên văn trong bản chụp → thư mục tạm cần bản chụp
+        shutil.copytree(ROOT / "knowledge" / "sources" / "snapshots", snaps, ignore=shutil.ignore_patterns("*.pdf"))
+    env ={**os.environ, "APP_VISIT_SERVICES_FILE": str(target), "APP_KNOWLEDGE_DIR": str(tmp / "knowledge"),
            "APP_DATA_DIR": str(tmp / "data"), "PYTHONIOENCODING": "utf-8"}
     cmd = [sys.executable, str(ROOT / "scripts" / "knowledge_import.py"), str(x)] + (["--apply"] if apply else [])
     return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", env=env, cwd=ROOT)
@@ -110,7 +114,7 @@ def test_guessed_abbreviation_goes_to_review(rules, monkeypatch) -> None:  # noq
     for a in cat["abbreviations"]:
         if a["term"] == "tkss":
             a["status"] = "guess"
-    monkeypatch.setattr(pipeline, "load_visit_services", lambda: cat)
+    monkeypatch.setattr(pipeline, "load_visit_services", lambda **_: cat)
     from core.rules.merge import MergedAppt, Slot
 
     def plan(note: str):  # noqa: ANN202
@@ -123,3 +127,20 @@ def test_guessed_abbreviation_goes_to_review(rules, monkeypatch) -> None:  # noq
     assert p.service_plans[0].visit_type == "POSTPARTUM"  # vẫn hiểu theo nghĩa đoán
     assert "ABBR_GUESS" in p.decision.reasons and any("tkss" in d for d in p.arrival.details)
     assert "ABBR_GUESS" not in plan("tái khám sau sinh thường").decision.reasons
+
+
+def test_old_workbook_keeps_new_safety_settings(cat: dict, tmp_path: Path) -> None:
+    """Sổ Excel xuất từ phiên bản cũ (không có cột 'Có điều kiện', 'Luôn có', dòng urgent_*) → giữ giá trị đang chạy."""
+    x = tmp_path / "old.xlsx"
+    to_workbook(cat, x)
+    book = {k: v.fillna("") for k, v in pd.read_excel(x, sheet_name=None, dtype=str).items()}
+    book["Dịch vụ"] = book["Dịch vụ"].drop(columns=["Có điều kiện (nếu chưa làm)"])
+    book["Loại khám"] = book["Loại khám"].drop(columns=["Luôn có (an toàn)"])
+    book["Quy trình"] = book["Quy trình"][~book["Quy trình"]["Khóa"].str.startswith("urgent")]
+    with pd.ExcelWriter(x, engine="openpyxl") as w:
+        for name, df in book.items():
+            df.to_excel(w, index=False, sheet_name=name)
+    new, _ = from_workbook(x, cat)
+    assert new["services"]["OGTT"].get("conditional")
+    assert new["visit_types"]["PRETERM_CHECK"].get("always_services") == ["CTG"]
+    assert new["visit_flow"].get("urgent_keywords") == cat["visit_flow"]["urgent_keywords"]

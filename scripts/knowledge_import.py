@@ -1,4 +1,4 @@
-"""Nạp sổ Excel danh mục tri thức khám vào hệ thống (docs/17).
+"""Nạp sổ Excel danh mục tri thức khám vào hệ thống (knowledge/README.md).
 
 Chạy:
   python scripts/knowledge_import.py knowledge/danh_muc_kham.xlsx            # chỉ kiểm tra + xem thay đổi

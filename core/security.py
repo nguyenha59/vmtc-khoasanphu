@@ -158,19 +158,100 @@ def load_users(path: Path | None = None) -> list[dict[str, str]]:
     return [dict(u) for u in hit[1]]
 
 
-# Băm giả để tên đăng nhập không tồn tại vẫn tốn thời gian như tên có thật (không dò được tài khoản qua thời gian).
-_DUMMY_HASH = bcrypt.hashpw(b"dummy-password", bcrypt.gensalt(rounds=10))
+# ---------- Mật khẩu ----------
+BCRYPT_ROUNDS = 12  # hệ số công bcrypt cho mật khẩu mới (tài khoản demo cũ: 10)
+MIN_PASSWORD_LEN = 12
+ROLES = ("nurse", "doctor", "admin")
+WEAK_PASSWORDS = {"nurse123", "doctor123", "admin123", "password", "matkhau", "123456789012", "qwertyuiop12",
+                  "vinmec123456", "abc123456789", "password1234", "matkhau12345"}
+_COST_RE = re.compile(r"^\$2[abxy]?\$(\d{2})\$")
+
+
+def password_problems(password: str, username: str = "") -> list[str]:
+    """Lý do mật khẩu chưa đạt (rỗng = đạt). Hàm thuần."""
+    out: list[str] = []
+    if len(password) < MIN_PASSWORD_LEN:
+        out.append(f"cần ít nhất {MIN_PASSWORD_LEN} ký tự")
+    if len(password.encode("utf-8")) > 72:
+        out.append("dài quá 72 byte (bcrypt chỉ dùng 72 byte đầu)")
+    low = password.lower()
+    if low in WEAK_PASSWORDS or any(low.startswith(w) and len(low) - len(w) <= 2 for w in WEAK_PASSWORDS):
+        out.append("nằm trong danh sách mật khẩu yếu / mật khẩu demo")
+    if username and username.lower() in low:
+        out.append("không được chứa tên đăng nhập")
+    if password and (len(set(password)) < 5 or password.isdigit()):
+        out.append("quá đơn giản (toàn số hoặc ít ký tự khác nhau)")
+    return out
+
+
+def hash_password(password: str) -> str:
+    problems = password_problems(password)
+    if any("72 byte" in p for p in problems):
+        raise ValueError("Mật khẩu dài quá 72 byte")
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)).decode("ascii")
+
+
+def hash_cost(password_hash: str) -> int:
+    m = _COST_RE.match(password_hash or "")
+    return int(m.group(1)) if m else BCRYPT_ROUNDS
+
+
+_DUMMY_HASHES: dict[int, bytes] = {}
+
+
+def _dummy_hash(cost: int) -> bytes:
+    """Băm giả CÙNG hệ số công với tài khoản thật: tên đăng nhập không tồn tại tốn thời gian như tên có thật
+    (không dò được tài khoản qua thời gian phản hồi)."""
+    if cost not in _DUMMY_HASHES:
+        _DUMMY_HASHES[cost] = bcrypt.hashpw(b"dummy-password", bcrypt.gensalt(rounds=max(4, min(cost, 16))))
+    return _DUMMY_HASHES[cost]
 
 
 def authenticate(username: str, password: str, path: Path | None = None) -> AppUser | None:
+    users = load_users(path)
+    cost = max((hash_cost(u.get("password_hash", "")) for u in users), default=BCRYPT_ROUNDS)
     encoded = password.encode("utf-8")
     if len(encoded) > 72:
-        bcrypt.checkpw(b"oversized-invalid-password", _DUMMY_HASH)
+        bcrypt.checkpw(b"oversized-invalid-password", _dummy_hash(cost))
         return None
-    for u in load_users(path):
+    for u in users:
         if u["username"] == username:
             if bcrypt.checkpw(encoded, u["password_hash"].encode()):
                 return AppUser(username=u["username"], name=u["name"], role=u["role"], credential_hash=u["password_hash"])
             return None
-    bcrypt.checkpw(encoded, _DUMMY_HASH)
+    bcrypt.checkpw(encoded, _dummy_hash(cost))
     return None
+
+
+def set_user_password(username: str, password: str, *, name: str | None = None, role: str | None = None,
+                      path: Path | None = None) -> bool:
+    """Đặt mật khẩu (tạo tài khoản nếu chưa có – cần name + role). Kiểm độ mạnh, băm bcrypt, ghi file nguyên tử.
+    Trả True nếu tạo mới. Phiên cũ của người này phải được thu hồi ở nơi gọi (api.deps.revoke_user_sessions)."""
+    if not re.fullmatch(r"[a-z0-9._-]{3,32}", username or ""):
+        raise ValueError("Tên đăng nhập: 3–32 ký tự a-z, 0-9, . _ -")
+    problems = password_problems(password, username)
+    if problems:
+        raise ValueError("Mật khẩu chưa đạt: " + "; ".join(problems))
+    if role is not None and role not in ROLES:
+        raise ValueError(f"Vai trò phải là một trong {', '.join(ROLES)}")
+    target = Path(path or users_file())
+    data = (yaml.safe_load(target.read_text(encoding="utf-8")) or {}) if target.exists() else {}
+    users = list(data.get("users") or [])
+    hit = next((u for u in users if u.get("username") == username), None)
+    created = hit is None
+    if created:
+        if not name or not role:
+            raise ValueError("Tài khoản mới cần --name và --role")
+        hit = {"username": username, "name": name, "role": role}
+        users.append(hit)
+    if name:
+        hit["name"] = name
+    if role:
+        hit["role"] = role
+    hit["password_hash"] = hash_password(password)
+    data["users"] = users
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    tmp.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    tmp.replace(target)
+    _USERS_CACHE.pop(str(target), None)
+    return created

@@ -13,7 +13,14 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.ai.llm_client import LlmClient, LlmError, make_client, make_client_for, result_provider
+from core.ai.llm_client import (
+    LlmClient,
+    LlmError,
+    make_client,
+    make_client_for,
+    real_model,
+    result_provider,
+)
 from core.ai.masking import NerFn, mask_text
 from core.config import FormsConfig, Rules, prompt_text
 from core.rules.question_select import Context, base_questions, candidates
@@ -105,6 +112,12 @@ def ai_scores(form_codes: list[str], ctx: Context, rules: Rules, forms_cfg: Form
         return AiScores(model=client.name, prompt_version=version, error="Che dữ liệu chưa sạch – không gửi AI")
     sel = rules.get("personalization.selection") or {}
     runs = max(1, int(sel.get("ai_runs", 3)))
+    from core.ai.llm_client import can_send_external
+
+    local = str(getattr(client, "name", "")).startswith("ollama") or (
+        type(client).__name__ == "HybridClient" and not can_send_external(client))
+    if local and sel.get("ai_runs_local") is not None:
+        runs = max(1, int(sel["ai_runs_local"]))  # Ollama xử lý tuần tự – chấm 1 lần cho nhanh
     prompt = template.replace("{input_json}", masked.text)
     outs: list[dict[str, Any]] = []
     models: list[str] = []
@@ -119,9 +132,9 @@ def ai_scores(form_codes: list[str], ctx: Context, rules: Rules, forms_cfg: Form
     scores, unstable, conf = combine_runs(outs, allowed, float(sel.get("ai_max_spread", 0.3)))
     raw = {"runs": outs, "models": models, "unstable": unstable}
     if conf < float(sel.get("ai_min_confidence", 0.6)):
-        return AiScores(model=client.name, prompt_version=version, confidence=conf, raw=raw,
+        return AiScores(model=real_model(models, client), prompt_version=version, confidence=conf, raw=raw,
                         error=f"AI kém tự tin ({conf:.2f}) – dùng điểm quy tắc")
-    return AiScores(scores=scores, ok=True, model=client.name, prompt_version=version, confidence=conf, raw=raw)
+    return AiScores(scores=scores, ok=True, model=real_model(models, client), prompt_version=version, confidence=conf, raw=raw)
 
 
 def combine_runs(outs: list[dict[str, Any]], allowed: set[str], max_spread: float

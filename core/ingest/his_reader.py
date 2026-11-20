@@ -30,6 +30,7 @@ class HisRow:
     booking_source: str = ""
     booked_at: datetime | None = None
     phone_raw: str = ""
+    nationality_guessed: bool = False  # file không có cột quốc tịch → đoán theo tên
     warnings: list[str] = field(default_factory=list)
 
 
@@ -128,6 +129,32 @@ def split_self_booking(note: str, prefixes: tuple[str, ...]) -> tuple[str, bool]
     return re.sub(r"\s+", " ", note).strip(" ;,.-|"), found
 
 
+def nationality_from_name(name: str, cfg: HisColumns) -> str:
+    """File không có cột quốc tịch → đoán theo tên (his_columns.yaml). Trả "Việt Nam" hoặc nhãn nước ngoài."""
+    from core.textutil import deaccent, has_diacritics
+
+    nn = cfg.name_nationality
+    if not nn.get("nationality_from_name") or not name.strip():
+        return "Việt Nam"
+    foreign = str(nn.get("foreign_label", "Nước ngoài (theo tên)"))
+    tokens = re.findall(r"[a-z]+", deaccent(name).lower())
+    if not tokens:
+        return foreign
+    syllable = re.compile(r"^(ngh|ng|nh|ch|gh|gi|kh|ph|qu|th|tr|[bcdghklmnpqrstvx])?[aeiouy]{1,3}(ch|ng|nh|[cmnpt])?$")
+    if not all(syllable.match(t) for t in tokens):
+        return foreign  # có chữ không phải âm tiết tiếng Việt (Jérôme, Ștefănescu, Tanaka, Johnson…)
+    if "đ" in name.lower() or has_diacritics(name):
+        return "Việt Nam"  # có dấu + mọi chữ là âm tiết tiếng Việt hợp lệ (vd "Mai Hà")
+    surnames = {str(x).lower() for x in nn.get("vietnam_surnames", [])}
+    ambiguous = {str(x).lower() for x in nn.get("vietnam_ambiguous_surnames", [])}
+    middles = {str(x).lower() for x in nn.get("vietnam_middle_names", [])}
+    if any(ch in name.lower() for ch in "fjwz"):
+        return foreign  # không có trong chữ Việt
+    if tokens[0] in surnames and (tokens[0] not in ambiguous or any(t in middles for t in tokens[1:])):
+        return "Việt Nam"
+    return foreign
+
+
 def strip_booking_meta(note: str, patterns: tuple[str, ...]) -> str:
     """Bỏ thông tin đặt lịch (kênh, cộng tác viên, mã đơn) khỏi ghi chú khách tự đặt – chỉ giữ nội dung khám."""
     for pat in patterns:
@@ -160,7 +187,9 @@ def standardize(raw: pd.DataFrame, cfg: HisColumns) -> list[HisRow]:
                 full_name=_clean(r.get("full_name")),
                 phone=normalize_phone(phone_raw),
                 phone_raw=phone_raw,
-                nationality=_clean(r.get("nationality")) or "Việt Nam",
+                nationality=_clean(r.get("nationality")) or nationality_from_name(_clean(r.get("full_name")), cfg),
+                nationality_guessed=not _clean(r.get("nationality")) and bool(cfg.name_nationality.get(
+                    "nationality_from_name")),
                 appt_date=appt_date,
                 start_time=start,
                 end_time=parse_time(r.get("end_time"), cfg.time_format),

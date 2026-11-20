@@ -1,7 +1,7 @@
 # Bảng tham chiếu lâm sàng cho DỮ LIỆU GIẢ kết quả khám (12/11/2026). Dùng để:
 #   1) scripts/gen_clinical.py sinh kết quả khám giả hợp lý theo tuổi thai và nhóm nguy cơ;
 #   2) gắn cờ cao/thấp như LIS (khi nối LIS thật: dùng khoảng tham chiếu + cờ của chính phòng xét nghiệm).
-# KHÔNG dùng cho chẩn đoán. Nguồn: docs/10, docs/11. [CẦN XÁC NHẬN] khoảng tham chiếu theo phòng xét nghiệm của khoa.
+# KHÔNG dùng cho chẩn đoán. Nguồn: knowledge/sources/y-khoa.md, knowledge/sources/tich-hop-du-lieu.md. [CẦN XÁC NHẬN] khoảng tham chiếu theo phòng xét nghiệm của khoa.
 version: "0.1.0"
 
 # Lịch xét nghiệm (tuần thai) theo hướng dẫn chăm sóc trước sinh (QĐ 4128/QĐ-BYT; WHO ANC 2016) – rút gọn cho MVP.

@@ -58,9 +58,21 @@ def test_mask_with_underthesea_ner():
 
 
 # ---------------- note extractor
-def test_extract_with_mock_golden(rules):
+
+@pytest.fixture()
+def rules5(rules):  # noqa: ANN001, ANN201
+    """Cơ chế bỏ phiếu kiểm với 5 lần (cấu hình thật 3 lần – tối ưu tốc độ 18/11/2026)."""
+    import copy
+
+    from core.config import Rules
+
+    data = copy.deepcopy(rules.data)
+    data["llm"]["consistency_runs_note"] = 5
+    return Rules(data=data, path=rules.path)
+
+def test_extract_with_mock_golden(rules5):
     client = MockClient()
-    e = extract("BS hẹn đến 7h30 lấy máu", ["Xét nghiệm máu"], time(8, 0), client, rules)
+    e = extract("BS hẹn đến 7h30 lấy máu", ["Xét nghiệm máu"], time(8, 0), client, rules5)
     assert e.ai and e.ai.explicit_arrival_time == time(7, 30)
     assert e.confidence == 1.0
     assert e.prompt_version.startswith("note_extractor")
@@ -79,7 +91,7 @@ def test_extract_empty_note_no_call(rules):
     assert not e.attempted and client.calls == 0
 
 
-def test_self_consistency_low_confidence(rules):
+def test_self_consistency_low_confidence(rules5):
     answers = iter(["07:30", "07:30", "07:00", "08:00", None])
 
     def responder(prompt, schema, seed):
@@ -87,7 +99,7 @@ def test_self_consistency_low_confidence(rules):
         return {"explicit_arrival_time": t, "minutes_early": None, "needs_fasting": False, "ga_weeks": None,
                 "ga_days": None, "risk_flags": [], "asks_confirmation": False, "evidence": "x"}
 
-    e = extract("đến 7h30?", ["Khám thai"], time(8, 0), MockClient(responder), rules)
+    e = extract("đến 7h30?", ["Khám thai"], time(8, 0), MockClient(responder), rules5)
     assert e.ai and e.ai.explicit_arrival_time == time(7, 30)
     assert e.confidence == pytest.approx(0.4)
 
@@ -198,7 +210,7 @@ def test_time_in_note_grounding() -> None:
     assert not time_in_note("09:00", "Thai 23 w, tái khám")
 
 
-def test_copied_appt_time_vote_is_discarded(rules) -> None:
+def test_copied_appt_time_vote_is_discarded(rules5) -> None:
     from core.ai.llm_client import MockClient
     from core.ai.note_extractor import extract
 
@@ -209,6 +221,6 @@ def test_copied_appt_time_vote_is_discarded(rules) -> None:
     def responder(prompt, schema, seed):
         return {**base, "explicit_arrival_time": next(answers)}
 
-    e = extract("Hẹn đến 11h45 làm NPDN", ["Khám thai"], time(12, 15), MockClient(responder), rules)
+    e = extract("Hẹn đến 11h45 làm NPDN", ["Khám thai"], time(12, 15), MockClient(responder), rules5)
     assert e.ai is not None and e.ai.explicit_arrival_time == time(11, 45)
     assert e.confidence == pytest.approx(3 / 5)  # 2 phiếu chép giờ hẹn bị loại → độ tin cậy giảm

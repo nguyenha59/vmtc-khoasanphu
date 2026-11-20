@@ -11,7 +11,7 @@ from core.textutil import contains_keyword
 
 REASON_ORDER = [
     "AI_FAILED", "LOW_CONF", "CALL_NOTE", "LATE_GA", "CONFLICT", "AI_RULE_DIFF", "WAITING_NOTE_TIME", "WAITING_MIXED", "BAD_PHONE", "PII_LEFT",
-    "NO_PID", "SVC_TIME", "AI_MINUTES", "ABBR_GUESS", "SERVICE_CONFIRM", "NO_RULE",
+    "RECHECK", "URGENT", "SHARED_PHONE", "FASTING_CHECK", "DOCTOR_SHORT", "INFERRED_SERVICES", "NO_GA", "NO_PID", "SCOPE_CHECK", "CLINIC_CLOSED", "OPEN_TIME", "SVC_TIME", "OVER_CAP", "LAB_CONFIRM", "AI_MINUTES", "ABBR_GUESS", "SERVICE_CONFIRM", "NO_RULE",
 ]
 
 REASON_LABELS = {
@@ -19,15 +19,27 @@ REASON_LABELS = {
     "LOW_CONF": "AI không chắc chắn",
     "CALL_NOTE": "Ghi chú yêu cầu gọi / xác nhận",
     "LATE_GA": "Tuần thai ≥ {late_ga_weeks}",  # ngưỡng lấy từ arrival.late_ga_weeks (reason_label)
-    "CONFLICT": "Hai lịch trong ngày xung đột",
+    "CONFLICT": "Hai lịch cùng ngày cách nhau hơn 3 tiếng hoặc lịch muộn cần nhịn ăn – một tin nhắn chỉ báo giờ sớm nhất",
+    "RECHECK": "Đã xác nhận lần trước nhưng tính lại ra giờ / dịch vụ khác – xác nhận lại",
+    "SHARED_PHONE": "Hai khách khác nhau dùng chung số điện thoại – xác nhận người nhận tin",
+    "FASTING_CHECK": "Chỉ ghi chuẩn bị hồ sơ thủ thuật – hỏi lại hôm nay có làm / có nhịn ăn không",
     "AI_RULE_DIFF": "AI và quy tắc lệch nhau",
     "WAITING_NOTE_TIME": "Khám chờ nhưng ghi chú có giờ đến",
     "WAITING_MIXED": "Khám chờ kèm lịch giờ thật lệch nhiều",
     "BAD_PHONE": "Số điện thoại không hợp lệ",
     "PII_LEFT": "Che dữ liệu chưa sạch – không gửi AI",
     "NO_RULE": "Không quy tắc nào áp dụng được",
-    "AI_MINUTES": "AI không ước lượng được số phút đến trước có căn cứ – đang dùng số dự phòng",
+    "LAB_CONFIRM": "Có xét nghiệm máu / nước tiểu – xác nhận có phải chờ kết quả trước khi khám không",
+    "OVER_CAP": "Tổng thời gian dịch vụ vượt giới hạn an toàn (đến quá sớm) – kiểm lại",
+    "AI_MINUTES": "AI không ước lượng được số phút đến trước có căn cứ – đang dùng số dự phòng (mã cũ, trước 18/11/2026)",
     "NO_PID": "Khách tự đặt (Autobooking) chưa có mã bệnh nhân – tìm / tạo hồ sơ",
+    "URGENT": "Có dấu hiệu cần cấp cứu sản (chuyển dạ / ra máu / rỉ ối / thai ngoài tử cung) – gọi khách ngay",
+    "DOCTOR_SHORT": "Giờ bác sĩ ghi ít hơn thời gian tối thiểu của các dịch vụ làm trước",
+    "INFERRED_SERVICES": "Dịch vụ suy ra từ tuần thai / loại khám (ghi chú không ghi) – xác nhận",
+    "NO_GA": "Khám thai nhưng ghi chú không có tuần thai – hỏi lại",
+    "SCOPE_CHECK": "Ghi chú nhắc hỗ trợ sinh sản (IVF…) – kiểm tra có thuộc khoa Sản phụ khoa không",
+    "CLINIC_CLOSED": "Lịch vào ngày / buổi phòng khám nghỉ (chiều thứ 7, chủ nhật)",
+    "OPEN_TIME": "Giờ đến sớm hơn giờ phòng khám nhận khách – kiểm lại / đổi giờ hẹn",
     "SVC_TIME": "Ghi chú có giờ hẹn riêng cho dịch vụ làm trước (vd 'có hẹn 9h30') – kiểm lại giờ đến",
     "ABBR_GUESS": "Ghi chú có viết tắt chưa được xác nhận nghĩa (vd kgm, tkss) – xem danh mục tri thức",
     "SERVICE_CONFIRM": "Dịch vụ suy ra theo tuần thai cần xác nhận (vd test đường huyết – nhịn ăn)",

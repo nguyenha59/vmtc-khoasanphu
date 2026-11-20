@@ -19,7 +19,13 @@ from urllib.parse import urlparse
 
 import requests
 
-from core.ai.llm_client import LlmError, OllamaClient, is_cloud_model, is_internal_host
+from core.ai.llm_client import (
+    LlmError,
+    OllamaClient,
+    guard_egress,
+    is_cloud_model,
+    is_internal_host,
+)
 from core.config import Rules
 from core.textutil import deaccent
 
@@ -45,6 +51,7 @@ class OllamaEmbedder:
         self._local: bool | None = None
 
     def embed(self, texts: list[str]) -> list[list[float]]:
+        guard_egress("\n".join(texts))  # lớp chặn cuối (luật 4) – như OllamaClient / OpenAIClient
         if self._local is None:
             self._local = self._checker.available()
         if not self._local:
@@ -107,6 +114,7 @@ class OpenAIEmbedder:
             check_provider("openai")
         except ValueError as e:
             raise LlmError(str(e)) from e
+        guard_egress("\n".join(texts))  # lớp chặn cuối (luật 4) trước khi văn bản rời máy
         est = (sum(len(t.encode("utf-8")) for t in texts) + 64) * self.price / 1e6
         try:
             reservation = spend_store.reserve(SPEND_FILE, _today(), est, self.budget)

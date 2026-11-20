@@ -1,0 +1,160 @@
+# Giờ đến cập nhật 18/11/2026: siêu âm 20', 4D/NT 30' (người dùng chốt).
+# 20 ca của file demo his_oh_demo_2026-11-18 (GIẢ) – đáp án theo luật đã chốt 17/11/2026 (hồi quy).
+version: 1.0.0
+cases:
+- id: 101
+  appt: 09:00
+  note: dky gói thai 27w
+  visit: ANC_PACKAGE
+  services:
+  - SA_2D
+  - XN_MAU
+  - XN_NUOC_TIEU
+  arrival: '08:25'
+  review: true  # 18/11: xét nghiệm máu / nước tiểu → cần xác nhận (có chờ kết quả không)
+- id: 102
+  appt: '14:30'
+  note: Có khí hư trắng
+  visit: GYN
+  services:
+  - SOI_DICH
+  arrival: '14:15'
+- id: 103
+  appt: 08:30
+  note: khám thai
+  visit: ANC
+  services:
+  - KHAM
+  arrival: 08:15
+- id: 104
+  appt: 08:30
+  note: Chậm kinh
+  visit: EARLY_PREG
+  services:
+  - SA_DAU_DO
+  arrival: '07:55'
+- id: 105
+  appt: 09:00
+  note: tái khám sau sinh thường
+  visit: POSTPARTUM
+  services:
+  - KHAM
+  arrival: 08:45
+- id: 106
+  appt: 09:00
+  note: làm hs mổ u buồng trứng/khám gây mê
+  visit: PREOP
+  services:
+  - KHAM_GAY_ME
+  - XN_TIEN_PHAU
+  arrival: 08:30
+- id: 107
+  appt: '11:00'
+  note: Khám mốc 31 tuần
+  visit: ANC
+  services:
+  - DOPPLER
+  arrival: '10:25'
+- id: 108
+  appt: '10:30'
+  note: Siêu âm 4d tuần 31
+  visit: ANC
+  services:
+  - SA_4D
+  arrival: '09:45'
+- id: 109
+  appt: '11:30'
+  note: 21w/sa4d có hẹn 9h30
+  visit: ANC
+  services:
+  - SA_4D
+  arrival: 09:30
+- id: 110
+  appt: '12:00'
+  note: Chuẩn bị hồ sơ làm LEEP, KH tới 10h
+  visit: PROCEDURE
+  services:
+  - THU_THUAT
+  arrival: '10:00'
+  review: true  # 18/11: chỉ chuẩn bị hồ sơ LEEP → hỏi lại nhịn ăn
+- id: 111
+  appt: '11:00'
+  note: Thai sớm/Chưa loại trừ chuyển dạ /SA trước
+  visit: PRETERM_CHECK
+  services:
+  - CTG
+  - SA_2D
+  arrival: '10:15'
+  review: true
+- id: 112
+  appt: 08:00
+  note: 31w3d, 4d + khám
+  visit: ANC
+  services:
+  - SA_4D
+  arrival: 07:45
+  review: true
+- id: 113
+  appt: 09:30
+  note: Thai 39w5d CBNV Vinmec 100201
+  visit: ANC
+  services:
+  - CTG
+  arrival: 08:45
+  review: true
+- id: 114
+  appt: '11:00'
+  note: Thai 39w6d/SA/CTG tới 08h30
+  visit: ANC
+  services:
+  - CTG
+  - SA_2D
+  arrival: 08:30
+  review: true
+- id: 115
+  appt: 08:45
+  note: 36w5, sa, ctg, khám gây mê đến 8h30
+  visit: PREOP
+  services:
+  - CTG
+  - KHAM_GAY_ME
+  - SA_2D
+  arrival: 08:30
+  review: true
+- id: 116
+  appt: '10:30'
+  note: 39w3d đến 8h
+  visit: ANC
+  services:
+  - CTG
+  arrival: 08:00
+  review: true
+- id: 117
+  appt: '14:00'
+  note: tk sau hút buồng tử cung
+  visit: POST_ABORTION
+  services:
+  - SA_DAU_DO
+  arrival: '13:25'
+- id: 118
+  appt: 09:00
+  note: 31w, 2d + khám
+  visit: ANC
+  services:
+  - SA_2D
+  arrival: '08:25'
+- id: 119
+  appt: 08:40
+  note: 17w5d
+  visit: ANC
+  services:
+  - KHAM
+  arrival: 08:25
+- id: 120
+  appt: '16:00'
+  note: 37w3d, đến 13h
+  visit: ANC
+  services:
+  - CTG
+  arrival: '13:00'
+  review: true

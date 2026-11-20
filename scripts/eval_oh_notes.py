@@ -32,9 +32,9 @@ def _t(s: str) -> time:
     return time(int(hh), int(mm))
 
 
-def run(client: Any | None) -> dict[str, Any]:
+def run(client: Any | None, golden: Path = GOLDEN) -> dict[str, Any]:
     rules = load_rules()
-    cases = yaml.safe_load(GOLDEN.read_text(encoding="utf-8"))["cases"]
+    cases = yaml.safe_load(golden.read_text(encoding="utf-8"))["cases"]
     rows: list[dict[str, Any]] = []
     for c in cases:
         start = _t(c["appt"])
@@ -65,7 +65,7 @@ def run(client: Any | None) -> dict[str, Any]:
         ok_visit = got_visit == c["visit"]
         ok_services = set(c["services"]) <= got_services
         ok_status = flagged == need
-        ok_arrival = need or arrival == c["arrival"]
+        ok_arrival = need or arrival == c["arrival"] or (arrival is None and c["arrival"] == "Khám chờ")
         rows.append(
             {
                 "id": c["id"],

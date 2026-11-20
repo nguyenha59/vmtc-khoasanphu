@@ -58,7 +58,7 @@ def _visits(s: Any, p: Patient, today: date) -> list[dict[str, Any]]:
 
     Có dữ liệu: ngày giờ, tuổi thai tại lần khám, dịch vụ (lý do khám), bác sĩ, ghi chú bác sĩ từ HIS, có đến hay không
     (từ danh sách khách đến), giờ hẹn đến đã nhắn, lần hẹn kế tiếp.
-    Chưa có dữ liệu (cần nối HIS/LIS – docs/11): chỉ số tại phòng khám, khám sản, xét nghiệm, siêu âm, chẩn đoán ICD-10
+    Chưa có dữ liệu (cần nối HIS/LIS – knowledge/sources/tich-hop-du-lieu.md): chỉ số tại phòng khám, khám sản, xét nghiệm, siêu âm, chẩn đoán ICD-10
     → trả `results: None`, giao diện ghi rõ "chưa có dữ liệu", KHÔNG suy đoán.
     """
     appts = s.execute(select(Appointment).where(Appointment.patient_id == p.id)

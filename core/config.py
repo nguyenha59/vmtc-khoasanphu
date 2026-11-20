@@ -100,9 +100,11 @@ class HisColumns:
     time_format: str
     self_booking_prefixes: tuple[str, ...] = ()
     booking_meta_patterns: tuple[str, ...] = ()
+    name_nationality: dict[str, Any] = field(default_factory=dict)
     vietnam_aliases: tuple[str, ...] = ("Việt Nam",)
     worldsms_columns: tuple[tuple[str, str], ...] = ()  # (tiêu đề, trường)
     worldsms_phone_format: str = "local"
+    worldsms_fasting_text: str = ""
 
 
 @dataclass(frozen=True)
@@ -135,15 +137,25 @@ def load_his_columns(path: Path | str | None = None) -> HisColumns:
         time_format=d.get("time_format", "%H:%M"),
         self_booking_prefixes=tuple(d.get("self_booking_prefixes", [])),
         booking_meta_patterns=tuple(d.get("booking_meta_patterns", [])),
+        name_nationality={k: d[k] for k in ("nationality_from_name", "foreign_label", "vietnam_surnames",
+                                            "vietnam_ambiguous_surnames", "vietnam_middle_names") if k in d},
         vietnam_aliases=tuple(d.get("vietnam_aliases", ["Việt Nam"])),
         worldsms_columns=tuple((c["header"], c["field"]) for c in (d.get("worldsms") or {}).get("columns", [])),
         worldsms_phone_format=str((d.get("worldsms") or {}).get("phone_format", "local")),
+        worldsms_fasting_text=str((d.get("worldsms") or {}).get("fasting_note_text", "")),
     )
 
 
-def load_visit_services(path: Path | str | None = None) -> dict[str, Any]:
-    """Danh mục loại khám → dịch vụ → số phút đến sớm, có nguồn (config/visit_services.yaml)."""
+def load_visit_services(path: Path | str | None = None, *, copy_data: bool = True) -> dict[str, Any]:
+    """Danh mục loại khám → dịch vụ → số phút đến sớm, có nguồn (config/visit_services.yaml).
+    copy_data=False: trả bản đệm dùng chung (CHỈ ĐỌC) – dùng ở đường xử lý nóng, tránh deepcopy mỗi lịch."""
     p = Path(path) if path else Path(os.environ.get("APP_VISIT_SERVICES_FILE", CONFIG_DIR / "visit_services.yaml"))
+    if not copy_data:
+        _read_yaml(p)  # làm mới bộ đệm nếu file đổi
+        data = _YAML_CACHE[str(p.resolve())][2]
+        if "version" not in data:
+            raise ValueError(f"{p}: thiếu version")
+        return data
     data = _read_yaml(p)
     if "version" not in data:
         raise ValueError(f"{p}: thiếu version")

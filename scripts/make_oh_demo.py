@@ -40,8 +40,8 @@ ROWS = [
 ]
 NAMES = ["Nguyễn Thị Lan", "Trần Thu Hoa", "Lê Ngọc Mai", "Phạm Thị Hương", "Hoàng Thu Trang", "Vũ Thị Linh",
          "Đặng Ngọc Thảo", "Bùi Thị Ngân", "Đỗ Thu Vy", "Ngô Thị Nhung", "Dương Ngọc Yến", "Lý Thị Quyên",
-         "Đinh Thu Hạnh", "Trịnh Thị Huyền", "Mai Ngọc Dung", "Tạ Thị Loan", "Hồ Thu Tuyết", "Phan Thị Phượng",
-         "Võ Ngọc Oanh", "Huỳnh Thị Giang"]
+         "Kim Min Ji", "Trịnh Thị Huyền", "Mai Ngọc Dung", "Tạ Thị Loan", "Hồ Thu Tuyết", "Phan Thị Phượng",
+         "Tanaka Yuki", "Huỳnh Thị Giang"]
 
 
 NEW_SELF_BOOKED = {2, 4}  # dòng Autobooking chưa có mã bệnh nhân

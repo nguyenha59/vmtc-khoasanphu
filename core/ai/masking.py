@@ -198,7 +198,35 @@ _NER_NOT_NAMES = {
     "tai", "tai kham", "pap", "pap smear", "kham", "sieu am", "thai", "be", "con", "doppler", "double", "triple",
     "npdn", "ogtt", "rh", "gbs", "hpv", "insulin",
     "tha", "dtdtk", "sa", "xn", "ha", "bp", "hiv", "hbsag", "ctg", "cccd",
+    # rà soát 18/11/2026: "SA NT", "XN GBS", "KH cần phiên dịch" bị che thành [TÊN]
+    "nt", "kh", "bs", "kgm", "tkss", "tk", "hs", "cbnv", "ycbs", "dky", "dk", "w", "d", "2d", "3d", "4d", "sa4d",
+    "sadd", "ctm", "tptnt", "nst", "bhcg", "leep", "ivf", "iui", "nipt", "drp", "mvm", "ovm", "ko", "bn", "tt", "kq",
+    "vmc", "dau do", "monitor", "goi", "mo", "pt", "ps", "lmt", "kn", "ck",
 }
+
+
+# Âm tiết vừa là từ chuyên môn vừa là tên người Việt ("Thái", "Hà", "Tài", "Mơ"…): chỉ coi là chuyên môn khi viết HOA
+# kiểu viết tắt ("HA", "THA") – "Thái Hà", "Hà" vẫn là tên (rà soát code 18/11/2026).
+_NAME_LIKE = {"thai", "ha", "tai", "mo", "be", "con", "tha", "kim", "lan"}
+
+
+def _medical_token(tok: str) -> bool:
+    plain = deaccent(tok).lower()
+    if plain not in _NER_NOT_NAMES:
+        return False
+    if plain in _NAME_LIKE:
+        # "HA", "THA" (viết hoa, không dấu) hoặc viết thường ("thai") = chuyên môn; "Thái", "Hà" (viết hoa chữ đầu) = tên
+        return tok.islower() or (tok.isupper() and len(tok) >= 2 and deaccent(tok) == tok)
+    return True
+
+
+def _medical_only(entity: str) -> bool:
+    """Cụm chỉ gồm chữ viết tắt / từ chuyên môn (vd "SA NT", "XN GBS") – không phải tên người.
+    Cụm có âm tiết giống tên ("Thái Hà", "Hà") mà không viết hoa kiểu viết tắt → vẫn là tên."""
+    toks = entity.replace("/", " ").replace("+", " ").split()
+    if len(toks) > 1 and " ".join(deaccent(t).lower() for t in toks) in _NER_NOT_NAMES:
+        return True  # cụm chuyên môn nhiều chữ: "Tái khám", "Siêu âm", "Pap smear"
+    return bool(toks) and all(_medical_token(t) for t in toks)
 
 
 class NerUnavailable(Exception):
@@ -221,7 +249,7 @@ def _ner_persons(text: str, ner: NerFn | None) -> list[str]:
     return [
         p for p in found
         if isinstance(p, str) and len(p.strip()) >= 2 and not PLACEHOLDER_RE.fullmatch(p.strip())
-        and deaccent(p.strip()).lower() not in _NER_NOT_NAMES
+        and not _medical_only(p.strip())
     ]
 
 

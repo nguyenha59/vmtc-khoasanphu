@@ -20,11 +20,11 @@ type Plan = {
   plan_id: number; code: string; full_name: string; phone_masked: string; nationality: string; start_time: string;
   services: string[]; arrival_time: string | null; arrival_label: string; method: string; method_label: string;
   status: string; status_label: string; reasons: Reason[]; merged: boolean;
-  visit_types: string[]; planned_services: PlannedService[]; basis: string[]; fasting: boolean;
+  visit_types: string[]; planned_services: PlannedService[]; basis: string[]; fasting: boolean; maybe_services: string[];
 };
-type PlannedService = { code: string; name: string; why: string; source: string };
+type PlannedService = { code: string; name: string; why: string; source: string; conditional?: boolean };
 const WHY_VI: Record<string, string> = {
-  note: "ghi chú", visit_type: "loại khám", ga: "tuần thai", ai: "AI", service_column: "cột Dịch vụ",
+  note: "ghi chú", visit_type: "loại khám", ga: "tuần thai", ai: "AI", service_column: "cột Dịch vụ", safety: "an toàn – nghi chuyển dạ",
 };
 type PlanList = {
   date: string; waiting_label: string; items: Plan[]; counts: { total: number; need: number; auto: number; merged: number };
@@ -32,7 +32,7 @@ type PlanList = {
 };
 type PlanDetail = Plan & {
   pid: string; merged_from: number[]; conflict_detail: string; masked_note: string; rule_applied: string; notes: string[];
-  warnings: string[]; ai: unknown; confidence: number | null; model: string | null; prompt_version: string | null;
+  warnings: string[]; ai: unknown; ai_summary: string[]; confidence: number | null; model: string | null; prompt_version: string | null;
   ga_inconsistent: boolean; default_time: string; ai_status: string | null; ai_status_label: string;
 };
 type Issue = { code: string; message: string; row_no: number | null; fatal: boolean };
@@ -200,8 +200,12 @@ export function Appointments() {
             <SectionTitle icon={<IconFileSpreadsheet size={18} />}>Bảng giờ đến (Excel)</SectionTitle>
             <Group justify="space-between" wrap="wrap">
               <Text size="sm" c="dimmed">File lịch OH kèm loại khám, dịch vụ dự kiến, giờ đến, cách tính và căn cứ (nguồn) – cho lễ tân / điều dưỡng.</Text>
-              <Button component="a" href={`/api/appointments/arrivals-xlsx?d=${d}`} variant="light" disabled={!can("export_worldsms")}
-                leftSection={<IconDownload size={16} />}>Tải bảng giờ đến</Button>
+              <Group gap="xs">
+                <Button component="a" href={`/api/appointments/arrivals-xlsx?d=${d}&mode=full`} variant="light"
+                  disabled={!can("export_worldsms")} leftSection={<IconDownload size={16} />}>Bản 1: tiếp đón 15' + dịch vụ</Button>
+                <Button component="a" href={`/api/appointments/arrivals-xlsx?d=${d}&mode=services_only`} variant="light"
+                  disabled={!can("export_worldsms")} leftSection={<IconDownload size={16} />}>Bản 2: chỉ thời gian dịch vụ</Button>
+              </Group>
             </Group>
           </Paper>
 
@@ -221,12 +225,20 @@ export function Appointments() {
                 loading={exp.isPending} onClick={() => exp.mutate()}>Xuất 2 file</Button>
             </Group>
             {data!.exports.length > 0 && (
-              <Group mt="md" gap="sm">
-                {data!.exports.map((n) => (
-                  <Button key={n} component="a" href={`/api/appointments/export/${encodeURIComponent(n)}`} variant="light"
-                    leftSection={<IconDownload size={16} />} size="xs">{n}</Button>
-                ))}
-              </Group>
+              <Stack mt="md" gap="xs">
+                {[["Bản 1: tiếp đón 15' + dịch vụ", false], ["Bản 2: chỉ thời gian dịch vụ", true]].map(([label, b2]) => {
+                  const files = data!.exports.filter((n) => n.includes("_ban2_") === b2);
+                  return files.length > 0 && (
+                    <Group key={String(label)} gap="sm">
+                      <Text size="sm" fw={600} w={210}>{label}</Text>
+                      {files.map((n) => (
+                        <Button key={n} component="a" href={`/api/appointments/export/${encodeURIComponent(n)}`} variant="light"
+                          leftSection={<IconDownload size={16} />} size="xs">{n}</Button>
+                      ))}
+                    </Group>
+                  );
+                })}
+              </Stack>
             )}
           </Paper>
         </>
@@ -287,10 +299,13 @@ function PlanDrawer({ id, d, waiting, onClose, onDone }: { id: number | null; d:
               <Text size="sm" fw={600} mb={6}>Loại khám và dịch vụ dự kiến (suy ra từ ghi chú)</Text>
               <Text size="sm">{p.visit_types.join(" · ")}{p.fasting && <Badge ml="xs" color="warn" variant="light">Cần nhịn ăn</Badge>}</Text>
               <Stack gap={2} mt={4}>
-                {p.planned_services.map((x) => (
+                {p.planned_services.filter((x) => !x.conditional).map((x) => (
                   <Text key={x.code} size="xs">• {x.name} <Text span c="dimmed">({WHY_VI[x.why] ?? x.why})</Text></Text>
                 ))}
               </Stack>
+              {p.maybe_services.length > 0 && (
+                <Text size="xs" c="warn.8" mt={6}>Có thể cần (nếu chưa làm – hỏi khách khi gọi): {p.maybe_services.join(", ")}</Text>
+              )}
               {p.basis.length > 0 && (
                 <Text size="xs" c="dimmed" mt={6}>Căn cứ: {p.basis.join("; ")}</Text>
               )}
@@ -301,8 +316,8 @@ function PlanDrawer({ id, d, waiting, onClose, onDone }: { id: number | null; d:
             <Group gap={6} mb={6}><IconRobot size={16} /><Text size="sm" fw={600}>AI đọc ra</Text></Group>
             {p.ai ? (
               <>
-                <Code block style={{ maxHeight: 220, overflow: "auto" }}>{JSON.stringify(p.ai, null, 2)}</Code>
-                <Text size="xs" c="dimmed" mt={4}>Độ tin cậy {p.confidence !== null ? `${Math.round(p.confidence * 100)}%` : "—"} · {p.model} · prompt {p.prompt_version}</Text>
+                <Stack gap={2}>{(p.ai_summary ?? []).map((t, i) => <Text key={i} size="sm">• {t}</Text>)}</Stack>
+                <Text size="xs" c="dimmed" mt={4}>Mức chắc chắn của AI: {p.confidence !== null ? `${Math.round(p.confidence * 100)}%` : "—"}</Text>
                 {p.ga_inconsistent && <Alert mt="xs" color="warn" variant="light">Tuần thai AI đọc lệch &gt; 2 tuần so với lần khám trước – không dùng để chọn form.</Alert>}
               </>
             ) : <Text size="sm" c={p.ai_status === "failed" || p.ai_status === "mask_failed" ? "warn.8" : "dimmed"}>

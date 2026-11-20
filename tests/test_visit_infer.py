@@ -6,7 +6,7 @@ import pytest
 
 from core.config import load_visit_services
 from core.rules.note_patterns import find_ga
-from core.rules.visit_infer import infer_services, plan_minutes
+from core.rules.visit_infer import infer_services, plan_minutes, sourced_floor
 
 
 @pytest.fixture(scope="module")
@@ -44,15 +44,16 @@ def test_department_confirmed_minutes_kept(cat: dict) -> None:
 @pytest.mark.parametrize(
     ("note", "visit", "must_have", "minutes"),
     [
-        ("Chậm kinh", "EARLY_PREG", {"SA_DAU_DO", "BHCG"}, 30),
+        # minutes = tiếp đón 15' + tổng thời gian tối thiểu có nguồn của dịch vụ tính giờ (code tự tính, 17/11/2026)
+        ("Chậm kinh", "EARLY_PREG", {"SA_DAU_DO", "BHCG"}, 35),
         ("tkss thường", "POSTPARTUM", {"KHAM"}, 15),
-        ("Có khí hư trắng", "GYN", {"SOI_DICH"}, 30),
-        ("làm hs mổ u buồng trứng/khám gây mê", "PREOP", {"XN_TIEN_PHAU", "KHAM_GAY_ME"}, 60),
-        ("Làm hồ sơ LEEP, KH tới 10h", "PROCEDURE", {"THU_THUAT"}, 60),
-        ("tk sau hút buồng/phá thai nội khoa", "POST_ABORTION", {"SA_DAU_DO"}, 20),
-        ("39w6d/SA/CTG tới 08h30", "ANC", {"SA_2D", "CTG"}, 45),
-        ("17w5d", "ANC", {"TRIPLE_TEST"}, 30),
-        ("Thai sớm/Chưa loại trừ chuyển dạ/SA trước", "PRETERM_CHECK", {"SA_2D"}, 20),  # chỉ dịch vụ ghi chú
+        ("Có khí hư trắng", "GYN", {"SOI_DICH"}, 15),
+        ("làm hs mổ u buồng trứng/khám gây mê", "PREOP", {"XN_TIEN_PHAU", "KHAM_GAY_ME"}, 30),
+        ("Làm hồ sơ LEEP, KH tới 10h", "PROCEDURE", {"THU_THUAT"}, 15),
+        ("tk sau hút buồng/phá thai nội khoa", "POST_ABORTION", {"SA_DAU_DO"}, 35),
+        ("39w6d/SA/CTG tới 08h30", "ANC", {"SA_2D", "CTG"}, 65),
+        ("17w5d", "ANC", {"TRIPLE_TEST"}, 15),
+        ("Thai sớm/Chưa loại trừ chuyển dạ/SA trước", "PRETERM_CHECK", {"SA_2D", "CTG"}, 65),
         ("khám thai", "ANC", {"KHAM"}, 15),
         ("khám thai 28w, đã làm NPDN", "ANC", {"KHAM"}, 15),
     ],
@@ -63,7 +64,7 @@ def test_infer_from_oh_style_notes(
     p = plan(note, cat)
     assert p.visit_type == visit
     assert must_have <= set(p.codes)
-    assert plan_minutes(p, cat, 90)[0] == minutes
+    assert sourced_floor(p, cat)[0] == minutes
 
 
 def test_done_service_not_added(cat: dict) -> None:
@@ -83,12 +84,13 @@ def test_ga_milestones(cat: dict) -> None:
     assert "OGTT" not in plan("Chậm kinh 26w", cat).codes  # mốc tuần thai chỉ áp cho khám thai
 
 
-def test_inferred_fasting_service_needs_confirmation(cat: dict) -> None:
+def test_conditional_services_not_timed(cat: dict) -> None:
+    """Test đường huyết suy ra theo tuần 24–28 là 'có thể cần' – không tính giờ, không dặn nhịn ăn."""
     p = plan("dky gói thai 27w", cat)
-    assert p.visit_type == "ANC_PACKAGE" and p.fasting
-    assert [x.code for x in p.to_confirm] == ["OGTT"]
-    written = plan("27w NPDN", cat)  # ghi chú ghi rõ → không cần xác nhận lại
-    assert "OGTT" in written.codes and not written.to_confirm
+    assert p.visit_type == "ANC_PACKAGE" and not p.fasting
+    assert [x.code for x in p.maybe] == ["OGTT"]
+    written = plan("27w NPDN", cat)  # ghi chú ghi rõ → tính giờ + nhịn ăn
+    assert "OGTT" in [x.code for x in written.timed] and written.fasting
 
 
 def test_ai_can_only_add_services(cat: dict) -> None:
@@ -140,7 +142,32 @@ def test_facts_are_verified_quotes(cat: dict) -> None:
         src = cat["sources"][f["source"]]
         assert src.get("verified") and src.get("url"), f
         assert f.get("quote"), f
-    from core.ai.note_extractor import knowledge_block
 
-    block = knowledge_block(cat)
-    assert "UOC_LUONG" not in block.split("Thông tin từ nguồn")[1]
+
+def test_demo20_regression_exact() -> None:
+    """20 ca file demo: loại khám, dịch vụ, giờ đến, cần xác nhận đúng 100% theo luật đã chốt 17/11/2026."""
+    from core.ai.llm_client import MockClient
+    from core.config import ROOT
+    from scripts.eval_oh_notes import run
+
+    res = run(MockClient(), ROOT / "tests" / "golden" / "oh_demo20.yaml")
+    assert res["case_accuracy"] == 1.0, res["errors"]
+
+
+def test_nationality_from_name(his_cfg) -> None:  # noqa: ANN001
+    from core.ingest.his_reader import nationality_from_name as f
+
+    assert f("Nguyễn Thị Lan", his_cfg) == "Việt Nam" and f("Nguyen Thi Lan", his_cfg) == "Việt Nam"
+    assert f("Kim Thị Hoa", his_cfg) == "Việt Nam"
+    for n in ("Mai Hà", "Lâm Thảo", "Hồ Thu Tuyết", "Kim Anh"):
+        assert f(n, his_cfg) == "Việt Nam", n
+    for n in ("Kim Min Ji", "Tanaka Yuki", "Sarah Johnson", "Lee Ji Woo", "Chloé Martin", "Léa Dubois", "Jérôme Martin",
+              "Ștefănescu Ana"):
+        assert f(n, his_cfg) != "Việt Nam", n
+
+
+def test_ai_cannot_pick_package_without_keyword(cat: dict) -> None:
+    """Ollama xếp 'Thai 39w5d CBNV' vào đăng ký gói (lỗi thật 18/11) → chỉ nhận khi ghi chú có đăng ký / dky / mua gói."""
+    p = plan("Thai 39w5d CBNV Vinmec 100201", cat, ai_visit_type="ANC_PACKAGE")
+    assert p.visit_type == "ANC"
+    assert plan("dky gói thai 27w", cat, ai_visit_type="ANC_PACKAGE").visit_type == "ANC_PACKAGE"

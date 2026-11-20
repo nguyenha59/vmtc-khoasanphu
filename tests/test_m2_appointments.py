@@ -226,7 +226,7 @@ def test_review_pii_left(rules):
 
 # ---------------- export
 def _er(pid: str, nat: str = "Việt Nam", status: str = "auto", arrival: time | None = time(7, 45)) -> ExportRow:
-    return ExportRow(phone="0900123456", full_name="A", pid=pid, appt_date=D, start_time=time(8, 0),
+    return ExportRow(phone=f"0900123{int(pid) % 1000:03d}", full_name="A", pid=pid, appt_date=D, start_time=time(8, 0),
                      arrival_time=arrival, status=status, nationality=nat)
 
 

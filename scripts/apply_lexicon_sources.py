@@ -1,4 +1,4 @@
-"""Thêm cách nói (có nguồn – docs/10-nguon-y-khoa.md mục 4) vào cuối synonyms của khái niệm ĐÃ CÓ; tăng rules_version.
+"""Thêm cách nói (có nguồn – knowledge/sources/y-khoa.md mục 4) vào cuối synonyms của khái niệm ĐÃ CÓ; tăng rules_version.
 
 Chỉ thêm cách nói (chỉ có thể nâng mức). Không thêm khái niệm, không đổi mức – các việc đó chờ bác sĩ duyệt (mục 5).
 Giữ nguyên chú thích, định dạng và kiểu xuống dòng của rules.yaml. Chạy lại lần hai không thêm trùng.

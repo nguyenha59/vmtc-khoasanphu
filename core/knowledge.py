@@ -1,23 +1,32 @@
 """Danh mục tri thức khám (config/visit_services.yaml) ↔ sổ Excel cho khoa duyệt (knowledge/danh_muc_kham.xlsx).
 
-Quy trình (docs/17): khoa sửa Excel → `scripts/knowledge_import.py` kiểm tra (validate) → ghi người duyệt →
+Quy trình (knowledge/README.md): khoa sửa Excel → `scripts/knowledge_import.py` kiểm tra (validate) → ghi người duyệt →
 tăng phiên bản → ghi YAML + nhật ký thay đổi + audit_log. Code chỉ đọc YAML (luật 2 CLAUDE.md).
 Hàm thuần: không đọc giao diện; đọc/ghi file chỉ ở to_workbook / from_workbook.
 """
 
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-TIERS = ("A", "B", "C", "X")
+TIERS = ("A", "N", "B", "C", "X")  # N = quyết định nội bộ (khoa / chủ dự án), không có link công khai
+DECISION_STATUS = {"Tạm": "provisional", "Đã chốt": "final"}
 ABBR_STATUS = {"Thông dụng": "common", "Đã xác nhận": "confirmed", "Đang đoán": "guess"}
 QUOTE_STATUS = {"Đã duyệt": "approved", "Chờ duyệt": "pending", "Loại": "rejected"}
 YES = {"có", "co", "x", "yes", "true", "1"}
+LIST_FLOW_KEYS = {"urgent_keywords", "urgent_visit_types", "anc_visit_types", "ai_needs_keyword_types",
+                  "generic_visit_types", "fasting_note_keywords", "prep_only_keywords",
+                  "pregnancy_symptom_keywords", "specific_ultrasound_services", "specific_lab_services",
+                  "prep_only_exempt_types", "ai_required_keywords", "review_services"}
 
+QUOTE_COLUMNS = ["Mã nguồn", "Dịch vụ áp dụng", "Câu trích nguyên văn", "Ghi chú", "Trạng thái", "Ngày truy cập",
+                 "Bản chụp", "SHA-256"]
 SHEETS = ["Hướng dẫn", "Phê duyệt", "Dịch vụ", "Loại khám", "Viết tắt", "Mốc tuần thai", "Đã làm", "Quy trình",
           "Nguồn", "Trích dẫn", "Việc nội bộ"]
 
@@ -28,8 +37,12 @@ GUIDE = [
     "3. Nhiều giá trị trong một ô: phân cách bằng dấu ';'.",
     "4. Từ khóa / viết tắt so KHÔNG DẤU, không phân biệt hoa thường, khớp nguyên từ.",
     "5. Viết tắt 'Đang đoán' → lịch có viết tắt đó vào 'Cần xác nhận' cho tới khi bác sĩ / điều dưỡng xác nhận.",
-    "6. Trích dẫn: chép NGUYÊN VĂN từ trang gốc. Chỉ dòng 'Đã duyệt' của nguồn 'Đã kiểm trang gốc = Có' được đưa cho AI.",
-    "7. Nguồn cấp A = căn cứ; B = tham khảo; C = đối chiếu; X = không dùng.",
+    "6. Trích dẫn: chép NGUYÊN VĂN từ trang gốc, phải có 'Bản chụp' (scripts/knowledge_snapshot.py). Khi nạp, máy kiểm "
+    "câu có nguyên văn trong bản chụp – không có thì không nạp. Câu trích là bằng chứng cho số phút; AI không đặt số phút.",
+    "7. Nguồn cấp A = căn cứ; N = quyết định nội bộ (ghi Người quyết định, Tình trạng Tạm/Đã chốt, Hạn xem lại); "
+    "B = tham khảo; C = đối chiếu; X = không dùng. Trích dẫn chỉ lấy từ nguồn công khai (không lấy từ cấp N).",
+    "7b. Cột 'Kiểm tự động' do scripts/knowledge_check_sources.py ghi (trang đổi / câu không còn / link chết) – người "
+    "duyệt mở trang gốc xem lại; máy không tự xóa.",
     "8. Sheet 'Phê duyệt': BẮT BUỘC điền Người duyệt, Chức danh, Ngày duyệt, Nội dung thay đổi trước khi nạp.",
     "9. Nạp: python scripts/knowledge_import.py knowledge/danh_muc_kham.xlsx  (thêm --apply để ghi; mặc định chỉ kiểm tra).",
 ]
@@ -46,8 +59,52 @@ class Report:
 
 
 # ---------------------------------------------------------------- kiểm tra
-def validate(cat: dict[str, Any]) -> Report:
-    """Kiểm tra toàn vẹn danh mục. Lỗi = không được nạp; cảnh báo = vẫn nạp được nhưng cần xem."""
+def default_know_dir() -> Path:
+    import os
+
+    from core.config import ROOT
+
+    return Path(os.environ.get("APP_KNOWLEDGE_DIR", ROOT / "knowledge"))
+
+
+def minutes_in_quote(minutes: int, quote: str) -> bool:
+    """Câu trích có nêu số phút này không ("30 phút", "15-30 phút", hoặc "2 giờ" / "2 tiếng" cho 120')."""
+    if re.search(rf"(?<!\d){minutes}(?!\d)", quote):
+        return True
+    if minutes % 60 == 0:
+        return bool(re.search(rf"(?<![\d.,]){minutes // 60}\s*(giờ|tiếng|h)(?!\w)", quote, re.IGNORECASE))
+    return False
+
+
+def _check_fact_snapshot(i: int, f: dict[str, Any], know: Path, e: Any) -> None:
+    """Câu trích phải trỏ tới bản chụp trang, mã băm khớp, câu có NGUYÊN VĂN trong bản chụp."""
+    from core import knowledge_sources as ks
+
+    rel = f.get("snapshot")
+    if not rel:
+        e(f"Trích dẫn dòng {i} ({f.get('source')}): chưa có bản chụp trang gốc – chạy scripts/knowledge_snapshot.py")
+        return
+    sha = ks.file_sha(know, str(rel))
+    if sha is None:
+        e(f"Trích dẫn dòng {i}: không thấy bản chụp {rel}")
+        return
+    if f.get("sha256") and f["sha256"] != sha:
+        e(f"Trích dẫn dòng {i}: bản chụp {rel} đã bị sửa (mã băm không khớp)")
+        return
+    text = ks.read_snapshot(know, str(rel))
+    if text is None:
+        e(f"Trích dẫn dòng {i}: bản chụp {rel} không có chữ (PDF chưa trích được) – không làm căn cứ")
+    elif not ks.quote_in_text(str(f.get("quote", "")), text):
+        e(f"Trích dẫn dòng {i} ({f.get('source')}): câu trích không có nguyên văn trong bản chụp {rel}")
+
+
+def validate(cat: dict[str, Any], know_dir: Path | None = None) -> Report:
+    """Kiểm tra toàn vẹn danh mục. Lỗi = không được nạp; cảnh báo = vẫn nạp được nhưng cần xem.
+
+    `know_dir`: thư mục knowledge/ chứa bản chụp nguồn (mặc định APP_KNOWLEDGE_DIR hoặc ROOT/knowledge)."""
+    from core import knowledge_sources as ks
+
+    know = know_dir or default_know_dir()
     rep = Report()
     e, w = rep.errors.append, rep.warnings.append
     if not cat.get("version"):
@@ -58,8 +115,24 @@ def validate(cat: dict[str, Any]) -> Report:
     for code, s in sources.items():
         if s.get("tier", "A") not in TIERS:
             e(f"Nguồn {code}: cấp '{s.get('tier')}' không hợp lệ (A/B/C/X)")
-        if s.get("verified") and not s.get("url"):
-            e(f"Nguồn {code}: đánh dấu đã kiểm nhưng không có link")
+        tier = s.get("tier", "A")
+        if s.get("verified") and not s.get("url") and tier not in ("N", "X"):
+            e(f"Nguồn {code}: đánh dấu đã kiểm nhưng không có link (quyết định nội bộ thì để cấp N)")
+        if s.get("internal") and tier not in ("N", "X"):
+            e(f"Nguồn {code}: nguồn nội bộ phải để cấp N (hoặc X nếu không dùng), không để cấp {tier}")
+        if tier == "N":
+            if not s.get("decided_by"):
+                e(f"Nguồn {code}: quyết định nội bộ phải ghi Người quyết định")
+            if s.get("decision_status") not in DECISION_STATUS.values():
+                e(f"Nguồn {code}: quyết định nội bộ phải ghi Tình trạng quyết định (Tạm / Đã chốt)")
+            if not s.get("checked_at"):
+                e(f"Nguồn {code}: quyết định nội bộ phải ghi ngày quyết định (cột Ngày kiểm)")
+            if s.get("decision_status") == "provisional" and not s.get("review_by"):
+                e(f"Nguồn {code}: quyết định tạm phải có Hạn xem lại")
+        auto = s.get("auto_check") or {}
+        if auto.get("status") in ks.CHECK_NEEDS_REVIEW:
+            w(f"Nguồn {code}: kiểm tự động ngày {auto.get('at', '?')} – {ks.CHECK_STATUS[auto['status']]}; "
+              "mở trang gốc xem lại")
     for code, s in services.items():
         src = s.get("source")
         if src not in sources:
@@ -72,8 +145,16 @@ def validate(cat: dict[str, Any]) -> Report:
             if mn > hi:
                 e(f"Dịch vụ {code}: tối thiểu có nguồn {mn} > giới hạn an toàn {hi}")
             ms = s.get("min_source")
-            if not ms or not (sources.get(ms) or {}).get("verified"):
-                e(f"Dịch vụ {code}: số phút tối thiểu phải có nguồn đã kiểm trang gốc (min_source='{ms}')")
+            msrc = sources.get(ms) or {}
+            if not ms or not msrc.get("verified") or msrc.get("tier") not in ("A", "N"):
+                e(f"Dịch vụ {code}: số phút tối thiểu phải có nguồn cấp A đã kiểm trang gốc hoặc quyết định nội bộ "
+                  f"cấp N (min_source='{ms}')")
+            elif msrc.get("tier") == "N" and msrc.get("decision_status") == "provisional":
+                w(f"Dịch vụ {code}: {mn}' dựa trên quyết định nội bộ TẠM {ms} (hạn xem lại {msrc.get('review_by')})")
+            elif msrc.get("tier") == "A" and not any(
+                    f.get("source") == ms and minutes_in_quote(mn, str(f.get("quote", "")))
+                    for f in cat.get("facts") or []):
+                w(f"Dịch vụ {code}: số {mn}' không có trong câu trích đã duyệt nào của {ms} – kiểm lại căn cứ")
     for code, v in vtypes.items():
         miss = [x for x in v.get("services", []) if x not in services]
         if miss:
@@ -111,6 +192,9 @@ def validate(cat: dict[str, Any]) -> Report:
             e(f"Trích dẫn dòng {i}: nguồn {f.get('source')} chưa kiểm trang gốc – không được duyệt trích dẫn")
         if src.get("tier") in ("C", "X"):
             e(f"Trích dẫn dòng {i}: nguồn cấp {src.get('tier')} không được làm căn cứ")
+        if src.get("tier") == "N":
+            e(f"Trích dẫn dòng {i}: nguồn {f.get('source')} là quyết định nội bộ – trích dẫn phải từ nguồn công khai")
+        _check_fact_snapshot(i, f, know, e)
         miss = [x for x in f.get("services", []) if x not in services]
         if miss:
             e(f"Trích dẫn dòng {i}: dịch vụ không tồn tại {miss}")
@@ -148,6 +232,7 @@ def to_frames(cat: dict[str, Any]) -> dict[str, pd.DataFrame]:
     notes = cat.get("verification_notes") or {}
     abbr_rev = {v: k for k, v in ABBR_STATUS.items()}
     q_rev = {v: k for k, v in QUOTE_STATUS.items()}
+    d_rev = {v: k for k, v in DECISION_STATUS.items()}
     approval = cat.get("approval") or {}
     frames: dict[str, pd.DataFrame] = {
         "Hướng dẫn": pd.DataFrame({"Hướng dẫn": GUIDE}),
@@ -165,11 +250,14 @@ def to_frames(cat: dict[str, Any]) -> dict[str, pd.DataFrame]:
             "Đến trước dự phòng (phút)": s.get("minutes_early"),
             "Tối thiểu có nguồn (phút)": s.get("min_minutes", ""), "Nguồn tối thiểu": s.get("min_source", ""),
             "Giới hạn an toàn (phút)": s.get("max_minutes_early"), "Nhịn ăn": _yn(s.get("fasting")),
+            "Có điều kiện (nếu chưa làm)": _yn(s.get("conditional")),
             "Nguồn": s.get("source", ""), "Ghi chú": s.get("note", ""),
         } for c, s in cat["services"].items()]),
         "Loại khám": pd.DataFrame([{
             "Thứ tự ưu tiên": i, "Mã": c, "Tên": v["name"], "Từ khóa": _j(v.get("keywords")),
-            "Dịch vụ thường làm": _j(v.get("services")), "Nguồn": v.get("source", ""),
+            "Dịch vụ thường làm": _j(v.get("services")), "Luôn có (an toàn)": _j(v.get("always_services")),
+            "Không bao giờ có": _j(v.get("exclude_services")),
+            "Nguồn": v.get("source", ""),
         } for i, (c, v) in enumerate(cat["visit_types"].items(), start=1)]),
         "Viết tắt": pd.DataFrame([{
             "Viết tắt": a["term"], "Nghĩa": a.get("meaning", ""), "Ánh xạ tới (mã)": _j(a.get("maps_to")),
@@ -183,7 +271,11 @@ def to_frames(cat: dict[str, Any]) -> dict[str, pd.DataFrame]:
             "Cần xác nhận": _yn(m.get("confirm")), "Nguồn": m.get("source", ""),
         } for m in cat.get("ga_milestones") or []]),
         "Đã làm": pd.DataFrame({"Dấu hiệu 'đã làm' trong ghi chú": cat.get("done_markers") or []}),
-        "Quy trình": pd.DataFrame([{"Khóa": k, "Giá trị": v} for k, v in (cat.get("visit_flow") or {}).items()]),
+        "Quy trình": pd.DataFrame([{"Khóa": k, "Giá trị": (
+                                       json.dumps(v, ensure_ascii=False)
+                                       if isinstance(v, dict) or (isinstance(v, list) and any(isinstance(x, dict) for x in v))
+                                       else _j(v) if isinstance(v, list) else v)}
+                                   for k, v in (cat.get("visit_flow") or {}).items()]),
         "Nguồn": pd.DataFrame([{
             "Mã": c, "Cấp": s.get("tier") or (meta.get(c) or {}).get("tier") or ("A" if s.get("verified") else "B"),
             "Tổ chức": s.get("org") or (meta.get(c) or {}).get("org", ""), "Tiêu đề": s.get("title", ""),
@@ -192,16 +284,23 @@ def to_frames(cat: dict[str, Any]) -> dict[str, pd.DataFrame]:
             "Đã kiểm trang gốc": _yn(s.get("verified")), "Ngày kiểm": s.get("checked_at", ""),
             "Ghi chú kiểm chứng": s.get("check_note") or notes.get(c, "")
             or (meta.get(c) or {}).get("user_note", ""),
+            "Người quyết định": s.get("decided_by", ""),
+            "Tình trạng quyết định": d_rev.get(s.get("decision_status", ""), ""),
+            "Hạn xem lại": s.get("review_by", ""),
+            "Kiểm tự động": (s.get("auto_check") or {}).get("status", ""),
+            "Ngày kiểm tự động": (s.get("auto_check") or {}).get("at", ""),
         } for c, s in {**cat["sources"], **(cat.get("extra_sources") or {})}.items()]),
         "Trích dẫn": pd.DataFrame([{
             "Mã nguồn": f["source"], "Dịch vụ áp dụng": _j(f.get("services")),
             "Câu trích nguyên văn": f.get("quote") or f.get("text", ""), "Trạng thái": q_rev.get("approved"),
-            "Ngày truy cập": f.get("accessed", ""),
+            "Ngày truy cập": f.get("accessed", ""), "Bản chụp": f.get("snapshot", ""), "SHA-256": f.get("sha256", ""),
+            "Ghi chú": f.get("note", ""),
         } for f in cat.get("facts") or []] + [{
             "Mã nguồn": f["source"], "Dịch vụ áp dụng": _j(f.get("services")),
             "Câu trích nguyên văn": f.get("quote", ""), "Trạng thái": q_rev.get(f.get("status", "pending")),
-            "Ngày truy cập": f.get("accessed", ""),
-        } for f in cat.get("pending_quotes") or []]),
+            "Ngày truy cập": f.get("accessed", ""), "Bản chụp": f.get("snapshot", ""), "SHA-256": f.get("sha256", ""),
+            "Ghi chú": f.get("note", ""),
+        } for f in cat.get("pending_quotes") or []], columns=QUOTE_COLUMNS),
         "Việc nội bộ": pd.DataFrame([{
             "Mã": k, "Cần có": v.get("need", ""), "Lấy từ đâu / ai duyệt": v.get("owner", ""),
             "Vì sao cần": v.get("why", ""), "Trạng thái": v.get("status", ""),
@@ -240,6 +339,19 @@ def _str(v: Any) -> str:
     return "" if s in ("nan", "None") else s
 
 
+def _always(r: Any, base_vt: dict[str, Any]) -> dict[str, Any]:
+    if "Luôn có (an toàn)" in r:
+        v = _split(r["Luôn có (an toàn)"])
+    else:
+        v = list(base_vt.get("always_services") or [])  # sổ cũ không có cột → giữ từ phiên bản đang chạy
+    return {"always_services": v} if v else {}
+
+
+def _exclude(r: Any, base_vt: dict[str, Any]) -> dict[str, Any]:
+    v = _split(r["Không bao giờ có"]) if "Không bao giờ có" in r else list(base_vt.get("exclude_services") or [])
+    return {"exclude_services": v} if v else {}
+
+
 def from_workbook(path: Path, base: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
     """Đọc sổ Excel → danh mục mới (giữ các mục không có trong sổ từ `base`). Trả (danh mục, thông tin phê duyệt)."""
     x = pd.read_excel(path, sheet_name=None, dtype=str)
@@ -262,6 +374,11 @@ def from_workbook(path: Path, base: dict[str, Any]) -> tuple[dict[str, Any], dic
             "fasting": _str(r["Nhịn ăn"]).lower() in YES, "source": _str(r["Nguồn"]),
             "keywords": _split(r["Từ khóa"]),
         }
+        if "Có điều kiện (nếu chưa làm)" in r:
+            if _str(r["Có điều kiện (nếu chưa làm)"]).lower() in YES:
+                svc["conditional"] = True
+        elif (base.get("services") or {}).get(code, {}).get("conditional"):
+            svc["conditional"] = True  # sổ cũ không có cột → giữ từ phiên bản đang chạy
         if _int(r["Tối thiểu có nguồn (phút)"]) is not None:
             svc["min_minutes"] = _int(r["Tối thiểu có nguồn (phút)"])
             svc["min_source"] = _str(r["Nguồn tối thiểu"])
@@ -273,7 +390,9 @@ def from_workbook(path: Path, base: dict[str, Any]) -> tuple[dict[str, Any], dic
     vt["_o"] = vt["Thứ tự ưu tiên"].map(lambda v: _int(v) or 999)
     cat["visit_types"] = {
         _str(r["Mã"]): {"name": _str(r["Tên"]), "services": _split(r["Dịch vụ thường làm"]),
-                        "source": _str(r["Nguồn"]), "keywords": _split(r["Từ khóa"])}
+                        "source": _str(r["Nguồn"]), "keywords": _split(r["Từ khóa"]),
+                        **_always(r, (base.get("visit_types") or {}).get(_str(r["Mã"]), {})),
+                        **_exclude(r, (base.get("visit_types") or {}).get(_str(r["Mã"]), {}))}
         for _, r in vt.sort_values("_o", kind="stable").iterrows() if _str(r["Mã"])
     }
 
@@ -303,10 +422,14 @@ def from_workbook(path: Path, base: dict[str, Any]) -> tuple[dict[str, Any], dic
 
     cat["done_markers"] = [_str(v) for v in x["Đã làm"].iloc[:, 0] if _str(v)]
 
-    flow: dict[str, Any] = {}
+    flow: dict[str, Any] = dict(base.get("visit_flow") or {})  # sổ cũ thiếu dòng → giữ giá trị đang chạy
     for _, r in x["Quy trình"].iterrows():
         k, v = _str(r["Khóa"]), _str(r["Giá trị"])
-        if k:
+        if k in LIST_FLOW_KEYS:
+            flow[k] = _split(v)
+        elif k and (v.startswith("{") or v.startswith("[{")):
+            flow[k] = json.loads(v)
+        elif k:
             flow[k] = (v.lower() == "true") if v.lower() in ("true", "false") else (int(v) if v.isdigit() else v)
     cat["visit_flow"] = flow
 
@@ -321,6 +444,16 @@ def from_workbook(path: Path, base: dict[str, Any]) -> tuple[dict[str, Any], dic
                          ("Ngày kiểm", "checked_at"), ("Ghi chú kiểm chứng", "check_note")):
             if _str(r[col]):
                 s[key] = _str(r[col])
+        if s.get("org", "").startswith("Nội bộ") or s["tier"] == "N":  # quyết định nội bộ – không có link công khai
+            s["internal"] = True
+        for col, key in (("Người quyết định", "decided_by"), ("Hạn xem lại", "review_by")):
+            if _str(r.get(col, "")):
+                s[key] = _str(r.get(col, ""))
+        status = _str(r.get("Tình trạng quyết định", ""))
+        if status:
+            s["decision_status"] = DECISION_STATUS.get(status, status)
+        if _str(r.get("Kiểm tự động", "")):
+            s["auto_check"] = {"status": _str(r.get("Kiểm tự động", "")), "at": _str(r.get("Ngày kiểm tự động", ""))}
         cat["sources"][code] = s
 
     cat["facts"], cat["pending_quotes"] = [], []
@@ -329,8 +462,10 @@ def from_workbook(path: Path, base: dict[str, Any]) -> tuple[dict[str, Any], dic
         if not q:
             continue
         f = {"services": _split(r["Dịch vụ áp dụng"]), "source": _str(r["Mã nguồn"]), "quote": q}
-        if _str(r["Ngày truy cập"]):
-            f["accessed"] = _str(r["Ngày truy cập"])
+        for col, key in (("Ngày truy cập", "accessed"), ("Bản chụp", "snapshot"), ("SHA-256", "sha256"),
+                         ("Ghi chú", "note")):
+            if _str(r.get(col, "")):
+                f[key] = _str(r.get(col, ""))
         st = QUOTE_STATUS.get(_str(r["Trạng thái"]), "pending")
         if st == "approved":
             cat["facts"].append(f)
@@ -373,8 +508,9 @@ def bump_minor(version: str) -> str:
 
 
 HEADER = """# ⚠ FILE SINH TỰ ĐỘNG từ knowledge/danh_muc_kham.xlsx bằng scripts/knowledge_import.py – KHÔNG sửa tay.
-# Muốn sửa: xuất sổ Excel (scripts/knowledge_export.py) → khoa sửa + điền Phê duyệt → nạp lại (docs/17).
-# Danh mục loại khám → dịch vụ → câu trích nguồn chính thống; AI chỉ dùng trích dẫn đã duyệt của nguồn đã kiểm.
+# Muốn sửa: xuất sổ Excel (scripts/knowledge_export.py) → khoa sửa + điền Phê duyệt → nạp lại (knowledge/README.md).
+# Danh mục loại khám → dịch vụ → câu trích nguồn chính thống (bản chụp trang ở knowledge/sources/snapshots/).
+# AI chỉ chọn loại khám / dịch vụ trong danh mục; CODE tự tính giờ đến từ min_minutes (nguồn cấp A hoặc nội bộ cấp N).
 # minutes_early = số dự phòng (chưa có căn cứ); min_minutes = tối thiểu có nguồn; max_minutes_early = giới hạn an toàn.
 """
 
@@ -387,3 +523,28 @@ def dump_yaml(cat: dict[str, Any]) -> str:
     body = {k: cat[k] for k in order if k in cat}
     body.update({k: v for k, v in cat.items() if k not in body})
     return HEADER + yaml.safe_dump(body, allow_unicode=True, sort_keys=False, width=140)
+
+
+def edit_sheet(path: Path, sheet: str, columns: list[str], fn: Any) -> int:
+    """Sửa tại chỗ một sheet của sổ Excel (giữ định dạng các sheet khác): thêm cột còn thiếu, gọi `fn(dòng) → dict`
+    cho từng dòng (dict = các ô cần ghi). Trả số dòng đã sửa."""
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path)
+    ws = wb[sheet]
+    header = [str(c.value or "") for c in ws[1]]
+    for col in columns:
+        if col not in header:
+            ws.cell(row=1, column=len(header) + 1, value=col)
+            header.append(col)
+    changed = 0
+    for row in ws.iter_rows(min_row=2):
+        rec = {h: ("" if c.value is None else str(c.value)) for h, c in zip(header, row, strict=False)}
+        if not any(rec.values()):
+            continue
+        upd = fn(rec) or {}
+        for k, v in upd.items():
+            ws.cell(row=row[0].row, column=header.index(k) + 1, value=v)
+        changed += bool(upd)
+    wb.save(path)
+    return changed

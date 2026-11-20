@@ -1,4 +1,4 @@
-"""Xuất danh mục tri thức khám ra sổ Excel cho khoa xem / sửa / duyệt (docs/17).
+"""Xuất danh mục tri thức khám ra sổ Excel cho khoa xem / sửa / duyệt (knowledge/README.md).
 
 Chạy: python scripts/knowledge_export.py [--out knowledge/danh_muc_kham.xlsx]
 """

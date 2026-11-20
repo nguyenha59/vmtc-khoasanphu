@@ -1,0 +1,1504 @@
+# ⚠ FILE SINH TỰ ĐỘNG từ knowledge/danh_muc_kham.xlsx bằng scripts/knowledge_import.py – KHÔNG sửa tay.
+# Muốn sửa: xuất sổ Excel (scripts/knowledge_export.py) → khoa sửa + điền Phê duyệt → nạp lại (docs/17).
+# Danh mục loại khám → dịch vụ → câu trích nguồn chính thống; AI chỉ dùng trích dẫn đã duyệt của nguồn đã kiểm.
+# minutes_early = số dự phòng (chưa có căn cứ); min_minutes = tối thiểu có nguồn; max_minutes_early = giới hạn an toàn.
+version: 1.9.0
+checked_at: '2026-11-17'
+approval:
+  by: Người dùng (chủ dự án)
+  role: Chủ dự án
+  at: 18/11/2026
+  previous_version: 1.8.0
+  summary: Mọi loại siêu âm (2D, 4D, đầu dò, NT, Doppler) tính 20 phút trước khi gặp bác sĩ
+visit_flow:
+  appointment_is: doctor
+  services_before_doctor: true
+  reception_min: 15
+  reception_source: VMC_DEN_TRUOC
+  note_services_only: true
+  urgent_keywords:
+  - chuyen da
+  - doa sinh non
+  - dau bung con
+  - con go
+  - ra nuoc
+  - ri oi
+  - ra mau
+  - ra huyet
+  urgent_visit_types:
+  - PRETERM_CHECK
+  anc_visit_types:
+  - ANC
+  - ANC_PACKAGE
+  ai_needs_keyword_types:
+  - ANC_PACKAGE
+  urgent_requires_ga: true
+  generic_visit_types:
+  - ANC
+  - GYN
+  - OTHER
+  fasting_note_keywords:
+  - nhin an
+  - nhin doi
+  - nhin an tu toi
+  - nhin sang
+  generic_service_keywords:
+    SA_2D:
+    - sa
+    - sieu am
+    XN_MAU:
+    - xn
+    - xet nghiem
+services:
+  KHAM:
+    name: Khám bác sĩ
+    minutes_early: 15
+    max_minutes_early: 90
+    fasting: false
+    source: VMC_DEN_TRUOC
+    keywords:
+    - kham
+    - tai kham
+  SA_2D:
+    name: Siêu âm 2D
+    minutes_early: 20
+    max_minutes_early: 90
+    fasting: false
+    source: VMC_SA_TAM_SOAT
+    keywords:
+    - sieu am
+    - sa 2d
+    min_minutes: 20
+    min_source: NGUOI_DUNG_1811
+  SA_4D:
+    name: Siêu âm 4D / hình thái
+    minutes_early: 20
+    max_minutes_early: 90
+    fasting: false
+    source: VMC_SA_TAM_SOAT
+    min_minutes: 20
+    min_source: NGUOI_DUNG_1811
+    keywords:
+    - hinh thai
+    - sa hinh thai
+    - sang loc hinh thai
+  SA_DAU_DO:
+    name: Siêu âm đầu dò
+    minutes_early: 20
+    max_minutes_early: 90
+    fasting: false
+    source: VMC_XN_THIET_YEU
+    keywords:
+    - dau do
+    - sa dau do
+    note: 20' theo quyết định người dùng 18/11/2026 (không có nguồn thời lượng riêng)
+    min_minutes: 20
+    min_source: NGUOI_DUNG_1811
+  DOPPLER:
+    name: Siêu âm Doppler
+    minutes_early: 20
+    max_minutes_early: 90
+    fasting: false
+    source: VMC_SA_TAM_SOAT
+    min_minutes: 20
+    min_source: NGUOI_DUNG_1811
+    keywords:
+    - doppler
+  NT:
+    name: Siêu âm độ mờ da gáy
+    minutes_early: 20
+    max_minutes_early: 90
+    fasting: false
+    source: VMC_SA_TAM_SOAT
+    min_minutes: 20
+    min_source: NGUOI_DUNG_1811
+    keywords:
+    - do mo da gay
+    - mo da gay
+  CTG:
+    name: Monitor tim thai (CTG/NST)
+    minutes_early: 45
+    max_minutes_early: 180
+    fasting: false
+    source: VMC_NST
+    min_minutes: 30
+    min_source: VMC_CTG
+    keywords:
+    - monitor
+    - monitoring
+    - theo doi tim thai
+    - do tim thai
+    - do con go
+    note: '[CẦN XÁC NHẬN] CTG tối thiểu 30 phút (VMC_CTG), NST ~60 phút (VMC_NST) → đề xuất 45'''
+  XN_MAU:
+    name: Xét nghiệm máu
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: TA_TRUOC_KHAM
+    keywords:
+    - xet nghiem
+    - lay mau
+    - xn mau
+    - cong thuc mau
+  XN_NUOC_TIEU:
+    name: Xét nghiệm nước tiểu
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: VMC_XN_THIET_YEU
+    keywords:
+    - nuoc tieu
+  OGTT:
+    name: Nghiệm pháp dung nạp glucose 75 g
+    minutes_early: 30
+    max_minutes_early: 180
+    fasting: true
+    source: VMC_OGTT
+    min_minutes: 120
+    min_source: VMC_OGTT
+    keywords:
+    - nghiem phap
+    - duong huyet
+    - dung nap
+    - test duong
+    - 75g
+    note: '[CẦN XÁC NHẬN] nhịn đói ≥ 8 giờ, kéo dài ~2 giờ (VMC_OGTT) – số phút giữ như XN, trần 180'''
+    conditional: true
+  DOUBLE_TEST:
+    name: Double test
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: VMC_DOUBLE
+    keywords:
+    - double
+    - double test
+    conditional: true
+  TRIPLE_TEST:
+    name: Triple test
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: VMC_XN_THIET_YEU
+    keywords:
+    - triple
+    - triple test
+    conditional: true
+  NIPT:
+    name: NIPT
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: UOC_LUONG
+    keywords: []
+    conditional: true
+  GBS:
+    name: Xét nghiệm liên cầu nhóm B (GBS)
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: VMC_GBS
+    keywords:
+    - lien cau
+    conditional: true
+  BHCG:
+    name: Beta hCG
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: VMC_BHCG
+    keywords:
+    - beta
+    - hcg
+    conditional: true
+  SOI_DICH:
+    name: Soi tươi dịch âm đạo
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: VMC_SOI_TUOI
+    keywords:
+    - soi tuoi
+    - soi dich
+    - khi hu
+    - huyet trang
+    - dich am dao
+  PAP:
+    name: Tầm soát ung thư cổ tử cung (Pap/HPV)
+    minutes_early: 30
+    max_minutes_early: 120
+    fasting: false
+    source: VMC_KHAM_PK
+    keywords:
+    - pap
+    - hpv
+    - thinprep
+    - phet te bao
+  XN_TIEN_PHAU:
+    name: Xét nghiệm tiền phẫu (máu, đông máu, sinh hóa, điện tim, X-quang)
+    minutes_early: 60
+    max_minutes_early: 180
+    fasting: false
+    source: TA_TIEN_ME
+    keywords:
+    - tien phau
+    - ho so mo
+    - lam ho so
+    - xn tien phau
+    - dien tim
+    - x quang
+    - xquang
+    note: Không tự dặn nhịn ăn – nguồn VMC_PHAU_THUAT (nhịn 6 tiếng) là cho ngày mổ; ghi chú ghi 'nhịn ăn' thì mới dặn
+  KHAM_GAY_ME:
+    name: Khám gây mê (tiền mê)
+    minutes_early: 60
+    max_minutes_early: 180
+    fasting: false
+    source: TA_TIEN_ME
+    keywords:
+    - kham gay me
+    - kham tien me
+    - tien me
+    - gay me
+    note: '[CẦN XÁC NHẬN] đề xuất 60'''
+    min_minutes: 15
+    min_source: TA_TIEN_ME
+  THU_THUAT:
+    name: Thủ thuật (LEEP, hút buồng, sinh thiết…)
+    minutes_early: 60
+    max_minutes_early: 180
+    fasting: true
+    source: VMC_LEEP
+    keywords:
+    - khoet chop
+    - thu thuat
+    - sinh thiet
+    - hut buong
+    note: '[CẦN XÁC NHẬN] nhịn ăn ≥ 8 tiếng (VMC_LEEP); đề xuất 60'''
+  DAT_THAO_VONG:
+    name: Đặt / tháo vòng tránh thai
+    minutes_early: 15
+    max_minutes_early: 90
+    fasting: false
+    source: UOC_LUONG
+    keywords:
+    - dat vong
+    - thao vong
+    - dat dct
+    - thao dct
+    - vong tranh thai
+    note: Không nhịn ăn (rà soát 18/11/2026). Chưa có nguồn thời lượng – không cộng thêm.
+visit_types:
+  PREOP:
+    name: Làm hồ sơ mổ / khám gây mê
+    services:
+    - KHAM
+    - XN_TIEN_PHAU
+    - KHAM_GAY_ME
+    source: TA_TIEN_ME
+    keywords:
+    - ho so mo
+    - kham gay me
+    - tien me
+    - mo u
+    - mo lay thai
+    - chuan bi mo
+  POST_ABORTION:
+    name: Tái khám sau hút thai / phá thai nội khoa
+    services:
+    - KHAM
+    - SA_DAU_DO
+    source: VMC_TAI_KHAM_HUT
+    keywords:
+    - sau hut
+    - pha thai
+    - sau pha thai
+    - dinh chi thai
+    - sot rau
+    - sot thai
+    - sau hut buong
+    - tk sau hut
+    - tai kham sau hut
+    exclude_services:
+    - THU_THUAT
+  PROCEDURE:
+    name: Thủ thuật (LEEP, khoét chóp…)
+    services:
+    - KHAM
+    - XN_MAU
+    - BHCG
+    - THU_THUAT
+    source: VMC_LEEP
+    keywords:
+    - khoet chop
+    - sinh thiet
+    - dat vong
+    - thao vong
+    - hut buong
+    - hut buong tu cung
+  PRETERM_CHECK:
+    name: Nghi chuyển dạ / dọa sinh non
+    services:
+    - KHAM
+    - SA_2D
+    - CTG
+    source: VMC_DOA_SINH_NON
+    keywords:
+    - chuyen da
+    - doa sinh non
+    - con go
+    - go tu cung
+    - dau bung con
+    always_services:
+    - CTG
+  POSTPARTUM:
+    name: Tái khám sau sinh
+    services:
+    - KHAM
+    source: VMC_SAU_SINH
+    keywords:
+    - sau sinh
+    - hau san
+    - sau de
+    - sau mo lay thai
+    - kham sau sinh
+  EARLY_PREG:
+    name: Chậm kinh / thai sớm
+    services:
+    - KHAM
+    - SA_DAU_DO
+    - BHCG
+    source: VMC_BHCG
+    keywords:
+    - cham kinh
+    - tre kinh
+    - thai som
+    - que 2 vach
+    - thu que
+    - nghi thai
+    - thai moi
+  ANC_PACKAGE:
+    name: Đăng ký gói thai sản
+    services:
+    - KHAM
+    - SA_2D
+    - XN_MAU
+    - XN_NUOC_TIEU
+    source: VMC_TRUOC_GOI
+    keywords:
+    - dang ky goi
+    - dky goi
+    - dk goi
+    - mua goi
+    - dang ky thai san
+    - dky thai san
+    - dang ky goi thai
+  ANC:
+    name: Khám thai định kỳ
+    services:
+    - KHAM
+    source: VMC_TRUOC_GOI
+    keywords:
+    - kham thai
+    - thai
+    - moc
+    - tuan
+  GYN:
+    name: Khám phụ khoa
+    services:
+    - KHAM
+    source: VMC_KHAM_PK
+    keywords:
+    - phu khoa
+    - khi hu
+    - huyet trang
+    - ngua
+    - viem
+    - u xo
+    - u buong trung
+    - nang
+    - kinh nguyet
+    - rong kinh
+    - dau bung
+    - ra huyet
+    - ra mau
+    - am dao
+    - pap
+    - hpv
+    - sa phu khoa
+  ULTRASOUND:
+    name: Siêu âm đơn thuần
+    services:
+    - SA_2D
+    source: VMC_SA_TAM_SOAT
+    keywords: []
+  OTHER:
+    name: Khác / chưa rõ
+    services:
+    - KHAM
+    source: UOC_LUONG
+    keywords: []
+abbreviations:
+- term: sa
+  meaning: siêu âm
+  maps_to:
+  - SA_2D
+  status: common
+- term: 2d
+  meaning: siêu âm 2D
+  maps_to:
+  - SA_2D
+  status: common
+- term: 3d
+  meaning: siêu âm 3D
+  maps_to:
+  - SA_4D
+  status: common
+- term: 4d
+  meaning: siêu âm 4D
+  maps_to:
+  - SA_4D
+  status: common
+- term: sa4d
+  meaning: siêu âm 4D
+  maps_to:
+  - SA_4D
+  status: common
+- term: xn
+  meaning: xét nghiệm
+  maps_to:
+  - XN_MAU
+  status: common
+- term: ctg
+  meaning: monitor tim thai
+  maps_to:
+  - CTG
+  status: common
+- term: nst
+  meaning: non-stress test
+  maps_to:
+  - CTG
+  status: common
+- term: npdn
+  meaning: nghiệm pháp dung nạp glucose
+  maps_to:
+  - OGTT
+  status: common
+- term: ogtt
+  meaning: nghiệm pháp dung nạp glucose
+  maps_to:
+  - OGTT
+  status: common
+- term: bhcg
+  meaning: beta hCG
+  maps_to:
+  - BHCG
+  status: common
+- term: βhcg
+  meaning: beta hCG
+  maps_to:
+  - BHCG
+  status: common
+- term: gbs
+  meaning: liên cầu nhóm B
+  maps_to:
+  - GBS
+  status: common
+- term: leep
+  meaning: khoét chóp cổ tử cung bằng vòng điện
+  maps_to:
+  - THU_THUAT
+  - PROCEDURE
+  status: common
+- term: nipt
+  meaning: xét nghiệm NIPT
+  maps_to:
+  - NIPT
+  status: common
+- term: kgm
+  meaning: khám gây mê
+  maps_to:
+  - KHAM_GAY_ME
+  - PREOP
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: tkss
+  meaning: tái khám sau sinh
+  maps_to:
+  - POSTPARTUM
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: tk
+  meaning: tái khám
+  maps_to:
+  - KHAM
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: ycbs
+  meaning: yêu cầu bác sĩ
+  maps_to:
+  - KHAM
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: hs mo
+  meaning: hồ sơ mổ
+  maps_to:
+  - PREOP
+  - XN_TIEN_PHAU
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: lam hs mo
+  meaning: làm hồ sơ mổ
+  maps_to:
+  - PREOP
+  - XN_TIEN_PHAU
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: lam hs
+  meaning: làm hồ sơ (thủ thuật/mổ)
+  maps_to:
+  - XN_TIEN_PHAU
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: dky goi
+  meaning: đăng ký gói
+  maps_to:
+  - ANC_PACKAGE
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: dk goi
+  meaning: đăng ký gói
+  maps_to:
+  - ANC_PACKAGE
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: sadd
+  meaning: siêu âm đầu dò
+  maps_to:
+  - SA_DAU_DO
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: tptnt
+  meaning: tổng phân tích nước tiểu
+  maps_to:
+  - XN_NUOC_TIEU
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: xn nt
+  meaning: xét nghiệm nước tiểu
+  maps_to:
+  - XN_NUOC_TIEU
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: ctm
+  meaning: công thức máu
+  maps_to:
+  - XN_MAU
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: sa nt
+  meaning: siêu âm độ mờ da gáy
+  maps_to:
+  - NT
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+- term: nt 11
+  meaning: siêu âm độ mờ da gáy
+  maps_to:
+  - NT
+  status: confirmed
+  confirmed_by: Người dùng (chủ dự án)
+  confirmed_at: 17/11/2026
+done_markers:
+- đã làm
+- đã có kq
+- có kq
+- đã có kết quả
+- đã test
+- đã
+- làm rồi
+- có kết quả
+- đã xong
+ga_milestones:
+- from_week: 11
+  to_week: 13
+  to_day: 6
+  services:
+  - NT
+  - DOUBLE_TEST
+  source: VMC_DOUBLE
+- from_week: 15
+  to_week: 20
+  to_day: 6
+  services:
+  - TRIPLE_TEST
+  source: VMC_XN_THIET_YEU
+  only_if_missing:
+  - DOUBLE_TEST
+  - NIPT
+- from_week: 21
+  to_week: 24
+  to_day: 6
+  services:
+  - SA_4D
+  source: VMC_XN_THIET_YEU
+- from_week: 24
+  to_week: 28
+  to_day: 0
+  services:
+  - OGTT
+  source: VMC_OGTT
+  confirm: true
+- from_week: 30
+  to_week: 32
+  to_day: 6
+  services:
+  - DOPPLER
+  source: VMC_VAI_TRO_SA
+- from_week: 35
+  to_week: 37
+  to_day: 6
+  services:
+  - GBS
+  source: VMC_GBS
+- from_week: 37
+  to_week: 42
+  to_day: 6
+  services:
+  - CTG
+  source: VMC_3_THANG_CUOI
+sources:
+  VMC_DEN_TRUOC:
+    title: Vinmec – Hướng dẫn sử dụng dịch vụ Vinmec sau khi đăng ký online
+    url: https://www.vinmec.com/vie/bai-viet/huong-dan-su-dung-dich-vu-vinmec-sau-khi-dang-ky-online
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Tiếp đón (mọi lịch)
+    info: Đến trước giờ hẹn 10–15 phút; mang giấy tờ tùy thân, kết quả cũ
+    check_note: 'SỬA config: config hiện gán 10–15'' cho URL ''đặt lịch trên Online Vinmec'' – sai trang, câu này nằm ở trang này'
+    checked_at: '2026-11-17'
+  VMC_TRUOC_GOI:
+    title: Vinmec – Những điều cần biết trước khi đăng ký thai sản trọn gói
+    url: https://www.vinmec.com/vie/bai-viet/truoc-khi-mua-goi-thai-san-co-can-tham-kham-va-kiem-tra-voi-bac-si-san-khong-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Quy trình mỗi lần khám thai; mua gói
+    info: '7 bước: nước tiểu nhanh, cân, huyết áp, đo bề cao tử cung/nghe tim thai, thực hiện chỉ định trong phiếu theo dõi, bác sĩ khám, đặt
+      hẹn lần sau (đặt trước khi có chỉ định SA 4D). Phải xác định tuần thai trước khi mua gói'
+    check_note: Không ghi rõ SA/XN làm trước hay sau bác sĩ
+    checked_at: '2026-11-17'
+  VMC_SA_TAM_SOAT:
+    title: Vinmec – Tại sao mẹ bầu cần phải siêu âm tầm soát dị tật thai nhi?
+    url: https://www.vinmec.com/vi/tin-tuc/thong-tin-suc-khoe/tai-sao-me-bau-can-phai-sieu-am-tam-soat-di-tat-thai-nhi/
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Thời lượng SA hình thái/4D
+    info: SA tầm soát dị tật khoảng 15–30 phút; mốc 12, 22, 32 tuần
+    check_note: Nguồn thời lượng SA duy nhất tìm được – config đang THIẾU
+    checked_at: '2026-11-17'
+  VMC_MOC_4D:
+    title: Vinmec – Các mốc siêu âm 4D trong suốt thai kỳ
+    url: https://www.vinmec.com/vie/bai-viet/cac-moc-sieu-am-4d-trong-suot-thai-ky-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Suy SA 4D theo tuần
+    info: Mốc 11–13, 21–22, 30–32 tuần
+    checked_at: '2026-11-17'
+  VMC_VAI_TRO_SA:
+    title: Vinmec – Vai trò của siêu âm trong sản khoa
+    url: https://www.vinmec.com/vie/bai-viet/vai-tro-cua-sieu-am-trong-san-khoa-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Suy SA theo tuần
+    info: 11–13w6d đo NT; 20–22 khảo sát dị tật 3D/4D; 30–32 bắt buộc 1 lần (bất thường muộn, thai chậm tăng trưởng)
+    checked_at: '2026-11-17'
+  VMC_XN_THIET_YEU:
+    title: Vinmec – Các xét nghiệm thiết yếu cần làm ở từng thời điểm trong thai kỳ
+    url: https://www.vinmec.com/vi/tin-tuc/thong-tin-suc-khoe/san-phu-khoa-va-ho-tro-sinh-san/cac-xet-nghiem-thiet-yeu-can-lam-o-tung-thoi-diem-trong-thai-ky/
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_NST:
+    title: Vinmec – Xét nghiệm Non-stress test là gì?
+    url: https://www.vinmec.com/vie/bai-viet/xet-nghiem-non-stress-test-la-gi-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Dặn khách khi có CTG
+    info: Không cần nhịn đói; nên ăn no, đi vệ sinh trước vì thời gian đo có thể kéo dài
+    check_note: Trang ghi 20–40 phút (không phải 60 phút như bản cũ của danh mục)
+    checked_at: '2026-11-17'
+  VMC_CTG:
+    title: Vinmec – Theo dõi sức khỏe thai bằng chỉ số CTG
+    url: https://www.vinmec.com/vie/bai-viet/theo-doi-suc-khoe-thai-bang-chi-so-ctg-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Thời lượng CTG/NST
+    info: 'NST: thời gian thực hiện tối thiểu 30 phút'
+    check_note: Dùng làm min_minutes cho CTG
+    checked_at: '2026-11-17'
+  VMC_MONITOR:
+    title: Vinmec – Tại sao cần theo dõi tim thai trong chuyển dạ bằng monitor
+    url: https://www.vinmec.com/vie/bai-viet/tai-sao-can-phai-theo-doi-tim-thai-trong-qua-trinh-chuyen-da-bang-monitor-vi
+    verified: true
+    tier: A
+    org: Vinmec Hải Phòng
+    used_for: Thời lượng CTG
+    info: Thường 20 phút, có thể kéo dài nếu nghi bất thường
+    check_note: Bối cảnh chuyển dạ; mâu thuẫn nhẹ với 30' → lấy 30' làm tối thiểu
+    checked_at: '2026-11-17'
+  VMC_3_THANG_CUOI:
+    title: Vinmec – Lịch khám thai chi tiết cho bà bầu mang thai 3 tháng cuối
+    url: https://www.vinmec.com/vie/bai-viet/lich-kham-thai-chi-tiet-cho-ba-bau-mang-thai-3-thang-cuoi-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_OGTT:
+    title: Vinmec – Vì sao mọi phụ nữ mang thai đều nên kiểm tra nguy cơ tiểu đường thai kỳ?
+    url: https://www.vinmec.com/vie/bai-viet/vi-sao-moi-phu-nu-mang-thai-deu-nen-kiem-tra-nguy-co-tieu-duong-thai-ky-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_OGTT2:
+    title: Vinmec – Nghiệm pháp tăng đường huyết ở phụ nữ có thai được thực hiện khi nào?
+    url: https://www.vinmec.com/vie/bai-viet/nghiem-phap-tang-duong-huyet-o-phu-nu-co-thai-duoc-thuc-hien-khi-nao-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: OGTT
+    info: Tuần 24–28; buổi sáng, nhịn đói 10–14 giờ; uống 75g glucose, đo đường huyết sau 1 và 2 giờ
+    check_note: Nhịn 10–14h khác QĐ 1470 (≥8h) → lấy theo Bộ Y tế, ghi chú khác biệt
+    checked_at: '2026-11-17'
+  VMC_GBS:
+    title: Vinmec – Nhiễm liên cầu khuẩn nhóm B ở phụ nữ có thai kỳ 35-37 tuần
+    url: https://www.vinmec.com/vie/bai-viet/nhiem-lien-cau-khuan-nhom-b-o-phu-nu-co-thai-ky-35-37-tuan-va-phac-do-dieu-tri-vi
+    verified: true
+    tier: A
+    check_note: Bài 35–37 tuần; bài VMC_GBS2 ghi 36–38 tuần – hai bài Vinmec lệch nhau
+    checked_at: '2026-11-17'
+  VMC_GBS2:
+    title: Vinmec – GBS là gì và tại sao phụ nữ mang thai được kiểm tra?
+    url: https://www.vinmec.com/vie/bai-viet/gbs-la-gi-va-tai-sao-phu-nu-mang-thai-duoc-kiem-tra-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Suy GBS theo tuần
+    info: Sàng lọc GBS tuần 36–38
+    check_note: Config đang dùng bài 'GBS 35–37 tuần' – nên thêm bài này
+    checked_at: '2026-11-17'
+  VMC_DOUBLE:
+    title: Vinmec – Xét nghiệm Double test được thực hiện vào tuần thai nào?
+    url: https://www.vinmec.com/vie/bai-viet/xet-nghiem-ouble-test-duoc-thuc-hien-vao-tuan-thai-nao-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_BHCG:
+    title: Vinmec – Ý nghĩa xét nghiệm Beta HCG trong chẩn đoán có thai? (hỏi đáp)
+    url: https://www.vinmec.com/vie/bai-viet/y-nghia-xet-nghiem-beta-hcg-trong-chan-doan-co-thai-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_SOI_TUOI:
+    title: Vinmec – Những điều cần biết về soi tươi dịch âm đạo
+    url: https://www.vinmec.com/vie/bai-viet/nhung-dieu-can-biet-ve-soi-tuoi-dich-am-dao-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_KHAM_PK:
+    title: Vinmec – Cách lồng ghép khám phụ khoa và lấy xét nghiệm sàng lọc
+    url: https://www.vinmec.com/vie/bai-viet/cach-long-ghep-kham-phu-khoa-va-lay-xet-nghiem-sang-loc-vi
+    verified: true
+    tier: A
+    org: Vinmec Times City
+    used_for: Khám phụ khoa
+    info: Lấy mẫu XN (dịch âm đạo, Pap) ngay trong lúc khám tại phòng khám
+    check_note: Căn cứ để KHÔNG cộng thêm thời gian cho soi tươi
+    checked_at: '2026-11-17'
+  VMC_SAU_SINH:
+    title: Vinmec – Các kiểm tra mẹ cần làm sau 6 tuần sinh con
+    url: https://www.vinmec.com/vie/bai-viet/cac-kiem-tra-me-can-lam-sau-6-tuan-sinh-con-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_TAI_KHAM_HUT:
+    title: Vinmec – Vì sao cần tái khám sau khi nạo, hút thai?
+    url: https://www.vinmec.com/vie/bai-viet/vi-sao-can-tai-kham-sau-khi-nao-hut-thai-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_DOA_SINH_NON:
+    title: Vinmec – Cổ tử cung ngắn và dọa sinh non điều trị thế nào? (hỏi đáp)
+    url: https://www.vinmec.com/vie/bai-viet/co-tu-cung-ngan-va-doa-sinh-non-dieu-tri-nao-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Nghi chuyển dạ/dọa sinh non
+    info: Kiểm tra cơn co trên monitor + SA đo chiều dài cổ tử cung
+    check_note: Dùng cho loại khám PRETERM_CHECK
+    checked_at: '2026-11-17'
+  VMC_LEEP:
+    title: Vinmec – Khoét chóp cổ tử cung bằng vòng điện (LEEP) – Những điều cần biết
+    url: https://www.vinmec.com/vie/bai-viet/khoet-chop-co-tu-cung-bang-vong-dien-leep-nhung-dieu-can-biet-vi
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  VMC_TIEN_PHAU:
+    title: Vinmec – Đánh giá tiền phẫu trong gây mê
+    url: https://www.vinmec.com/vie/bai-viet/danh-gia-tien-phau-trong-gay-me-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Khám gây mê / hồ sơ mổ
+    info: 'Nội dung khám tiền mê: thuốc đang dùng, đường thở, đánh giá nguy cơ'
+    check_note: Không có thời lượng
+    checked_at: '2026-11-17'
+  VMC_TIEN_ME_24H:
+    title: Vinmec – Khám tiền mê trước mổ tim hở là gì? – P1
+    url: https://www.vinmec.com/vie/bai-viet/kham-tien-me-truoc-mo-tim-ho-la-gi-p1-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Khám gây mê
+    info: Cần ít nhất 1 lần khám tiền mê, trước mổ ít nhất 24 giờ
+    check_note: Bối cảnh mổ tim – áp dụng chung cần khoa xác nhận
+    checked_at: '2026-11-17'
+  VMC_PHAU_THUAT:
+    title: 'Vinmec – Hướng dẫn người bệnh chuẩn bị phẫu thuật Kỳ 2: Ngày phẫu thuật'
+    url: https://www.vinmec.com/vie/bai-viet/huong-dan-nguoi-benh-chuan-bi-phau-thuat-ky-2-ngay-phau-thuat-vi
+    verified: true
+    tier: A
+    org: Vinmec
+    used_for: Dặn nhịn ăn
+    info: Ngày mổ nhịn ăn ít nhất 6 tiếng
+    check_note: Cho ngày mổ, không phải ngày làm hồ sơ
+    checked_at: '2026-11-17'
+  TA_TIEN_ME:
+    title: Tâm Anh – Khám tiền mê là gì? Khám những gì?
+    url: https://tamanhhospital.vn/kham-tien-me/
+    verified: true
+    tier: A
+    org: Tâm Anh
+    used_for: Khám gây mê
+    info: Quy trình 3 bước, có XN tiền phẫu, X-quang ngực
+    check_note: Có câu nguyên văn 'quá trình khám tiền mê dao động trong khoảng từ 15 phút đến 1 giờ' (mục 'Khám tiền mê mất bao lâu?') → dùng
+      được
+    checked_at: '2026-11-17'
+  TA_TRUOC_KHAM:
+    title: Tâm Anh – Trước khi đi khám thai có được ăn gì không? (hỏi đáp)
+    url: https://tamanhhospital.vn/truoc-khi-di-kham-thai-nen-an-gi/
+    verified: true
+    tier: A
+    org: Tâm Anh
+    used_for: Dặn khách
+    info: 'Lần khám có XN máu: không ăn 12 giờ trước; SA thai sớm: uống ~1 lít nước, nhịn tiểu'
+    check_note: Bệnh viện khác – tham khảo bổ sung
+    checked_at: '2026-11-17'
+  TA_LICH_KHAM:
+    title: Tâm Anh – Lịch khám thai định kỳ chi tiết nhất
+    url: https://tamanhhospital.vn/lich-di-kham-thai-dinh-ky-cho-bau/
+    verified: true
+    tier: A
+    org: Tâm Anh
+    used_for: Chậm kinh / khám lần đầu
+    info: Chậm kinh ~2 tuần + que 2 vạch → đến SA và XN
+    checked_at: '2026-11-17'
+  TA_MOC_SA:
+    title: Tâm Anh – 3 mốc siêu âm thai định kỳ quan trọng
+    url: https://tamanhhospital.vn/moc-sieu-am-thai/
+    verified: true
+    tier: A
+    checked_at: '2026-11-17'
+  UOC_LUONG:
+    title: Ước lượng ban đầu của người dùng 12/11/2026 – chưa có căn cứ, chỉ dự phòng khi AI không chạy
+    url: ''
+    verified: false
+    tier: X
+  BYT_1470:
+    title: QĐ 1470/QĐ-BYT 2024 – ĐTĐ thai kỳ (PDF tải được nhưng không đọc được chữ – chưa kiểm)
+    url: https://tamanhhospital.vn/wp-content/uploads/2026/09/huong-dan-quoc-gia-ve-sang-loc-va-quan-ly-dai-thao-duong-thai-ky.pdf
+    verified: false
+    tier: B
+    org: Bộ Y tế
+    used_for: OGTT
+    info: Thay thế QĐ 6173/2018; sàng lọc mọi thai phụ tuần 24–28 bằng 75g glucose
+    check_note: PDF tải được nhưng không trích được chữ → chưa làm căn cứ (mức 8 giờ có ở VMC_OGTT)
+  BYT_1807:
+    title: QĐ 1807/QĐ-BYT 2020 – Sàng lọc trước sinh (trang từ chối kết nối – chưa kiểm)
+    url: https://phongdanso.dongnai.gov.vn/wp-content/uploads/2024/04/QD-1807_BYT_Huong-dan-chuyen-mon-ky-thuat-trong-sang-loc-chan-doan-dieu-tri-truoc-sinh-va-so-sinh.pdf
+    verified: false
+    tier: B
+    org: Bộ Y tế
+    used_for: Double/Triple/NIPT, SA sàng lọc
+    info: Văn bản chuyên môn sàng lọc trước sinh
+    check_note: Trang từ chối kết nối → chưa kiểm
+  BVNT_DTD:
+    title: BV Nội tiết TW – Bài giảng ĐTĐ thai kỳ (PDF không đọc được chữ – chưa kiểm)
+    url: https://benhviennoitiet.vn/wp-content/uploads/2025/01/2.10.-Dai-thao-duong-thai-ky_ThS.BS_.-Pham-Quang-Dat.pdf
+    verified: false
+    tier: B
+    org: BV Nội tiết TW
+    used_for: OGTT
+    info: Tầm soát mọi thai phụ tuần 24–28 bằng 75g; sàng lọc đường huyết ngay lần khám đầu
+    check_note: PDF không trích được chữ → chưa làm căn cứ
+  VMC_GOI_THAI_SAN:
+    title: Vinmec – Bảng quyền lợi chương trình thai sản (PDF – chưa đọc được chữ)
+    url: https://www.vinmec.com/static/uploads/FLYER_BANGGIAKHOASANG_VN_EDIT_2_2f801a0ed5.pdf
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Dịch vụ theo gói và tuần
+    info: 'Khám: gói 12 tuần 11 lần (thai đôi 13), 22 tuần 9, 27 tuần 8, 36 tuần 5, gói sinh 2. SA 2D tuần 26, 34, 36–40 (gói 36 tuần: 36–40;
+      gói sinh: tuần 36). SA 3D/4D: gói 12 tuần 11–14, 17–19, 20–23, 31–34; gói 22 tuần 20–23, 31–34; gói 27 tuần 31–34. Có monitor, Double/Triple,
+      OGTT 75g, XN vi khuẩn gồm GBS, uốn ván'
+    check_note: Không tách được số lần monitor, OGTT, GBS theo từng gói → lấy bảng gốc tại quầy gói thai sản
+  VMC_ONLINE:
+    title: Vinmec – Hướng dẫn đặt lịch khám Vinmec trên website Online Vinmec
+    url: https://www.vinmec.com/vie/bai-viet/huong-dan-dat-lich-kham-vinmec-tren-website-online-vinmec
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Đặt lịch
+    info: Chọn chuyên khoa, bác sĩ, ngày và khung giờ khi đặt online
+    check_note: Không chứa câu 'đến trước 10–15 phút'
+  VMC_DAT_LICH:
+    title: Vinmec – Hướng dẫn đặt lịch khám tại Vinmec
+    url: https://www.vinmec.com/huong-dan-khach-hang/huong-dan-dat-lich-kham-tai-vinmec/
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Đặt lịch
+    info: Đặt qua tổng đài riêng từng bệnh viện hoặc online.vinmec.com
+  VMC_QUY_TRINH:
+    title: Vinmec – Quy trình khám chữa bệnh tại Vinmec
+    url: https://www.vinmec.com/huong-dan-khach-hang/quy-trinh-kham-chua-benh-tai-vinmec/
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Thủ tục giấy tờ
+    info: Chỉ có các bước giấy tờ (đăng ký, ký thanh toán, đồng ý làm XN); sơ đồ là ảnh
+    check_note: Không dùng để tính giờ
+  VMC_BANG_GIA_GOI:
+    title: Vinmec – Bảng giá dịch vụ thai sản trọn gói
+    url: https://www.vinmec.com/vie/bai-viet/bang-gia-dich-vu-thai-san-tron-goi-tai-vinmec-vi
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Danh sách gói
+    info: Các gói 12/27/36 tuần, gói chuyển dạ; thai đơn/đôi
+  VMC_DI_SINH:
+    title: Vinmec – Đi sinh tại Vinmec – dịch vụ thai sản toàn diện
+    url: https://www.vinmec.com/vie/di-sinh-tai-vinmec-dich-vu-thai-san-toan-dien/
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Danh sách gói
+    info: Gói 12, 22, 27, 36 tuần và Gói sinh (chuyển dạ)
+    check_note: Trang ưu đãi, chỉ dùng xác nhận tên gói
+  VMC_SA_11_DIEU:
+    title: 'Vinmec Times City – Siêu âm thai: 11 điều mẹ bầu cần biết'
+    url: https://www.vinmec.com/vie/bai-viet/sieu-am-thai-nhung-dieu-me-bau-can-biet-vi
+    verified: false
+    tier: B
+    org: Vinmec Times City
+    used_for: Thời lượng SA; mốc SA
+    info: SA tầm soát khoảng 15–30 phút; các mốc 12–13w6d, 19–22, 30–32 tuần
+    check_note: Nguồn thứ hai cho 15–30'
+  VMC_SA_4D_EN:
+    title: Vinmec – 3 times when 4D pregnancy ultrasound is needed
+    url: https://vinmec.com/eng/article/3-times-when-4d-pregnancy-ultrasound-is-needed-11-13-weeks-20-22-weeks-30-32-weeks-en
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Suy SA 4D theo tuần
+    info: 11–13, 20–22, 30–32 tuần (nhớ 12–22–32)
+    check_note: Bản dịch máy; ưu tiên bản tiếng Việt
+  VMC_MON_37_40:
+    title: Vinmec – Monitor fetal heart rate during labor (EN)
+    url: https://vinmec.com/eng/article/monitor-fetal-heart-rate-during-labor-en
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Suy CTG theo tuần
+    info: Gói thai sản có monitor 4 lần tuần 37–40
+    check_note: Bài cũ, bản dịch; gói hiện hành 6 lần → ưu tiên VMC_GOI_PDF
+  VMC_MOC_KHAM:
+    title: Vinmec – Các mốc khám thai quan trọng bà bầu cần nhớ
+    url: https://www.vinmec.com/vie/bai-viet/cac-moc-kham-thai-quan-trong-ba-bau-can-nho-vi
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Mốc khám
+    info: Tuần 31–35 khám, SA, uốn ván mũi 2; từ tuần 40 khám mỗi 2 ngày
+  VMC_MOC_DINH_KY:
+    title: Vinmec – Các mốc khám thai định kỳ quan trọng
+    url: https://www.vinmec.com/vie/bai-viet/cac-moc-kham-thai-dinh-ky-quan-trong-vi
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Mốc khám
+    info: 'Tuần 22: SA hình thái + XN nước tiểu; tuần 32: SA cân nặng, XN nước tiểu, máu loại trừ ĐTĐ, uốn ván mũi 2'
+  VMC_10_MOC:
+    title: Vinmec – 10 mốc khám thai bà bầu cần ghi nhớ
+    url: https://www.vinmec.com/vi/tin-tuc/thong-tin-suc-khoe/san-phu-khoa-va-ho-tro-sinh-san/10-moc-kham-thai-ba-bau-can-ghi-nho/
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Suy XN theo tuần
+    info: NIPT từ tuần 10; Triple test tuần 15–18 nếu chưa làm Double; βhCG khi SA chưa rõ túi thai; nuôi cấy tìm GBS ở mốc cuối
+    check_note: Config đang dùng URL dạng /vie/bai-viet/10-moc… – kiểm tra URL còn sống
+  VMC_22_TUAN:
+    title: 'Vinmec – 22 tuần: thời điểm tốt nhất để khảo sát dị tật thai nhi'
+    url: https://www.vinmec.com/vi/tin-tuc/thong-tin-suc-khoe/san-phu-khoa-va-ho-tro-sinh-san/22-tuan-thoi-diem-tot-nhat-de-khao-sat-di-tat-thai-nhi/
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Suy SA tuần 22
+    info: Tuần 22 khám, SA 3D/4D khảo sát dị tật, một số XN bắt buộc
+  VMC_LEEP_X:
+    title: Vinmec – Khoét chóp cổ tử cung được chỉ định khi nào và thực hiện ra sao
+    url: https://www.vinmec.com/vie/bai-viet/khoet-chop-co-tu-cung-duoc-chi-dinh-khi-nao-va-thuc-hien-ra-sao-vi
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: LEEP
+    info: Ngừng ăn ít nhất 8 tiếng trước thủ thuật
+  VMC_SAU_PHA_THAI:
+    title: Vinmec – Niêm mạc tử cung dày, khối hỗn hợp sau phá thai nội khoa
+    url: https://www.vinmec.com/vie/bai-viet/vi-sao-niem-mac-tu-cung-day-va-co-khoi-hon-hop-sau-pha-thai-noi-khoa-vi
+    verified: false
+    tier: B
+    org: Vinmec
+    used_for: Tái khám sau phá thai
+    info: Cần siêu âm kiểm tra; sót rau/sót thai sau phá thai nội khoa khoảng 5–7%
+    check_note: Trang là hỏi đáp, KHÔNG có số 'sót rau 5–7%' → không dùng số này
+  VMC_TIEN_ME_AI:
+    title: Vinmec Central Park – Những ai cần phải khám tiền mê?
+    url: https://www.vinmec.com/vie/bai-viet/nhung-ai-can-phai-kham-tien-me-vi
+    verified: false
+    tier: B
+    org: Vinmec Central Park
+    used_for: Khám gây mê
+    info: Khám tiền mê là quy trình thường quy trước phẫu thuật tại Vinmec
+  TA_MOC_KHAM:
+    title: Tâm Anh – Các mốc khám thai trong thai kỳ
+    url: https://tamanhhospital.vn/tu-van/cho-em-hoi-ve-cac-moc-kham-thai-trong-thai-ky/
+    verified: false
+    tier: B
+    org: Tâm Anh
+    used_for: Mốc khám
+    info: 'Quý 2: khám mỗi tháng, SA hình thái quý 2, XN tầm soát ĐTĐ, thiếu máu, nước tiểu mỗi lần'
+  TA_3_MOC:
+    title: Tâm Anh – 3 mốc khám thai định kỳ phát hiện dị tật
+    url: https://tamanhhospital.vn/3-moc-kham-thai-dinh-ky-de-phat-hien-di-tat-thai-nhi-khong-nen-bo-qua/
+    verified: false
+    tier: B
+    org: Tâm Anh
+    used_for: Mốc SA
+    info: 'Tuần 28–32: cân, huyết áp, nước tiểu, SA tim thai, SA hình thái quý 3'
+  BYT_1154:
+    title: Bộ Y tế – QĐ 1154/QĐ-BYT 2024 – Sàng lọc, xử trí tăng huyết áp thai kỳ, tiền sản giật
+    url: https://syt.khanhhoa.gov.vn/Resources/Docs/000.Nam%202025/CONGVAN/CV%20ph%E1%BB%95%20bi%E1%BA%BFn,%20tri%E1%BB%83n%20khai%20c%C3%A1c%20H%C6%B0%E1%BB%9Bng%20d%E1%BA%ABn%20chuy%C3%AAn%20m%C3%B4n%20%C4%91%C3%A3%20%C4%91%C6%B0%E1%BB%A3c%20B%E1%BB%99%20Y%20t%E1%BA%BF%20ban%20h%C3%A0nh%20trong%20n%C4%83m%202024.signed.signed.signed.pdf
+    verified: false
+    tier: B
+    org: Bộ Y tế
+    used_for: Đo huyết áp mỗi lần khám
+    info: Chỉ xác nhận số hiệu và ngày ban hành (công văn Sở Y tế Khánh Hòa)
+    check_note: Chưa có toàn văn
+  BYT_2818:
+    title: Bộ Y tế – QĐ 2818/QĐ-BYT ngày 07/9/2026 – sàng lọc trước sinh và sơ sinh
+    url: https://daibieunhandan.vn/chung-tay-nang-cao-chat-luong-dan-so-tu-sang-loc-truoc-sinh-va-so-sinh-10442441.html
+    verified: false
+    tier: B
+    org: Bộ Y tế
+    used_for: Sàng lọc trước sinh
+    info: 'Chỉ có tin báo: 3 tháng cuối cần SA thai sản'
+    check_note: Cần toàn văn trước khi làm căn cứ
+  BYT_1359:
+    title: Bộ Y tế – QĐ 1359/QĐ-BYT 2026 – KHHGĐ và phá thai an toàn
+    url: https://luatvietnam.vn/y-te/quyet-dinh-1359-qd-byt-2026-huong-dan-quoc-gia-ve-dich-vu-cham-soc-suc-khoe-sinh-san-434423-d1.html
+    verified: false
+    tier: B
+    org: Bộ Y tế
+    used_for: Tái khám sau phá thai
+    info: Chỉ có trích yếu
+    check_note: Cần toàn văn
+  BYT_TT12_2026:
+    title: Bộ Y tế – Thông tư 12/2026/TT-BYT – danh mục bệnh bẩm sinh khuyến khích sàng lọc
+    url: https://thuvienphapluat.vn/hoi-dap-phap-luat/chinh-sach-moi-ve-y-te-hieu-luc-tu-172026-chi-tiet-the-nao-138095950.html
+    verified: false
+    tier: B
+    org: Bộ Y tế
+    used_for: Sàng lọc
+    info: Hiệu lực từ 01/7/2026
+  MEDPRO_VMC:
+    title: Medpro – Hệ thống Vinmec có trên Medpro
+    url: https://medpro.vn/tin-tuc/he-thong-vinmec-co-tren-medpro
+    verified: false
+    tier: C
+    org: Medpro
+    used_for: Tiếp đón
+    info: 'Đặt qua Medpro: đến trước giờ hẹn 15 phút'
+    check_note: Chỉ dùng để đối chiếu với VMC_DEN_TRUOC
+  HB_GOI_22:
+    title: Hello Bacsi – Gói thai sản 22 tuần Vinmec
+    url: https://hellobacsi.com/care/dich-vu/xet-nghiem/goi-thai-san-tron-goi-22-tuan-sinh-thuong-thai-don-16373/
+    verified: false
+    tier: C
+    org: Hello Bacsi
+    used_for: Số lần dịch vụ trong gói
+    info: 9 khám, 7 SA 2D, 2 SA 3D/4D, 6 monitor
+    check_note: Tham khảo; xác nhận bằng bảng gốc
+  HB_GOI_27:
+    title: Hello Bacsi – Gói thai sản 27 tuần Vinmec
+    url: https://hellobacsi.com/care/dich-vu/xet-nghiem/goi-thai-san-tron-goi-27-tuan-sinh-thuong-thai-don-16379/
+    verified: false
+    tier: C
+    org: Hello Bacsi
+    used_for: Số lần dịch vụ trong gói
+    info: 8 khám, 7 SA 2D, 1 SA 3D/4D, 6 monitor; 44 triệu
+    check_note: Ghi 'khám gây mê 8 lần' – nghi lệch dòng
+  HB_GOI_SINH:
+    title: Hello Bacsi – Gói sinh Vinmec
+    url: https://hellobacsi.com/care/dich-vu/xet-nghiem/goi-thai-san-tron-goi-goi-sinh-sinh-thuong-thai-don-16391/
+    verified: false
+    tier: C
+    org: Hello Bacsi
+    used_for: Số lần dịch vụ trong gói
+    info: Khám thai 2 lần
+    check_note: Tham khảo
+  BCARE_GOI:
+    title: bcare – Thai sản trọn gói Vinmec Times City
+    url: https://bcare.vn/bai-viet/thai-san-tron-goi-benh-vien-vinmec-time-city-moi-nhat-11120.html
+    verified: false
+    tier: C
+    org: bcare
+    used_for: Double/Triple, PlGF trong gói
+    info: Gói 12 tuần có Double/Triple 1 lần, PlGF 1 lần
+    check_note: Tham khảo
+  MEDPRO_GIA:
+    title: Medpro – Chi phí sinh ở Vinmec
+    url: https://medpro.vn/tin-tuc/chi-phi-sinh-o-vinmec-bao-nhieu
+    verified: false
+    tier: C
+    org: Medpro
+    used_for: Giá gói
+    info: Sinh thường khoảng 27–52 triệu, sinh mổ khoảng 35–84 triệu (thai đơn)
+    check_note: Không liên quan giờ đến
+  PEACEHEALTH_NST:
+    title: PeaceHealth (Mỹ) – Nonstress Test
+    url: https://www.peacehealth.org/medical-topics/id/hw196601
+    verified: false
+    tier: C
+    org: PeaceHealth (Mỹ)
+    used_for: Thời lượng NST
+    info: NST khoảng 20–40 phút
+    check_note: Nguồn nước ngoài – đối chiếu
+  LC_PSTW:
+    title: Long Châu – Giới thiệu Bệnh viện Phụ sản Trung ương
+    url: https://nhathuoclongchau.com.vn/bai-viet/gioi-thieu-tong-quan-ve-benh-vien-phu-san-trung-uong.html
+    verified: false
+    tier: C
+    org: Long Châu
+    used_for: Thai quá ngày
+    info: 'Quá ngày dự sinh: SA + monitor mỗi 48 giờ'
+    check_note: Tham khảo
+  TCB_SKTQ:
+    title: Vinmec (đăng trên Techcombank) – Hướng dẫn chuẩn bị khám sức khỏe tổng quát
+    url: https://techcombank.com/content/dam/techcombank/public-site/documents/articles/chuan-bi-khi-kham-sktq-a4aafc9682.pdf
+    verified: false
+    tier: X
+    org: Vinmec (đăng trên Techcombank)
+    used_for: —
+    info: Nhịn 12 tiếng trước XN máu (khám sức khỏe doanh nghiệp)
+    check_note: Không phải khám thai, đăng ngoài Vinmec → không dùng làm căn cứ
+  VIHEMA_ETC:
+    title: vihema, junbaby, homecaresausinh… – Các trang review gói Vinmec
+    url: https://vihema.com/goi-thai-san-benh-vien-vinmec-chi-phi-va-quyen-loi.html
+    verified: false
+    tier: X
+    org: vihema, junbaby, homecaresausinh…
+    used_for: —
+    info: Mô tả gói không nhất quán (vd 'không giới hạn số lần khám')
+    check_note: Không dùng
+  NGUOI_DUNG_1811:
+    title: 'Người dùng (chủ dự án) chốt 18/11/2026: mọi loại siêu âm làm trước khi gặp bác sĩ tính 20 phút'
+    url: ''
+    tier: A
+    verified: true
+    internal: true
+    checked_at: '2026-11-18'
+    check_note: Nguồn công khai chỉ có siêu âm tầm soát dị tật 15–30' (VMC_SA_TAM_SOAT); siêu âm 2D / đầu dò không có nguồn thời lượng → người
+      dùng chốt 20' cho mọi loại siêu âm
+facts:
+- services:
+  - KHAM
+  source: VMC_DEN_TRUOC
+  quote: Đến trước giờ hẹn từ 10 - 15 phút.
+- services:
+  - KHAM
+  source: VMC_DEN_TRUOC
+  quote: Tuân thủ các yêu cầu nhịn ăn hoặc chuẩn bị trước khi khám (nếu có).
+- services:
+  - KHAM
+  source: VMC_TRUOC_GOI
+  quote: Thử nước tiểu nhanh (phát hiện sớm những dấu hiệu nguy cơ trong thai kỳ)
+- services:
+  - KHAM
+  source: VMC_TRUOC_GOI
+  quote: Đo chiều cao tử cung, vòng bụng, nghe tim thai để xác định sự phát triển của thai nhi
+- services:
+  - KHAM
+  - SA_4D
+  source: VMC_TRUOC_GOI
+  quote: Đặt hẹn lần khám tiếp ngay tại phòng khám cùng với bác sĩ (nên đặt hẹn khi có chỉ định siêu âm 4D)
+- services:
+  - SA_2D
+  - SA_4D
+  - NT
+  - DOPPLER
+  source: VMC_SA_TAM_SOAT
+  quote: Thông thường siêu âm tầm soát dị tật thai nhi kéo dài khoảng 15-30 phút.
+- services:
+  - SA_2D
+  - SA_4D
+  - NT
+  - DOPPLER
+  source: VMC_SA_TAM_SOAT
+  quote: Tuy nhiên, với một số trường hợp ngoại lệ có thể sẽ lâu hơn.
+- services:
+  - SA_4D
+  source: VMC_MOC_4D
+  quote: Siêu âm 4D trong tuần 11 - 13 / Siêu âm 4D trong tuần 21 - 22 / Siêu âm 4D trong tuần 31 - 32
+- services:
+  - SA_4D
+  - DOPPLER
+  source: VMC_VAI_TRO_SA
+  quote: Khi thai kỳ 30 - 32 tuần sẽ bắt buộc có 1 lần siêu âm nữa.
+- services:
+  - SA_2D
+  - SA_DAU_DO
+  source: TA_MOC_SA
+  quote: Khi siêu âm ở giai đoạn tam cá nguyệt thứ nhất, mẹ cần uống nhiều nước và nhịn đi tiểu để hình ảnh siêu âm được rõ nét.
+- services:
+  - SA_4D
+  source: TA_LICH_KHAM
+  quote: Nếu có siêu âm tim thai hoặc hình thái học 4D, mẹ nên ăn no.
+- services:
+  - CTG
+  source: VMC_NST
+  quote: Xét nghiệm Non-stress test thường kéo dài từ 20 đến 40 phút.
+- services:
+  - CTG
+  source: VMC_NST
+  quote: không yêu cầu nhịn đói hoặc chuẩn bị gì, tuy nhiên, người mẹ có thể đi vệ sinh và ăn no trước đó
+- services:
+  - CTG
+  source: VMC_CTG
+  quote: Thời gian thực hiện tối thiểu là 30 phút. (mục Non-Stress Test)
+- services:
+  - CTG
+  source: VMC_MONITOR
+  quote: Quá trình này thông thường diễn ra trong 20 phút
+- services:
+  - CTG
+  source: VMC_3_THANG_CUOI
+  quote: 'Thai nhi 36 - 39 tuần tuổi: khám 1 tuần/ lần; Thai nhi sau 39 tuần tuổi: khám 3 ngày/ lần'
+- services:
+  - OGTT
+  source: VMC_OGTT
+  quote: Nghiệm pháp được làm vào buổi sáng sau khi nhịn đói 8 tiếng trước đó.
+- services:
+  - OGTT
+  source: VMC_OGTT
+  quote: Lấy máu xét nghiệm đường huyết lúc đói, sau đó thai phụ uống 75g Glucose và xét nghiệm đường huyết lại sau 1 giờ và 2 giờ.
+- services:
+  - OGTT
+  source: VMC_OGTT
+  quote: Trước khi làm nghiệm pháp nghỉ ngơi ít nhất 30 phút.
+- services:
+  - OGTT
+  source: VMC_OGTT2
+  quote: Nghiệm pháp được tiến hành vào buổi sáng sau khi nhịn đói sau ăn từ 10 – 14 giờ.
+- services:
+  - XN_MAU
+  source: TA_TRUOC_KHAM
+  quote: Khi đó, bạn cần không ăn gì trong vòng 12 giờ trước khi đi khám thai để kết quả xét nghiệm không bị ảnh hưởng. (xét nghiệm máu khoảng
+    tuần 12)
+- services:
+  - XN_MAU
+  - KHAM
+  source: TA_TRUOC_KHAM
+  quote: Ở lần khám thai đầu tiên này, bạn không cần nhịn ăn.
+- services:
+  - XN_NUOC_TIEU
+  source: VMC_XN_THIET_YEU
+  quote: được thực hiện trong mỗi lần đi khám thai bằng cách lấy mẫu nước tiểu giữa dòng
+- services:
+  - DOUBLE_TEST
+  source: VMC_DOUBLE
+  quote: thai nhi 11 - 13 tuần tuổi, vào tuần thai thứ 12
+- services:
+  - DOUBLE_TEST
+  source: VMC_DOUBLE
+  quote: Bác sĩ tiến hành thu mẫu máu tĩnh mạch tay của người mẹ để làm xét nghiệm.
+- services:
+  - TRIPLE_TEST
+  source: VMC_XN_THIET_YEU
+  quote: Triple test được thực hiện khi thai nhi được 15 - 20 tuần tuổi.
+- services:
+  - GBS
+  source: VMC_GBS
+  quote: Sàng lọc GBS trong bệnh phẩm dịch âm đạo dương tính ở tuần thai 35-37.
+- services:
+  - GBS
+  source: VMC_GBS2
+  quote: được thực hiện trong khoảng từ 36 tuần đến 38 tuần của thai kỳ
+- services:
+  - GBS
+  source: VMC_GBS2
+  quote: Kết quả thường có sau 1 đến 2 ngày.
+- services:
+  - BHCG
+  - SA_DAU_DO
+  source: VMC_BHCG
+  quote: Khi định lượng Beta HCG từ 1500 mUI/ml có thể nhìn thấy túi thai trong buồng tử cung với siêu âm đầu dò âm đạo
+- services:
+  - SA_DAU_DO
+  source: VMC_XN_THIET_YEU
+  quote: 'Trễ kinh từ 2 đến 4 tuần: siêu âm vào thời gian này'
+- services:
+  - SOI_DICH
+  source: VMC_SOI_TUOI
+  quote: Không quan hệ tình dục trước khi thực hiện soi tươi.
+- services:
+  - SOI_DICH
+  source: VMC_SOI_TUOI
+  quote: không thực hiện thụt rửa âm đạo sẽ làm sai lệch kết quả soi tươi.
+- services:
+  - PAP
+  - SOI_DICH
+  source: VMC_KHAM_PK
+  quote: Khách hàng đã được đi tiểu hết, thay váy, cởi đồ lót trước khi khám.
+- services:
+  - KHAM_GAY_ME
+  - XN_TIEN_PHAU
+  source: TA_TIEN_ME
+  quote: Tóm lại, quá trình khám tiền mê dao động trong khoảng từ 15 phút đến 1 giờ.
+- services:
+  - KHAM_GAY_ME
+  source: VMC_TIEN_ME_24H
+  quote: đòi hỏi luôn luôn có ít nhất một lần thăm khám tiền mê được thực hiện trước khi bắt đầu cuộc mổ ít nhất 24 giờ.
+- services:
+  - XN_TIEN_PHAU
+  source: VMC_TIEN_PHAU
+  quote: 'Công thức máu, nhóm máu: Bắt buộc ở tất cả các bệnh nhân mổ.'
+- services:
+  - XN_TIEN_PHAU
+  - KHAM_GAY_ME
+  source: VMC_TIEN_PHAU
+  quote: Bệnh nhân sẽ được đo chiều cao, cân nặng, BMI, nhiệt độ, kiểm tra mạch, huyết áp, tần số thở.
+- services:
+  - THU_THUAT
+  source: VMC_PHAU_THUAT
+  quote: Quý khách cần nhịn ăn ít nhất 6 tiếng trước phẫu thuật. (ngày phẫu thuật)
+- services:
+  - THU_THUAT
+  source: VMC_LEEP
+  quote: Thủ thuật này thường thực hiện trong khoảng 1 giờ tại bệnh viện.
+- services:
+  - THU_THUAT
+  source: VMC_LEEP
+  quote: Nhịn ăn ít nhất 8 giờ trước khi làm thủ thuật.
+- services:
+  - THU_THUAT
+  source: VMC_LEEP
+  quote: Thủ thuật được thực hiện sau khi sạch kinh 01 tuần, tránh gần khi hành kinh
+- services:
+  - SA_DAU_DO
+  - KHAM
+  source: VMC_TAI_KHAM_HUT
+  quote: Thông qua thăm khám lâm sàng, kết hợp với siêu âm (tái khám sau nạo hút thai)
+- services:
+  - KHAM
+  source: VMC_SAU_SINH
+  quote: Kiểm tra cân nặng và huyết áp của bạn / Làm một bài kiểm tra mỏ vịt để xem xét âm đạo và cổ tử cung của bạn.
+- services:
+  - SA_2D
+  - CTG
+  source: VMC_DOA_SINH_NON
+  quote: Bạn có thể siêu âm đo độ dài cổ tử cung xem có nguy cơ đẻ non không / bạn nên đến khám lại kiểm tra xem có cơn co tử cung trên máy monitor
+    không
+pending_quotes: []
+internal_required:
+  NB_QUY_TRINH:
+    need: 'Thứ tự trong buổi khám: SA/XN/CTG làm trước, rồi gặp bác sĩ; giờ hẹn trong file OH = giờ gặp bác sĩ'
+    owner: Người dùng xác nhận 17/11/2026
+    why: 'Quyết định công thức: giờ đến = giờ hẹn − (tiếp đón + dịch vụ làm trước)'
+    status: Đã có (ghi vào CLAUDE.md)
+  NB_SO_PHUT:
+    need: Bảng số phút đến trước theo nhóm dịch vụ (khám, SA, SA 4D, CTG, XN máu, OGTT, tiền phẫu, thủ thuật)
+    owner: Điều dưỡng trưởng / khoa duyệt, ký ngày
+    why: Nguồn công khai chỉ là mức tối thiểu (SA 15–30', CTG ≥30', OGTT ~2h)
+    status: Chưa có
+  NB_HIS_TIMESTAMP:
+    need: 'Mốc thời gian thật 1–2 tháng: check-in, bắt đầu/kết thúc SA, CTG, lấy máu, giờ gặp bác sĩ'
+    owner: Xuất từ HIS
+    why: Đo thời gian chờ thực tế – bác sĩ đang dặn 150–180' cho SA+CTG, gấp 2–3 lần số tính theo nguồn
+    status: Chưa có
+  NB_TAT_XN:
+    need: 'Thời gian trả kết quả: XN máu, βhCG, Double/Triple, đông máu, OGTT'
+    owner: Phòng xét nghiệm
+    why: Không có nguồn công khai
+    status: Chưa có
+  NB_VIET_TAT:
+    need: 'Từ điển viết tắt trong ghi chú: SA, 2d, 4d, CTG, kgm, tkss, tk, hs, KH, NPDN, CBNV, T7, DRP/MVM/OVM, ko tam ung…'
+    owner: Điều dưỡng/bác sĩ xác nhận từng từ
+    why: AI đang đoán 'kgm = khám gây mê'
+    status: Chưa có
+  NB_GOI_HIEN_HANH:
+    need: Bảng quyền lợi gói thai sản bản hiện hành của cơ sở (số lần monitor, OGTT, GBS theo từng gói)
+    owner: Quầy gói thai sản
+    why: PDF công khai không tách được theo gói
+    status: Chưa có
+  NB_KHUNG_GIO:
+    need: Khung khám chờ 12:00–13:00, giờ mở phòng SA/CTG/XN, slot đầu ngày
+    owner: Khoa xác nhận
+    why: rules.yaml ghi 'khoa xác nhận 10/11' – cần kiểm lại có thật không
+    status: Cần kiểm lại
+  NB_CAP_CUU:
+    need: Danh sách dấu hiệu phải hướng vào cấp cứu sản thay vì chờ giờ hẹn (đau bụng cơn, ra nước, ra máu…)
+    owner: Bác sĩ sản duyệt
+    why: Lưới an toàn cho ca kiểu BN11
+    status: Chưa có
+  NB_GOLD:
+    need: 'Bộ đáp án: 100–200 ghi chú thật (đã che tên), điều dưỡng gán loại khám, dịch vụ ghi rõ, dịch vụ suy ra, giờ đến'
+    owner: Điều dưỡng gán
+    why: Đo độ chính xác thật thay cho bộ 40 ca giả
+    status: Chưa có
+done_after_markers:
+- rồi
+- đã làm
+- xong
+- có kq
+- có kết quả

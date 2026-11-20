@@ -78,3 +78,6 @@ config/users.yaml
 
 # Kế hoạch làm việc nội bộ – không bao giờ đẩy, kể cả khi sau này mở docs/
 docs/09-ke-hoach-va-prompt.md
+
+# Bản chụp nguồn: PDF của bên thứ ba không đẩy lên (bản chữ .txt + .meta.json vẫn đẩy, test cần)
+knowledge/sources/snapshots/**/*.pdf

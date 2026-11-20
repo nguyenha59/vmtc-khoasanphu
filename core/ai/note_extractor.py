@@ -13,7 +13,7 @@ from typing import Any
 import yaml
 
 from core.ai.consistency import agreement, majority, run_votes
-from core.ai.llm_client import LlmClient, render_prompt
+from core.ai.llm_client import LlmClient, real_model, render_prompt
 from core.config import ROOT, Rules, load_visit_services, prompt_text
 from core.rules.arrival import NoteAI
 from core.rules.note_patterns import find_explicit_time, find_ga, time_in_note
@@ -42,7 +42,6 @@ NOTE_SCHEMA: dict[str, Any] = {
 }
 FIELDS = list(NOTE_SCHEMA["required"])
 SERVICE_FIELDS = ["visit_type", "services"]
-ESTIMATE_FIELDS = ["arrival_minutes", "minutes_basis"]
 
 
 def note_schema(catalog: dict[str, Any]) -> dict[str, Any]:
@@ -50,11 +49,6 @@ def note_schema(catalog: dict[str, Any]) -> dict[str, Any]:
     schema = json.loads(json.dumps(NOTE_SCHEMA))
     schema["properties"]["visit_type"] = {"type": ["string", "null"], "enum": [*catalog["visit_types"], None]}
     schema["properties"]["services"] = {"type": "array", "items": {"enum": list(catalog["services"])}}
-    # AI tự ước lượng số phút đến trước (người dùng chốt 17/11/2026), phải nêu mã nguồn trong danh mục.
-    schema["properties"]["arrival_minutes"] = {"type": ["integer", "null"], "minimum": 0, "maximum": 300}
-    verified = [k for k, v in catalog.get("sources", {}).items() if v.get("verified")]
-    schema["properties"]["minutes_basis"] = {"type": "array", "items": {"enum": verified}}
-    schema["properties"]["minutes_reason"] = {"type": "string", "maxLength": 300}
     return schema
 
 
@@ -73,11 +67,6 @@ def knowledge_block(catalog: dict[str, Any]) -> str:
     for m in catalog.get("ga_milestones", []):
         src = (srcs.get(m["source"]) or {}).get("title", m["source"])
         lines.append(f"- {m['from_week']}–{m['to_week']} tuần: {', '.join(m['services'])} (nguồn: {src})")
-    lines.append("Thông tin từ nguồn (câu trích nguyên văn đã kiểm; mã nguồn trong ngoặc vuông):")
-    for f in catalog.get("facts", []):
-        if not (srcs.get(f["source"]) or {}).get("verified"):
-            continue  # chỉ câu trích đã kiểm từ trang gốc
-        lines.append(f"- [{f['source']}] ({', '.join(f['services'])}) \"{f.get('quote') or f.get('text')}\"")
     return "\n".join(lines)
 
 
@@ -141,15 +130,14 @@ def _to_time(v: str | None) -> time | None:
 
 def extract(
     masked_note: str, services: list[str], appt_time: time, client: LlmClient, rules: Rules,
-    estimate: bool = False,
 ) -> Extraction:
-    """estimate=True: AI ước lượng số phút đến trước (file OH) → luôn chạy đủ số lần để kiểm tra đồng thuận."""
-    """Gọi LLM (self-consistency) và tổng hợp. Ghi chú rỗng → không gọi."""
+    """Gọi LLM (self-consistency) và tổng hợp. Ghi chú rỗng → không gọi.
+    AI chỉ đọc giờ / tuần thai / loại khám / dịch vụ; số phút đến trước do code tính (CLAUDE.md luật 2)."""
     if not masked_note.strip():
         return Extraction(ai=None, attempted=False, confidence=1.0, model=client.name)
     llm = rules["llm"]
     prompt, version = build_prompt(masked_note, services, appt_time)
-    if llm.get("economy_mode") and not estimate and not TIME_HINT_RE.search(deaccent(masked_note)):
+    if llm.get("economy_mode") and not TIME_HINT_RE.search(deaccent(masked_note)):
         runs, temp = 1, 0.0
     else:
         runs, temp = int(llm["consistency_runs_note"]), float(llm["temperature"])
@@ -178,22 +166,20 @@ def extract(
     }
     # Loại khám / dịch vụ: tin cậy riêng – thấp thì bỏ phần này (quy tắc + danh mục vẫn chạy), không hạ cả kết quả.
     services_conf = agreement(votes.outputs, SERVICE_FIELDS, votes.n_total)
-    est_conf, est_spread = _estimate_agreement(votes.outputs, votes.n_total)
     conf = min(confidence_by_field.values())
     raw = {"runs": runs, "temperature": temp, "outputs": votes.outputs, "errors": votes.errors, "models": votes.models,
            "min_confidence": float(rules["arrival"]["ai_confidence_min"])}
     if not votes.outputs:
         return Extraction(ai=None, attempted=True, confidence=0.0, errors=votes.errors, model=client.name,
                           prompt_version=version, raw=raw)
-    m = majority(votes.outputs, [*FIELDS, *SERVICE_FIELDS, "arrival_minutes"])
+    m = majority(votes.outputs, [*FIELDS, *SERVICE_FIELDS])
     # Không tạo một cặp tuần/ngày bằng hai phiếu đa số độc lập.
     ga_pair = Counter((o.get("ga_weeks"), o.get("ga_days")) for o in votes.outputs).most_common(1)[0][0]
     m["ga_weeks"], m["ga_days"] = ga_pair
     noted_ga = find_ga(masked_note)
     ga_grounded = bool(noted_ga and ga_pair[0] == noted_ga[0]
                        and (ga_pair[1] or 0) == noted_ga[1])
-    raw["confidence_by_field"] = {**confidence_by_field, "services": services_conf, "arrival_minutes": est_conf}
-    raw["arrival_minutes_spread"] = est_spread
+    raw["confidence_by_field"] = {**confidence_by_field, "services": services_conf}
     use_services = services_conf >= float(rules["arrival"]["ai_confidence_min"])
     raw["ga_grounded"] = ga_grounded
     ai = NoteAI(
@@ -211,34 +197,9 @@ def extract(
         visit_type=(m.get("visit_type") if use_services else None),
         services=[c for c in (m.get("services") or []) if c in catalog["services"]] if use_services else [],
         services_confidence=services_conf,
-        est_minutes=m.get("arrival_minutes"),
-        est_basis=_basis_for(votes.outputs, m.get("arrival_minutes")),
-        est_reason=next((str(o.get("minutes_reason") or "") for o in votes.outputs
-                         if o.get("arrival_minutes") == m.get("arrival_minutes")), ""),
-        est_confidence=est_conf, est_spread=est_spread,
-        est_max=max((int(o["arrival_minutes"]) for o in votes.outputs
-                     if o.get("arrival_minutes") is not None and o.get("minutes_basis")), default=None),
     )
     return Extraction(ai=ai, attempted=True, confidence=conf, votes=votes.outputs, errors=votes.errors,
-                      model=client.name, prompt_version=version, raw=raw)
-
-
-def _estimate_agreement(outputs: list[dict[str, Any]], n_total: int) -> tuple[float, int | None]:
-    """Đồng thuận số phút AI ước lượng: tỷ lệ phiếu có số phút + nêu nguồn trùng đa số; độ lệch max−min."""
-    vals = [o.get("arrival_minutes") for o in outputs if o.get("arrival_minutes") is not None and o.get("minutes_basis")]
-    if not vals or n_total == 0:
-        return 0.0, None
-    top = Counter(vals).most_common(1)[0][1]
-    return top / n_total, max(vals) - min(vals)
-
-
-def _basis_for(outputs: list[dict[str, Any]], minutes: int | None) -> list[str]:
-    """Hợp mã nguồn của các phiếu chọn đúng số phút đa số."""
-    out: list[str] = []
-    for o in outputs:
-        if minutes is not None and o.get("arrival_minutes") == minutes:
-            out.extend(b for b in (o.get("minutes_basis") or []) if b not in out)
-    return out
+                      model=real_model(votes.models, client), prompt_version=version, raw=raw)
 
 
 def ga_inconsistent(ga_weeks: int | None, expected_weeks: float | None, tolerance: float = 2.0) -> bool:
@@ -286,18 +247,4 @@ def heuristic_extract(note: str) -> dict[str, Any]:
         # Mock: loại khám + dịch vụ bằng từ khóa danh mục (không phải AI thật).
         "visit_type": rule_visit_type(note, catalog) or ("ANC" if ga else "OTHER"),
         "services": keyword_services(note, catalog),
-        **_mock_estimate(note, ga, catalog),
     }
-
-
-def _mock_estimate(note: str, ga: tuple[int, int | None] | None, catalog: dict[str, Any]) -> dict[str, Any]:
-    """Mock: số phút dự phòng của danh mục + nguồn của dịch vụ (không phải AI thật)."""
-    from core.rules.visit_infer import infer_services, plan_minutes, sourced_floor
-
-    plan = infer_services(note, catalog, ga=ga)
-    minutes, _cap, _label = plan_minutes(plan, catalog, 90)
-    minutes = max(minutes or 0, sourced_floor(plan, catalog)[0])
-    key = set(plan.codes) - {"KHAM"}
-    basis = ["VMC_DEN_TRUOC"] + [f["source"] for f in catalog.get("facts", []) if set(f["services"]) & key]
-    return {"arrival_minutes": minutes, "minutes_basis": list(dict.fromkeys(basis))[:4],
-            "minutes_reason": "tiếp đón + thời gian tối thiểu của các dịch vụ làm trước"}

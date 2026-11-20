@@ -1,4 +1,4 @@
-"""Căn cứ của một lý do cảnh báo: quy tắc / khái niệm → nguồn y khoa (config red_basis, docs/10 mục 1).
+"""Căn cứ của một lý do cảnh báo: quy tắc / khái niệm → nguồn y khoa (config red_basis, knowledge/sources/y-khoa.md mục 1).
 
 Mọi cảnh báo ĐỎ phải giải thích được: dữ liệu nào (câu trả lời / câu tự viết) → quy tắc nào → nguồn nào.
 Hàm thuần, chỉ đọc cấu hình.

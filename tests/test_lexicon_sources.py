@@ -1,4 +1,4 @@
-"""Cách nói thêm theo nguồn y khoa (docs/10 mục 4): dò được, có dạng không dấu, không đổi mức, không thêm khái niệm."""
+"""Cách nói thêm theo nguồn y khoa (knowledge/sources/y-khoa.md mục 4): dò được, có dạng không dấu, không đổi mức, không thêm khái niệm."""
 
 from __future__ import annotations
 

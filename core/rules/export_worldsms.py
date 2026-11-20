@@ -8,8 +8,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from core.security import is_valid_phone
+from core.security import is_valid_phone, mask_phone
 from core.textutil import deaccent
+
+TEMP_PID_PREFIX = "TAM"  # mã tạm của khách tự đặt chưa có HN (pipeline.assign_temp_pids)
 
 # Mặc định khi config/his_columns.yaml chưa có mục worldsms. Ý nghĩa P–P6 khoa xác nhận 12/11/2026.
 DEFAULT_COLUMNS: tuple[tuple[str, str], ...] = (
@@ -51,6 +53,7 @@ class ExportRow:
     status: str  # auto | needs_review | confirmed
     nationality: str
     waiting: bool = False  # lịch khám chờ chưa có giờ đến → P6 ghi nhãn (ví dụ "Khám chờ")
+    fasting: bool = False  # có dặn nhịn ăn → P7
 
 
 def file_names(appt_date: date) -> tuple[str, str]:
@@ -65,12 +68,24 @@ def build_exports(
     columns: tuple[tuple[str, str], ...] = DEFAULT_COLUMNS,
     phone_format: str = "local",
     vn_aliases: tuple[str, ...] = DEFAULT_VN_ALIASES,
+    fasting_text: str = "",
 ) -> dict[str, pd.DataFrame]:
     pending = [r for r in rows if r.status == "needs_review" or (r.arrival_time is None and not r.waiting)]
     if pending:
         raise ExportLocked(f"Còn {len(pending)} ca 'Cần xác nhận' – xác nhận hết rồi mới xuất được file.")
     # Số điện thoại lỗi không gửi được qua WorldSMS → không đưa vào file (xem invalid_phone_rows).
     ordered = sorted((r for r in rows if is_valid_phone(r.phone)), key=lambda r: (r.start_time, r.pid))
+    # Mỗi SĐT tối đa 1 tin (rà soát 18/11/2026: một khách nhận 2 tin khác giờ dễ đến nhầm)
+    seen: dict[str, ExportRow] = {}
+    dups: list[str] = []
+    for r in ordered:
+        k = format_phone(r.phone, "local")
+        if k in seen and (seen[k].status != "confirmed" or r.status != "confirmed"):
+            dups.append(mask_phone(k))
+        else:
+            seen[k] = r
+    if dups:
+        raise ExportLocked("Một số điện thoại có nhiều lịch – kiểm tra gộp lịch trước khi xuất: " + "; ".join(dups[:5]))
 
     cols = columns or DEFAULT_COLUMNS
 
@@ -78,12 +93,13 @@ def build_exports(
         return {
             "phone": format_phone(r.phone, phone_format),
             "full_name": r.full_name,
-            "pid": r.pid,
+            "pid": "" if r.pid.startswith(f"{TEMP_PID_PREFIX}-") else r.pid,  # mã tạm chỉ dùng nội bộ
             "start_time": r.start_time.strftime("%H:%M"),
             "day": f"{r.appt_date.day:02d}",
             "month": f"{r.appt_date.month:02d}",
             "year": f"{r.appt_date.year}",
             "arrival_time": r.arrival_time.strftime("%H:%M") if r.arrival_time else waiting_label,
+            "fasting_note": fasting_text if r.fasting else "",
         }[f]
 
     def frame(sel: list[ExportRow]) -> pd.DataFrame:
